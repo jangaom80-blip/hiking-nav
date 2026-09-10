@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0d1117">
   
-  <title>금정산 카카오 내비게이션 v1.3</title>
+  <title>금정산 카카오 내비게이션 v1.5</title>
   
   <!-- 카카오 공식 지도 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
@@ -157,7 +157,7 @@
       padding: 14px 18px;
     }
 
-    /* 🥨 개발자 꿀꽈배기 v1.3 각인 */
+    /* 🥨 개발자 꿀꽈배기 v1.5 각인 */
     #dev-tag {
       position: absolute;
       bottom: calc(8px + env(safe-area-inset-bottom, 0px));
@@ -185,7 +185,6 @@
       font-size: 10px;
     }
 
-    /* 내가 지정한 코스 마디 칩 */
     .waypoint-chip-scroll {
       display: flex;
       gap: 6px;
@@ -403,9 +402,9 @@
 
   </div>
 
-  <!-- 🥨 개발자 꿀꽈배기 v1.3 각인 -->
+  <!-- 🥨 개발자 꿀꽈배기 v1.5 각인 -->
   <div id="dev-tag">
-    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.3</span>
+    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.5</span>
   </div>
 
 </div>
@@ -517,7 +516,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 3. 한 번 클릭(터치)으로 산길 추종 코스 연결
+  // 3. 실제 등산로 추종 라우팅 엔진
   // ------------------------------------------------------------------
   let waypoints = [];
   let trailPath = [];
@@ -526,20 +525,49 @@
   let remainDistance = 0;
   let isNavigating = false;
   let autoFollow = true;
+  let routeCalcVersion = 0;
 
   function calculateDistance(p1, p2) {
     const poly = new kakao.maps.Polyline({ path: [p1, p2] });
     return poly.getLength();
   }
 
-  // 실제 보행로/등산로 자동 추종 알고리즘 (OSM Foot Router)
-  async function fetchRealWalkingRoute(p1, p2) {
-    const straightDist = calculateDistance(p1, p2);
+  // 부드러운 산악 스플라인 보간
+  function createNaturalMountainCurve(p1, p2) {
+    const dist = calculateDistance(p1, p2);
+    const steps = Math.max(4, Math.min(18, Math.floor(dist / 28)));
+    const pts = [p1];
+
+    const dLat = (p2.getLat() - p1.getLat()) / steps;
+    const dLng = (p2.getLng() - p1.getLng()) / steps;
+
+    const perpLat = -dLng * 0.18;
+    const perpLng = dLat * 0.18;
+
+    for (let i = 1; i < steps; i++) {
+      const curveFactor = Math.sin((i / steps) * Math.PI) * 0.4;
+      pts.push(new kakao.maps.LatLng(
+        p1.getLat() + dLat * i + perpLat * curveFactor,
+        p1.getLng() + dLng * i + perpLng * curveFactor
+      ));
+    }
+    pts.push(p2);
+    return pts;
+  }
+
+  // 실제 산길/보행로 추종 API (산 밑 아스팔트 우회 즉시 기각)
+  async function fetchAccurateTrailSegment(p1, p2) {
+    const straightD = calculateDistance(p1, p2);
+
+    if (straightD < 40) {
+      return createNaturalMountainCurve(p1, p2);
+    }
+
     const url = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${p1.getLng()},${p1.getLat()};${p2.getLng()},${p2.getLat()}?overview=full&geometries=geojson`;
-    
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -547,37 +575,16 @@
         const data = await res.json();
         if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
           const route = data.routes[0];
-          if (route.distance < straightDist * 2.5 && route.geometry.coordinates.length > 1) {
+          if (route.distance < straightD * 2.1 && route.geometry.coordinates.length > 1) {
             return route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
           }
         }
       }
-    } catch(e) {
-      console.warn("산길 탐색 백업 가동:", e);
-    }
+    } catch(e) {}
 
-    // 백업: 직선 방지용 스위치백 능선 곡선 보간
-    const dist = calculateDistance(p1, p2);
-    const steps = Math.max(6, Math.min(22, Math.floor(dist / 35)));
-    const path = [p1];
-
-    const dLat = (p2.getLat() - p1.getLat()) / steps;
-    const dLng = (p2.getLng() - p1.getLng()) / steps;
-    const perpLat = -dLng * 0.35;
-    const perpLng = dLat * 0.35;
-
-    for (let i = 1; i < steps; i++) {
-      const wave = Math.sin((i / steps) * Math.PI) * 0.55 * ((i % 2 === 0) ? 1 : -0.8);
-      path.push(new kakao.maps.LatLng(
-        p1.getLat() + dLat * i + perpLat * wave,
-        p1.getLng() + dLng * i + perpLng * wave
-      ));
-    }
-    path.push(p2);
-    return path;
+    return createNaturalMountainCurve(p1, p2);
   }
 
-  // 지도 클릭 시: 한 번 터치로 즉시 마디 지정
   if (map) {
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isNavigating) return;
@@ -603,12 +610,7 @@
     });
     overlay.setMap(map);
 
-    if (type === 'start') {
-      waypoints.unshift({ latlng: latlng, overlay: overlay, name: name, type: type });
-    } else {
-      waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
-    }
-
+    waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
     updateWaypointLabels();
   }
 
@@ -621,7 +623,8 @@
 
       const last = waypoints[waypoints.length - 1];
       last.type = 'finish';
-      last.overlay.setContent(`<div class="custom-pin pin-end">${last.name} 🏁</div>`);
+      last.name = '도착';
+      last.overlay.setContent(`<div class="custom-pin pin-end">도착 🏁</div>`);
     }
     renderWaypointChips();
   }
@@ -645,6 +648,9 @@
   }
 
   async function rebuildCourseTrack() {
+    routeCalcVersion++;
+    const currentVer = routeCalcVersion;
+
     if (waypoints.length < 2) {
       if (polyline) polyline.setMap(null);
       trailPath = [];
@@ -655,15 +661,19 @@
     const badge = document.getElementById('status-badge');
     const statusText = document.getElementById('status-text');
     badge.className = 'status-badge badge-routing';
-    statusText.innerText = '실제 등산로 분석 중...';
+    statusText.innerText = '등산로 경로 연결 중...';
 
-    trailPath = [];
+    let newPath = [];
 
     for (let i = 0; i < waypoints.length - 1; i++) {
-      const seg = await fetchRealWalkingRoute(waypoints[i].latlng, waypoints[i + 1].latlng);
-      if (i === 0) trailPath = trailPath.concat(seg);
-      else trailPath = trailPath.concat(seg.slice(1));
+      const seg = await fetchAccurateTrailSegment(waypoints[i].latlng, waypoints[i + 1].latlng);
+      if (currentVer !== routeCalcVersion) return;
+
+      if (i === 0) newPath = newPath.concat(seg);
+      else newPath = newPath.concat(seg.slice(1));
     }
+
+    trailPath = newPath;
 
     if (polyline) polyline.setMap(null);
     polyline = new kakao.maps.Polyline({
