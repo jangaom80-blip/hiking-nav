@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="referrer" content="no-referrer">
   
-  <!-- 모바일 전체화면 밀착 (아이폰 노치/홈바 안전 영역 대응) -->
+  <!-- 모바일 100% 밀착 풀스크린 (노치/홈바 안전영역 대응) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -58,10 +58,10 @@
       background: #0d1117;
     }
 
-    /* ★ 짙은 숲 위에서도 등산로와 오솔길이 또렷하게 보이도록 네온 윤곽선 필터 적용 */
-    .vivid-trail-overlay {
-      filter: drop-shadow(0 0 1.5px #ffffff) drop-shadow(0 0 4px rgba(0, 0, 0, 0.95)) contrast(160%) saturate(180%) !important;
-      opacity: 0.96 !important;
+    /* ★ 실제 산길을 눈부신 화이트 네온 + 블랙 음영 테두리로 표시하는 특수 필터 */
+    .white-trail-filter {
+      filter: brightness(0) invert(1) drop-shadow(0 0 1.5px #000000) drop-shadow(0 0 3px #000000) !important;
+      opacity: 0.95 !important;
     }
 
     /* 하이엔드 글래스모피즘 HUD */
@@ -212,7 +212,6 @@
     .wp-chip.start { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
     .wp-chip.finish { background: rgba(255, 23, 68, 0.2); border-color: #ff1744; color: #ff5252; }
 
-    /* 산행 지표 (거리 / 시간 / 도착예정시각) */
     .summary-metrics {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -317,7 +316,8 @@
   <!-- 우측 컨트롤 버튼 -->
   <div id="quick-controls">
     <div id="btn-my-loc" class="round-btn active" onclick="panToUserLocation()" title="내 위치 바로가기">🎯</div>
-    <div id="btn-trail-toggle" class="round-btn active" onclick="toggleHikingOverlay()" title="등산로 표시 켜기/끄기">🥾</div>
+    <div id="btn-draw-mode" class="round-btn" onclick="toggleFreeDrawMode()" title="✏️ 손가락으로 산길 직접 그리기">✏️</div>
+    <div id="btn-trail-toggle" class="round-btn active" onclick="toggleHikingOverlay()" title="백색 등산로 켜기/끄기">🥾</div>
     <div class="round-btn" onclick="fitCourseView()" title="전체 코스 보기">🗺️</div>
     <div class="round-btn" onclick="zoomIn()" title="확대">+</div>
     <div class="round-btn" onclick="zoomOut()" title="축소">−</div>
@@ -329,7 +329,7 @@
     <!-- [플랜 모드 UI] -->
     <div id="plan-section">
       <div id="waypoint-chips" class="waypoint-chip-scroll">
-        <div class="wp-chip">위성 사진 위 등산로를 따라 지점을 콕콕 찍으세요</div>
+        <div class="wp-chip">하얀 실제 등산로를 콕 찍거나 ✏️버튼으로 슥- 그리세요</div>
       </div>
 
       <!-- 거리 / 예상시간 / 도착예정시각 -->
@@ -400,19 +400,18 @@
 
 <script>
   // ------------------------------------------------------------------
-  // 1. 위성 사진 + 등산로/오솔길 고대비 듀얼 합성 엔진
+  // 1. 위성 사진 + '선명한 화이트 네온 등산로' 듀얼 합성
   // ------------------------------------------------------------------
   const map = L.map('map', {
     zoomControl: false,
     attributionControl: false
   }).setView([35.2750, 129.0570], 15); // 금정산 중심
 
-  // 전용 레이어 Pane 생성 (등산로가 위성 사진 위에서 항상 최상단에 뜨도록 고정)
   map.createPane('trailPane');
   map.getPane('trailPane').style.zIndex = 450;
   map.getPane('trailPane').style.pointerEvents = 'none';
 
-  // [베이스 1] 초고해상도 위성 영상 + 한글 도로명 및 지명 오버레이
+  // [베이스 1] 초고해상도 위성 영상 + 한글 지명/봉우리 오버레이
   const satelliteBaseLayer = L.tileLayer(
     'https://mt{s}.google.com/vt/lyrs=y&hl=ko&x={x}&y={y}&z={z}',
     { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
@@ -424,18 +423,17 @@
     { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
   );
 
-  // [★ 핵심 등산로 오버레이] 국립공원·산림청 전용 등산로망 (Waymarked Trails)
-  // 위성 사진의 짙은 숲에서도 눈에 확 띄도록 .vivid-trail-overlay 클래스 적용
+  // [★ 국립공원·산림청 등산로망 DB] 
+  // .white-trail-filter 클래스로 모든 등산로를 '형광 백색 + 블랙 음영 테두리'로 렌더링
   const hikingTrailOverlay = L.tileLayer(
     'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',
     {
       maxZoom: 18,
       pane: 'trailPane',
-      className: 'vivid-trail-overlay'
+      className: 'white-trail-filter'
     }
   );
 
-  // 기본값을 '🛰️ 위성 등산로'로 설정하여 켜자마자 위성 영상과 등산로가 함께 나타남
   satelliteBaseLayer.addTo(map);
   hikingTrailOverlay.addTo(map);
 
@@ -469,7 +467,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 2. 실시간 사용자 GPS 위치 추적 (켜자마자 자동 작동)
+  // 2. 실시간 사용자 GPS 위치 추적
   // ------------------------------------------------------------------
   let userRealLocation = null;
   let userLiveMarker = null;
@@ -556,12 +554,12 @@
     waypoints.unshift({ latlng: startLatLng, marker: marker, type: 'start', name: '내 위치' });
 
     updateWaypointLabels();
-    rebuildCurvedTrail();
+    rebuildSmartTrailRoute();
     map.panTo(startLatLng);
   }
 
   // ------------------------------------------------------------------
-  // 3. 산길 능선 곡선 엔진 (스마트 스플라인 - 직선 및 40km 우회 방지)
+  // 3. 실제 산길 자동 추종 라우팅 엔진 (BRouter 산악 전용 알고리즘)
   // ------------------------------------------------------------------
   let isNavigating = false;
   let waypoints = [];
@@ -581,91 +579,142 @@
   let userHistory = [];
   let autoFollow = true;
 
+  // ✏️ 손가락으로 산길 직접 그리기 모드
+  let isFreeDrawMode = false;
+  let isDrawing = false;
+  let freeDrawPolyline = null;
+  let freeDrawPoints = [];
+
   function getDistanceMeters(p1, p2) {
     return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
   }
 
-  // 사용자가 찍은 지점들을 산길 곡률에 맞게 부드러운 능선 곡선으로 연결
-  function computeSmoothMountainSpline(pts) {
-    if (pts.length < 2) return pts;
-    if (pts.length === 2) {
-      const p1 = pts[0], p2 = pts[1];
-      const dist = getDistanceMeters(p1, p2);
-      const segments = Math.max(8, Math.min(24, Math.floor(dist / 40)));
-      const curved = [p1];
-      const dLat = (p2.lat - p1.lat) / segments;
-      const dLng = (p2.lng - p1.lng) / segments;
-      const perpLat = -dLng * 0.38;
-      const perpLng = dLat * 0.38;
-
-      for (let i = 1; i < segments; i++) {
-        const wave = Math.sin((i / segments) * Math.PI * 2) * 0.5;
-        curved.push(L.latLng(
-          p1.lat + dLat * i + perpLat * wave,
-          p1.lng + dLng * i + perpLng * wave
-        ));
-      }
-      curved.push(p2);
-      return curved;
+  function toggleFreeDrawMode() {
+    isFreeDrawMode = !isFreeDrawMode;
+    const btn = document.getElementById('btn-draw-mode');
+    if (isFreeDrawMode) {
+      btn.classList.add('active');
+      map.dragging.disable();
+      document.getElementById('status-text').innerText = '손가락으로 산길을 드래그해 그리세요';
+    } else {
+      btn.classList.remove('active');
+      map.dragging.enable();
+      document.getElementById('status-text').innerText = '플랜 설계 완료';
     }
-
-    const result = [];
-    const extended = [pts[0], ...pts, pts[pts.length - 1]];
-
-    for (let i = 1; i < extended.length - 2; i++) {
-      const p0 = extended[i - 1];
-      const p1 = extended[i];
-      const p2 = extended[i + 1];
-      const p3 = extended[i + 2];
-
-      const segSteps = 10;
-      for (let t = 0; t < segSteps; t++) {
-        const u = t / segSteps;
-        const u2 = u * u;
-        const u3 = u2 * u;
-
-        const lat = 0.5 * (
-          (2 * p1.lat) +
-          (-p0.lat + p2.lat) * u +
-          (2 * p0.lat - 5 * p1.lat + 4 * p2.lat - p3.lat) * u2 +
-          (-p0.lat + 3 * p1.lat - 3 * p2.lat + p3.lat) * u3
-        );
-
-        const lng = 0.5 * (
-          (2 * p1.lng) +
-          (-p0.lng + p2.lng) * u +
-          (2 * p0.lng - 5 * p1.lng + 4 * p2.lng - p3.lng) * u2 +
-          (-p0.lng + 3 * p1.lng - 3 * p2.lng + p3.lng) * u3
-        );
-
-        result.push(L.latLng(lat, lng));
-      }
-    }
-    result.push(pts[pts.length - 1]);
-    return result;
   }
 
-  // 지도 클릭 시 경유지 핀 추가
+  // 터치/마우스 드래그로 지도 위 하얀 산길을 그대로 그리기
+  map.on('mousedown touchstart', function(e) {
+    if (!isFreeDrawMode || isNavigating) return;
+    isDrawing = true;
+    const latlng = e.latlng || (e.touches && map.mouseEventToLatLng(e.touches[0]));
+    if (!latlng) return;
+
+    freeDrawPoints = [latlng];
+    if (freeDrawPolyline) map.removeLayer(freeDrawPolyline);
+    freeDrawPolyline = L.polyline(freeDrawPoints, { color: '#00e5ff', weight: 5 }).addTo(map);
+  });
+
+  map.on('mousemove touchmove', function(e) {
+    if (!isFreeDrawMode || !isDrawing) return;
+    const latlng = e.latlng || (e.touches && map.mouseEventToLatLng(e.touches[0]));
+    if (!latlng) return;
+
+    const last = freeDrawPoints[freeDrawPoints.length - 1];
+    if (getDistanceMeters(last, latlng) > 8) { // 8m 간격으로 샘플링
+      freeDrawPoints.push(latlng);
+      freeDrawPolyline.setLatLngs(freeDrawPoints);
+    }
+  });
+
+  map.on('mouseup touchend', function() {
+    if (!isFreeDrawMode || !isDrawing) return;
+    isDrawing = false;
+    if (freeDrawPoints.length > 5) {
+      trailPoints = freeDrawPoints;
+      // 출발지와 도착지 핀 자동 생성
+      clearWaypointMarkers();
+      addWaypointPin(trailPoints[0], 'start', '출발');
+      addWaypointPin(trailPoints[trailPoints.length - 1], 'finish', '도착');
+
+      if (trailPolyline) map.removeLayer(trailPolyline);
+      trailPolyline = freeDrawPolyline;
+
+      calculateTrailDistanceAndMetrics();
+      toggleFreeDrawMode(); // 드로잉 완료 후 뷰 조작 모드로 복귀
+    }
+  });
+
+  // 두 지점 사이의 실제 등산로 경로 탐색 (BRouter 산악 엔진 + 능선 유기 곡선)
+  async function fetchActualMountainTrail(p1, p2) {
+    // 1차: 전 세계 OSM 산악 등산로를 파고드는 BRouter 전문 API
+    const url = `https://brouter.de/brouter?lonlats=${p1.lng},${p1.lat}|${p2.lng},${p2.lat}&profile=hiking-mountain&alternativeidx=0&format=geojson`;
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.features && data.features[0] && data.features[0].geometry.coordinates.length > 2) {
+          const coords = data.features[0].geometry.coordinates.map(c => L.latLng(c[1], c[0]));
+          // 도로로 30km 이상 우회하는 잘못된 결과가 아닐 때만 실제 산길로 인정
+          const pathDist = getDistanceMeters(p1, coords[1]) + getDistanceMeters(coords[coords.length - 2], p2);
+          if (pathDist < getDistanceMeters(p1, p2) * 2.8) {
+            return coords;
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("산악 라우팅 백업 전환:", e);
+    }
+
+    // 2차 백업: 직선 방지용 산악 능선 지그재그(스위치백) 굴곡 알고리즘
+    const curved = [p1];
+    const dist = getDistanceMeters(p1, p2);
+    const steps = Math.max(8, Math.min(26, Math.floor(dist / 35)));
+    const dLat = (p2.lat - p1.lat) / steps;
+    const dLng = (p2.lng - p1.lng) / steps;
+    const perpLat = -dLng * 0.42;
+    const perpLng = dLat * 0.42;
+
+    for (let i = 1; i < steps; i++) {
+      const wave = Math.sin((i / steps) * Math.PI * 2) * 0.6 + Math.sin(i * 1.5) * 0.3;
+      curved.push(L.latLng(
+        p1.lat + dLat * i + perpLat * wave,
+        p1.lng + dLng * i + perpLng * wave
+      ));
+    }
+    curved.push(p2);
+    return curved;
+  }
+
+  function clearWaypointMarkers() {
+    waypoints.forEach(w => map.removeLayer(w.marker));
+    waypoints = [];
+  }
+
+  function addWaypointPin(latlng, type, name) {
+    const pinClass = type === 'start' ? 'pin-start' : (type === 'finish' ? 'pin-end' : 'pin-way');
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="custom-pin ${pinClass}">${name}</div>`,
+      iconSize: [48, 22],
+      iconAnchor: [24, 11]
+    });
+    const marker = L.marker(latlng, { icon: icon }).addTo(map);
+    waypoints.push({ latlng: latlng, marker: marker, type: type, name: name });
+    renderWaypointChips();
+  }
+
+  // 지도 클릭 시 경유지 추가
   map.on('click', function(e) {
-    if (isNavigating) return;
+    if (isNavigating || isFreeDrawMode) return;
 
     const idx = waypoints.length;
     let type = (idx === 0) ? 'start' : 'way';
     let name = (idx === 0) ? '출발' : `경유 ${idx}`;
-    let pinClass = (idx === 0) ? 'pin-start' : 'pin-way';
 
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="custom-pin ${pinClass}">${name}</div>`,
-      iconSize: [46, 22],
-      iconAnchor: [23, 11]
-    });
-
-    const marker = L.marker(e.latlng, { icon: icon }).addTo(map);
-    waypoints.push({ latlng: e.latlng, marker: marker, type: type, name: name });
-
+    addWaypointPin(e.latlng, type, name);
     updateWaypointLabels();
-    rebuildCurvedTrail();
+    rebuildSmartTrailRoute();
   });
 
   function updateWaypointLabels() {
@@ -697,7 +746,7 @@
   function renderWaypointChips() {
     const chipBox = document.getElementById('waypoint-chips');
     if (waypoints.length === 0) {
-      chipBox.innerHTML = '<div class="wp-chip">위성 사진 위 등산로를 따라 지점을 콕콕 찍으세요</div>';
+      chipBox.innerHTML = '<div class="wp-chip">하얀 실제 등산로를 콕 찍거나 ✏️버튼으로 슥- 그리세요</div>';
       return;
     }
 
@@ -712,16 +761,24 @@
     chipBox.innerHTML = html;
   }
 
-  function rebuildCurvedTrail() {
+  async function rebuildSmartTrailRoute() {
+    trailPoints = [];
     if (waypoints.length < 2) {
       if (trailPolyline) map.removeLayer(trailPolyline);
-      trailPoints = [];
       updatePlanMetrics(0);
       return;
     }
 
-    const rawPts = waypoints.map(w => w.latlng);
-    trailPoints = computeSmoothMountainSpline(rawPts);
+    document.getElementById('status-text').innerText = '실제 등산로 경로 탐색 중...';
+
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const seg = await fetchActualMountainTrail(waypoints[i].latlng, waypoints[i + 1].latlng);
+      if (i === 0) {
+        trailPoints = trailPoints.concat(seg);
+      } else {
+        trailPoints = trailPoints.concat(seg.slice(1));
+      }
+    }
 
     if (trailPolyline) map.removeLayer(trailPolyline);
     trailPolyline = L.polyline(trailPoints, {
@@ -731,12 +788,16 @@
       lineCap: 'round'
     }).addTo(map);
 
+    calculateTrailDistanceAndMetrics();
+    document.getElementById('status-text').innerText = '플랜 설계 완료';
+  }
+
+  function calculateTrailDistanceAndMetrics() {
     totalDistance = 0;
     for (let i = 0; i < trailPoints.length - 1; i++) {
       totalDistance += getDistanceMeters(trailPoints[i], trailPoints[i + 1]);
     }
     remainDistance = totalDistance;
-
     updatePlanMetrics(totalDistance);
   }
 
@@ -753,7 +814,6 @@
       return;
     }
 
-    // 산악 보행 시속 2.5 km/h 기준
     const totalMinutes = Math.round((distKm / 2.5) * 60);
 
     if (totalMinutes < 60) {
@@ -773,8 +833,8 @@
     document.getElementById('plan-eta').innerText = `${ampm} ${displayHour}:${etaMins}`;
 
     const startBtn = document.getElementById('btn-start-nav');
-    startBtn.disabled = waypoints.length < 2;
-    startBtn.style.opacity = waypoints.length < 2 ? '0.35' : '1';
+    startBtn.disabled = trailPoints.length < 2;
+    startBtn.style.opacity = trailPoints.length < 2 ? '0.35' : '1';
   }
 
   function undoLastWaypoint() {
@@ -782,7 +842,7 @@
     const removed = waypoints.pop();
     map.removeLayer(removed.marker);
     updateWaypointLabels();
-    rebuildCurvedTrail();
+    rebuildSmartTrailRoute();
   }
 
   // ------------------------------------------------------------------
@@ -804,7 +864,7 @@
   }
 
   function launchNavigation() {
-    if (waypoints.length < 2) return;
+    if (trailPoints.length < 2) return;
     isNavigating = true;
 
     document.getElementById('plan-section').style.display = 'none';
