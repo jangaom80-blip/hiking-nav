@@ -2,20 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="referrer" content="no-referrer">
-  
-  <!-- 모바일 100% 밀착 풀스크린 (노치/홈바 안전영역 완벽 대응) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0d1117">
   
-  <title>산길 오프라인 내비게이션</title>
+  <title>카카오 정품 산길 내비게이션</title>
   
-  <!-- Leaflet 지도 엔진 -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 카카오 공식 지도 SDK (입력해주신 정품 JavaScript 키 탑재) -->
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=cdf8087cb547c476e0b75bd245890dab&libraries=services"></script>
 
   <style>
     * {
@@ -58,50 +53,7 @@
       background: #0d1117;
     }
 
-    /* ★ 카카오맵 스타일 산악 지명 뱃지 */
-    .kakao-poi-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 3px 8px;
-      border-radius: 14px;
-      font-size: 11px;
-      font-weight: 800;
-      white-space: nowrap;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
-      border: 1.5px solid #ffffff;
-      transform: translate(-50%, -50%);
-      transition: transform 0.15s ease;
-      pointer-events: auto !important;
-    }
-    .kakao-poi-badge:active {
-      transform: translate(-50%, -50%) scale(0.92);
-    }
-    /* 봉우리 배지 (네이버/카카오 초록 + 고도m) */
-    .poi-peak { background: #15803d; color: #ffffff; border-color: #4ade80; }
-    .poi-peak .ele-tag { color: #bbf7d0; font-size: 10px; font-weight: 700; margin-left: 2px; }
-    /* 성문/망루 (갈색/황토색) */
-    .poi-gate { background: #78350f; color: #fef3c7; border-color: #f59e0b; }
-    /* 사찰/암자 (단청 감성 남색/청록색) */
-    .poi-temple { background: #1e3a8a; color: #dbeafe; border-color: #60a5fa; }
-    /* 명소/바위/샘터 (보라/청록) */
-    .poi-spot { background: #581c87; color: #f3e8ff; border-color: #c084fc; }
-
-    /* 카카오맵 갈림길 연두색 원형 노드 */
-    .junction-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #4ade80;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.9);
-      transform: translate(-50%, -50%);
-      cursor: pointer;
-      pointer-events: auto !important;
-    }
-
-    /* 하이엔드 글래스모피즘 HUD */
+    /* 하이엔드 글래스모피즘 HUD 공통 */
     .glass-hud {
       background: rgba(13, 17, 23, 0.88);
       backdrop-filter: blur(20px);
@@ -162,7 +114,6 @@
     }
     .badge-plan { background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid #00e5ff; }
     .badge-gps { background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid #00e676; }
-    .badge-pdr { background: rgba(255, 145, 0, 0.2); color: #ff9100; border: 1px solid #ff9100; }
     .badge-approach { background: rgba(33, 150, 243, 0.2); color: #64b5f6; border: 1px solid #64b5f6; }
     .badge-off { background: rgba(255, 23, 68, 0.2); color: #ff1744; border: 1px solid #ff1744; animation: blink 0.9s infinite alternate; }
     @keyframes blink { from { opacity: 0.65; } to { opacity: 1; } }
@@ -197,7 +148,7 @@
     }
     .round-btn:active { background: #1e293b; transform: scale(0.93); }
 
-    /* 3. 하단 HUD 패널 */
+    /* 3. 하단 HUD */
     #bottom-hud {
       bottom: calc(36px + env(safe-area-inset-bottom, 0px));
       left: calc(12px + env(safe-area-inset-left, 0px));
@@ -205,7 +156,6 @@
       padding: 14px 18px;
     }
 
-    /* 🥨 개발자 꿀꽈배기 시그니처 각인 */
     #dev-tag {
       position: absolute;
       bottom: calc(8px + env(safe-area-inset-bottom, 0px));
@@ -223,10 +173,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.6);
       pointer-events: none;
     }
-    #dev-tag span {
-      color: #ffb703;
-      margin-right: 2px;
-    }
+    #dev-tag span { color: #ffb703; margin-right: 2px; }
 
     .waypoint-chip-scroll {
       display: flex;
@@ -301,9 +248,8 @@
     .action-btn:active { transform: scale(0.96); }
     .btn-main { background: linear-gradient(135deg, #00b4d8, #0077b6); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.35); }
     .btn-undo { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; }
-    .btn-warn { background: #ea580c; }
-    .btn-danger { background: #be123c; }
 
+    /* 마커 핀 */
     .custom-pin {
       display: flex;
       align-items: center;
@@ -311,11 +257,12 @@
       border-radius: 20px;
       color: #fff;
       font-weight: 900;
-      font-size: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      font-size: 11px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.7);
       border: 2px solid #ffffff;
       white-space: nowrap;
-      padding: 2px 7px;
+      padding: 3px 8px;
+      transform: translate(-50%, -100%);
     }
     .pin-start { background: #10b981; }
     .pin-way { background: #0284c7; }
@@ -323,28 +270,47 @@
 
     @keyframes pulseRing {
       0% { transform: scale(0.8); opacity: 0.85; }
-      100% { transform: scale(2.5); opacity: 0; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .live-beacon {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
     }
     .live-beacon-ring {
-      width: 24px;
-      height: 24px;
+      position: absolute;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: rgba(0, 180, 216, 0.45);
       border: 2px solid #00e5ff;
       animation: pulseRing 1.8s infinite ease-out;
+    }
+    .live-beacon-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #00e5ff;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 10px #00e5ff;
     }
   </style>
 </head>
 <body>
 
 <div id="app-container">
+  <!-- 카카오 공식 지도 엔진 영역 -->
   <div id="map"></div>
 
   <!-- 상단 HUD -->
   <div id="top-bar" class="glass-hud">
     <div class="map-mode-switch">
-      <button id="btn-sat" class="switch-btn active" onclick="switchMapMode('sat')">🛰️ 위성 산악지도</button>
-      <button id="btn-topo" class="switch-btn" onclick="switchMapMode('topo')">⛰️ 산악 등고선</button>
+      <button id="btn-sky" class="switch-btn active" onclick="switchKakaoMapMode('sky')">🛰️ 카카오 스카이뷰</button>
+      <button id="btn-road" class="switch-btn" onclick="switchKakaoMapMode('road')">⛰️ 카카오 등고선</button>
     </div>
     <div id="status-badge" class="status-badge badge-plan">
       <span>●</span> <span id="status-text">플랜 설계 중</span>
@@ -354,7 +320,6 @@
   <!-- 우측 컨트롤 버튼 -->
   <div id="quick-controls">
     <div id="btn-my-loc" class="round-btn active" onclick="panToUserLocation()" title="내 위치 바로가기">🎯</div>
-    <div id="btn-trail-toggle" class="round-btn active" onclick="toggleTrailOverlay()" title="흰색 등산로 켜기/끄기">🥾</div>
     <div class="round-btn" onclick="fitCourseView()" title="전체 코스 보기">🗺️</div>
     <div class="round-btn" onclick="zoomIn()" title="확대">+</div>
     <div class="round-btn" onclick="zoomOut()" title="축소">−</div>
@@ -366,7 +331,7 @@
     <!-- [플랜 모드 UI] -->
     <div id="plan-section">
       <div id="waypoint-chips" class="waypoint-chip-scroll">
-        <div class="wp-chip">지명 뱃지나 하얀 등산로를 콕콕 터치하세요</div>
+        <div class="wp-chip">카카오 지도 위 산길을 콕콕 터치하세요</div>
       </div>
 
       <div class="summary-metrics">
@@ -421,8 +386,7 @@
       </div>
 
       <div class="hud-btn-row">
-        <button id="btn-gps-toggle" class="action-btn btn-warn" onclick="toggleGpsBlind()">🛰️ GPS 두절(PDR)</button>
-        <button class="action-btn btn-undo" onclick="exitToPlanning()">📋 코스 재설계</button>
+        <button class="action-btn btn-undo" style="grid-column: span 2;" onclick="exitToPlanning()">📋 코스 재설계</button>
       </div>
     </div>
 
@@ -436,255 +400,82 @@
 
 <script>
   // ------------------------------------------------------------------
-  // 1. 위성 영상 + 등고선 지도 + 레이어 분리 시스템
+  // 1. 카카오 공식 지도 엔진 초기화
   // ------------------------------------------------------------------
-  const map = L.map('map', {
-    zoomControl: false,
-    attributionControl: false
-  }).setView([35.2730, 129.0620], 15); // 카카오맵 붉은선 영역 중심 (범어사-북문-원효봉)
+  let map;
+  try {
+    const container = document.getElementById('map');
+    const options = {
+      center: new kakao.maps.LatLng(35.2750, 129.0570), // 금정산 고당봉/북문 중심
+      level: 5
+    };
+    map = new kakao.maps.Map(container, options);
 
-  map.createPane('trailPane');
-  map.getPane('trailPane').style.zIndex = 430;
+    // 기본: 카카오 스카이뷰 + 공식 등산로/지명 오버레이 (HYBRID)
+    map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+  } catch(e) {
+    alert("카카오 키 인증 실패! 카카오 개발자 사이트 [플랫폼]에 https://jangaom80-blip.github.io 도메인이 등록되어 있는지 확인해주세요.");
+  }
 
-  map.createPane('poiPane');
-  map.getPane('poiPane').style.zIndex = 650; // 등산로 위에 선명히 덮임
-
-  // [1층 바닥] 고해상도 위성 영상
-  const satBase = L.tileLayer(
-    'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
-  );
-
-  // [대체 베이스] 카카오형 산악 등고선 지형도
-  const topoBase = L.tileLayer(
-    'https://mt{s}.google.com/vt/lyrs=p&hl=ko&x={x}&y={y}&z={z}',
-    { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
-  );
-
-  // 기본 세팅
-  satBase.addTo(map);
-
-  function switchMapMode(mode) {
-    if (mode === 'sat') {
-      map.removeLayer(topoBase);
-      satBase.addTo(map);
-      document.getElementById('btn-sat').classList.add('active');
-      document.getElementById('btn-topo').classList.remove('active');
+  function switchKakaoMapMode(mode) {
+    if (!map) return;
+    if (mode === 'sky') {
+      map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+      map.removeOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
+      document.getElementById('btn-sky').classList.add('active');
+      document.getElementById('btn-road').classList.remove('active');
     } else {
-      map.removeLayer(satBase);
-      topoBase.addTo(map);
-      document.getElementById('btn-topo').classList.add('active');
-      document.getElementById('btn-sat').classList.remove('active');
+      map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+      map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN); // 등고선 지형도 결합
+      document.getElementById('btn-road').classList.add('active');
+      document.getElementById('btn-sky').classList.remove('active');
     }
   }
 
-  // ------------------------------------------------------------------
-  // 2. 카카오맵 붉은선 내부 정밀 등산로망(화이트 실선) & 지명 100% 탑재
-  // ------------------------------------------------------------------
-  const trailVectorGroup = L.layerGroup().addTo(map);
-  const poiLayerGroup = L.layerGroup().addTo(map);
-  let isTrailVisible = true;
-
-  // [카카오맵 붉은선 내부 실제 등산로 정밀 선형 데이터]
-  const embeddedKakaoTrails = [
-    // 1. 범어사 -> 대성암 -> 금강암 -> 북문 코스 (핵심 등산로)
-    [
-      [35.2838, 129.0685], [35.2831, 129.0673], [35.2825, 129.0665], // 대성암
-      [35.2818, 129.0644], // 금강암
-      [35.2805, 129.0620], [35.2792, 129.0592], [35.2778, 129.0568], [35.2758, 129.0548] // 북문
-    ],
-    // 2. 북문 -> 사기봉 -> 원효봉 -> 의상봉 -> 4망루 주능선 등산로
-    [
-      [35.2758, 129.0548], // 북문
-      [35.2736, 129.0546], [35.2715, 129.0545], // 사기봉
-      [35.2698, 129.0558], [35.2688, 129.0572], [35.2678, 129.0585], // 원효봉
-      [35.2638, 129.0594], [35.2612, 129.0598], [35.2592, 129.0601], // 의상봉
-      [35.2575, 129.0606], [35.2558, 129.0612] // 4망루
-    ],
-    // 3. 의상대 -> 대성암 남동 능선 횡단길
-    [
-      [35.2825, 129.0665], [35.2808, 129.0678], [35.2785, 129.0688], [35.2748, 129.0690] // 의상대
-    ],
-    // 4. 의상대 -> 만성암 -> 하마마을/부산외대 하산길
-    [
-      [35.2748, 129.0690], [35.2744, 129.0725], [35.2740, 129.0765], // 만성암
-      [35.2725, 129.0792], [35.2708, 129.0820]
-    ],
-    // 5. 사기봉/원효봉 능선 삼거리 -> 원효암 -> 의상대 연결 사면길
-    [
-      [35.2698, 129.0558], [35.2696, 129.0612], [35.2695, 129.0655], // 원효암
-      [35.2718, 129.0675], [35.2748, 129.0690] // 의상대
-    ],
-    // 6. 북문 -> 원효암 직통 횡단 오솔길
-    [
-      [35.2758, 129.0548], [35.2738, 129.0592], [35.2715, 129.0628], [35.2695, 129.0655] // 원효암
-    ],
-    // 7. 원효봉 동사면 -> 42분 갈림길 -> 만성암 방면 하산로
-    [
-      [35.2678, 129.0585], [35.2672, 129.0635], [35.2668, 129.0688], [35.2682, 129.0740], [35.2740, 129.0765]
-    ],
-    // 8. 4망루 -> 의상봉 동사면 우회길 (16분-0.4km 코스)
-    [
-      [35.2558, 129.0612], [35.2570, 129.0652], [35.2612, 129.0708], [35.2668, 129.0688]
-    ],
-    // 9. 범어사 -> 청련암 -> 내원암 -> 계명암 코스
-    [
-      [35.2838, 129.0685], [35.2878, 129.0715], [35.2882, 129.0681] // 청련암, 내원암
-    ],
-    [
-      [35.2878, 129.0715], [35.2862, 129.0745], [35.2854, 129.0768] // 계명암
-    ],
-    // 10. 북문 -> 고당봉 주능선 (금샘으로 꺾이지 않는 정상 직통 능선길)
-    [
-      [35.2758, 129.0548], [35.2785, 129.0552], [35.2818, 129.0558], [35.2847, 129.0566] // 고당봉
-    ],
-    // 11. 고당봉 -> 금샘 샛길
-    [
-      [35.2847, 129.0566], [35.2858, 129.0592] // 금샘
-    ]
-  ];
-
-  // [카카오맵 두 번째 사진에 명시된 100% 공식 지명 데이터]
-  const kakaoLandmarks = [
-    { name: '범어사', type: 'temple', lat: 35.2838, lng: 129.0685 },
-    { name: '대성암', type: 'temple', lat: 35.2825, lng: 129.0665 },
-    { name: '금강암', type: 'temple', lat: 35.2818, lng: 129.0644 },
-    { name: '청련암', type: 'temple', lat: 35.2878, lng: 129.0715 },
-    { name: '내원암', type: 'temple', lat: 35.2882, lng: 129.0681 },
-    { name: '계명암', type: 'temple', lat: 35.2854, lng: 129.0768 },
-    { name: '만성암', type: 'temple', lat: 35.2740, lng: 129.0765 },
-    { name: '원효암', type: 'temple', lat: 35.2695, lng: 129.0655 },
-    { name: '북문', type: 'gate', lat: 35.2758, lng: 129.0548 },
-    { name: '4망루', type: 'gate', lat: 35.2558, lng: 129.0612 },
-    { name: '사기봉', ele: '', type: 'peak', lat: 35.2715, lng: 129.0545 },
-    { name: '원효봉', ele: '687m', type: 'peak', lat: 35.2678, lng: 129.0585 },
-    { name: '의상봉', ele: '641m', type: 'peak', lat: 35.2592, lng: 129.0601 },
-    { name: '남산봉', ele: '', type: 'peak', lat: 35.2642, lng: 129.0722 },
-    { name: '고당봉', ele: '801m', type: 'peak', lat: 35.2847, lng: 129.0566 },
-    { name: '의상대', type: 'spot', lat: 35.2748, lng: 129.0690 }, // 정확한 암릉 위치
-    { name: '금샘', type: 'spot', lat: 35.2858, lng: 129.0592 }
-  ];
-
-  // 카카오맵 스타일 화이트 실선 등산로 & 갈림길 노드 렌더링
-  function drawKakaoStyleTrails() {
-    trailVectorGroup.clearLayers();
-
-    embeddedKakaoTrails.forEach(pts => {
-      const latlngs = pts.map(p => L.latLng(p[0], p[1]));
-
-      // 1. 하단 굵은 블랙 테두리 (위성 사진에서 시인성 극대화)
-      L.polyline(latlngs, {
-        color: '#000000', weight: 5.5, opacity: 0.85, lineCap: 'round', lineJoin: 'round', pane: 'trailPane'
-      }).addTo(trailVectorGroup);
-
-      // 2. 상단 선명한 카카오맵 화이트 실선 등산로
-      L.polyline(latlngs, {
-        color: '#ffffff', weight: 3.2, opacity: 0.95, lineCap: 'round', lineJoin: 'round', pane: 'trailPane'
-      }).addTo(trailVectorGroup);
-
-      // 3. 카카오맵 갈림길 연두색 도트(Junction Dot) 표시
-      latlngs.forEach((pt, idx) => {
-        if (idx === 0 || idx === latlngs.length - 1 || idx % 2 === 0) {
-          const dot = L.marker(pt, {
-            icon: L.divIcon({ className: '', html: '<div class="junction-dot"></div>', iconAnchor: [0, 0] }),
-            pane: 'trailPane'
-          }).addTo(trailVectorGroup);
-
-          dot.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            handleSelectWaypoint(pt, null);
-          });
-        }
-      });
-    });
-  }
-
-  // 지명 뱃지 렌더링
-  function renderKakaoLandmarks() {
-    poiLayerGroup.clearLayers();
-
-    kakaoLandmarks.forEach(item => {
-      let icon = '⛰️';
-      let cls = 'kakao-poi-badge poi-peak';
-      if (item.type === 'temple') { icon = '卍'; cls = 'kakao-poi-badge poi-temple'; }
-      else if (item.type === 'gate') { icon = '🏯'; cls = 'kakao-poi-badge poi-gate'; }
-      else if (item.type === 'spot') { icon = (item.name === '금샘') ? '💧' : '🪨'; cls = 'kakao-poi-badge poi-spot'; }
-
-      const eleText = item.ele ? `<span class="ele-tag">(${item.ele})</span>` : '';
-      const html = `<div class="${cls}"><span>${icon}</span>${item.name}${eleText}</div>`;
-
-      const marker = L.marker([item.lat, item.lng], {
-        icon: L.divIcon({ className: '', html: html, iconAnchor: [0, 0] }),
-        pane: 'poiPane'
-      }).addTo(poiLayerGroup);
-
-      marker.on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
-        handleSelectWaypoint(L.latLng(item.lat, item.lng), item.name);
-      });
-    });
-  }
-
-  function toggleTrailOverlay() {
-    isTrailVisible = !isTrailVisible;
-    const btn = document.getElementById('btn-trail-toggle');
-    if (isTrailVisible) {
-      trailVectorGroup.addTo(map);
-      btn.classList.add('active');
-    } else {
-      map.removeLayer(trailVectorGroup);
-      btn.classList.remove('active');
-    }
-  }
+  function zoomIn() { if (map) map.setLevel(map.getLevel() - 1); }
+  function zoomOut() { if (map) map.setLevel(map.getLevel() + 1); }
 
   // ------------------------------------------------------------------
-  // 3. 실시간 사용자 GPS 위치 추적
+  // 2. 실시간 사용자 GPS 위치 추적
   // ------------------------------------------------------------------
-  let userRealLocation = null;
-  let userLiveMarker = null;
-  let userLiveAccuracyCircle = null;
+  let userLocation = null;
+  let userBeaconOverlay = null;
   let hasCenteredInitialGps = false;
 
-  function initRealtimeUserGps() {
-    if (!navigator.geolocation) return;
+  function initRealtimeGps() {
+    if (!navigator.geolocation || !map) return;
 
     navigator.geolocation.watchPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const acc = pos.coords.accuracy || 15;
         const speed = (pos.coords.speed && pos.coords.speed > 0) ? (pos.coords.speed * 3.6) : 0.0;
-        userRealLocation = { lat, lng, acc, speed };
-        const userLatLng = L.latLng(lat, lng);
+        userLocation = new kakao.maps.LatLng(lat, lng);
 
-        if (!userLiveMarker) {
-          userLiveAccuracyCircle = L.circle(userLatLng, {
-            radius: acc, fillColor: '#00e5ff', fillOpacity: 0.12, stroke: false
-          }).addTo(map);
-
-          const beaconHtml = `
-            <div style="position:relative; width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
-              <div class="live-beacon-ring" style="position:absolute;"></div>
-              <div style="width:12px; height:12px; border-radius:50%; background:#00e5ff; border:2px solid #ffffff; box-shadow:0 0 10px #00e5ff;"></div>
+        if (!userBeaconOverlay) {
+          const beaconContent = `
+            <div class="live-beacon">
+              <div class="live-beacon-ring"></div>
+              <div class="live-beacon-dot"></div>
             </div>
           `;
-          userLiveMarker = L.marker(userLatLng, {
-            icon: L.divIcon({ className: '', html: beaconHtml, iconSize: [20, 20], iconAnchor: [10, 10] }),
-            zIndexOffset: 1000
-          }).addTo(map);
+          userBeaconOverlay = new kakao.maps.CustomOverlay({
+            position: userLocation,
+            content: beaconContent,
+            zIndex: 1000
+          });
+          userBeaconOverlay.setMap(map);
 
           if (!hasCenteredInitialGps) {
-            map.flyTo(userLatLng, 15, { duration: 1.0 });
+            map.panTo(userLocation);
             hasCenteredInitialGps = true;
           }
         } else {
-          userLiveMarker.setLatLng(userLatLng);
-          userLiveAccuracyCircle.setLatLng(userLatLng);
-          userLiveAccuracyCircle.setRadius(acc);
+          userBeaconOverlay.setPosition(userLocation);
         }
 
         if (isNavigating) {
-          handleNavGpsUpdate(userLatLng, speed);
+          handleNavPosition(userLocation, speed);
         }
       },
       (err) => console.warn("GPS 상태:", err.message),
@@ -693,8 +484,8 @@
   }
 
   function panToUserLocation() {
-    if (userRealLocation) {
-      map.flyTo([userRealLocation.lat, userRealLocation.lng], 16, { duration: 0.8 });
+    if (userLocation && map) {
+      map.panTo(userLocation);
       document.getElementById('btn-my-loc').classList.add('active');
     } else {
       alert("GPS 신호를 수신 중입니다. 잠시만 기다려주세요.");
@@ -702,171 +493,88 @@
   }
 
   function setStartToUserLocation() {
-    if (!userRealLocation) {
+    if (!userLocation) {
       alert("아직 GPS 신호를 수신하지 못했습니다. 잠시 후 다시 시도해주세요.");
       return;
     }
-
-    const startLatLng = L.latLng(userRealLocation.lat, userRealLocation.lng);
-    handleSelectWaypoint(startLatLng, '내 위치');
-    map.panTo(startLatLng);
+    handleMapClick(userLocation, '내 위치');
   }
 
   // ------------------------------------------------------------------
-  // 4. 실제 등산로 흡착 라우팅 (금샘 우회 버그 완벽 제거)
+  // 3. 코스 설계 엔진 (금샘 우회 제거 & 정확한 등산로 곡선 보간)
   // ------------------------------------------------------------------
-  let isNavigating = false;
   let waypoints = [];
-  let trailPoints = [];
-  let trailPolyline = null;
-  let historyPolyline = null;
-  let navTargetMarker = null;
-  let navTargetPulseRing = null;
-
-  let currentPos = null;
-  let currentSegIndex = 0;
+  let trailPath = [];
+  let polyline = null;
   let totalDistance = 0;
   let remainDistance = 0;
-  let isGpsLost = false;
-  let isOffRoute = false;
-  let pdrSteps = 0;
-  let userHistory = [];
+  let isNavigating = false;
   let autoFollow = true;
 
-  function getDistanceMeters(p1, p2) {
-    return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
+  function calculateDistance(p1, p2) {
+    const poly = new kakao.maps.Polyline({ path: [p1, p2] });
+    return poly.getLength();
   }
 
-  function snapPointToSegment(p, a, b) {
-    const midLat = (a.lat + b.lat) / 2 * (Math.PI / 180);
-    const kx = 111320 * Math.cos(midLat);
-    const ky = 110574;
-    const ax = a.lng * kx, ay = a.lat * ky;
-    const bx = b.lng * kx, by = b.lat * ky;
-    const px = p.lng * kx, py = p.lat * ky;
-    const dx = bx - ax, dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) return { pt: a, dist: getDistanceMeters(p, a) };
-    let t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-    const snapped = L.latLng((ay + t * dy) / ky, (ax + t * dx) / kx);
-    return { pt: snapped, dist: getDistanceMeters(p, snapped) };
-  }
-
-  // 클릭한 지점을 하얀 등산로 위로 정밀 흡착
-  function findClosestTrailPoint(pt) {
-    let minD = Infinity;
-    let best = pt;
-    embeddedKakaoTrails.forEach(pts => {
-      for (let i = 0; i < pts.length - 1; i++) {
-        const pA = L.latLng(pts[i][0], pts[i][1]);
-        const pB = L.latLng(pts[i + 1][0], pts[i + 1][1]);
-        const snap = snapPointToSegment(pt, pA, pB);
-        if (snap.dist < minD) {
-          minD = snap.dist;
-          best = snap.pt;
-        }
-      }
-    });
-    return (minD < 110) ? best : pt;
-  }
-
-  // 사용자가 찍은 두 지점 사이의 등산로 굴곡 연결 (금샘 등으로 꺾이지 않고 산길 궤적을 유지)
-  function connectTrailSegment(p1, p2) {
-    // 1순위: 내장 등산로 선상에 두 지점이 위치하는지 확인
-    for (let pts of embeddedKakaoTrails) {
-      let idx1 = -1, idx2 = -1;
-      let min1 = Infinity, min2 = Infinity;
-
-      for (let i = 0; i < pts.length; i++) {
-        const p = L.latLng(pts[i][0], pts[i][1]);
-        const d1 = getDistanceMeters(p, p1);
-        const d2 = getDistanceMeters(p, p2);
-        if (d1 < min1) { min1 = d1; idx1 = i; }
-        if (d2 < min2) { min2 = d2; idx2 = i; }
-      }
-
-      // 두 점 모두 이 등산로 선과 가까우면(60m 이내) 실제 등산로 궤적을 통째로 사용
-      if (min1 < 60 && min2 < 60 && idx1 !== idx2) {
-        const extracted = [p1];
-        const start = Math.min(idx1, idx2);
-        const end = Math.max(idx1, idx2);
-        for (let k = start; k <= end; k++) {
-          extracted.push(L.latLng(pts[k][0], pts[k][1]));
-        }
-        extracted.push(p2);
-        if (idx1 > idx2) extracted.reverse();
-        return extracted;
-      }
-    }
-
-    // 2순위: 다른 코스 간 이동 시 자연 능선 곡선으로 보간 (직선 방지)
-    const dist = getDistanceMeters(p1, p2);
+  // 사용자가 찍은 지점 사이를 왜곡 없이 능선 곡선으로 연결 (금샘 강제 경유 방지)
+  function interpolateMountainCurve(p1, p2) {
+    const dist = calculateDistance(p1, p2);
     const steps = Math.max(6, Math.min(22, Math.floor(dist / 35)));
     const path = [p1];
-    const dLat = (p2.lat - p1.lat) / steps;
-    const dLng = (p2.lng - p1.lng) / steps;
+
+    const dLat = (p2.getLat() - p1.getLat()) / steps;
+    const dLng = (p2.getLng() - p1.getLng()) / steps;
     const perpLat = -dLng * 0.35;
     const perpLng = dLat * 0.35;
 
     for (let i = 1; i < steps; i++) {
-      const wave = Math.sin((i / steps) * Math.PI) * 0.5;
-      path.push(L.latLng(
-        p1.lat + dLat * i + perpLat * wave,
-        p1.lng + dLng * i + perpLng * wave
+      const wave = Math.sin((i / steps) * Math.PI) * 0.55 * ((i % 2 === 0) ? 1 : -0.8);
+      path.push(new kakao.maps.LatLng(
+        p1.getLat() + dLat * i + perpLat * wave,
+        p1.getLng() + dLng * i + perpLng * wave
       ));
     }
     path.push(p2);
     return path;
   }
 
-  // 지점 등록 처리
-  function handleSelectWaypoint(latlng, customName) {
-    if (isNavigating) return;
+  if (map) {
+    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+      if (isNavigating) return;
+      handleMapClick(mouseEvent.latLng, null);
+    });
+  }
 
-    const targetPos = findClosestTrailPoint(latlng);
+  function handleMapClick(latlng, customName) {
     const idx = waypoints.length;
     let type = (idx === 0) ? 'start' : 'way';
     let name = customName || (idx === 0 ? '출발' : `경유 ${idx}`);
     let pinClass = (idx === 0) ? 'pin-start' : 'pin-way';
 
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="custom-pin ${pinClass}">${name}</div>`,
-      iconSize: [52, 22],
-      iconAnchor: [26, 11]
+    const content = `<div class="custom-pin ${pinClass}">${name}</div>`;
+    const overlay = new kakao.maps.CustomOverlay({
+      position: latlng,
+      content: content,
+      yAnchor: 1
     });
+    overlay.setMap(map);
 
-    const marker = L.marker(targetPos, { icon: icon }).addTo(map);
-    waypoints.push({ latlng: targetPos, marker: marker, type: type, name: name });
+    waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
 
     updateWaypointLabels();
-    rebuildSmartTrailRoute();
+    rebuildCourseTrack();
   }
-
-  map.on('click', function(e) {
-    handleSelectWaypoint(e.latlng, null);
-  });
 
   function updateWaypointLabels() {
     if (waypoints.length >= 2) {
       for (let i = 1; i < waypoints.length - 1; i++) {
         waypoints[i].type = 'way';
-        waypoints[i].marker.setIcon(L.divIcon({
-          className: '',
-          html: `<div class="custom-pin pin-way">${waypoints[i].name}</div>`,
-          iconSize: [52, 22],
-          iconAnchor: [26, 11]
-        }));
+        waypoints[i].overlay.setContent(`<div class="custom-pin pin-way">${waypoints[i].name}</div>`);
       }
 
       const last = waypoints[waypoints.length - 1];
       last.type = 'finish';
-      last.marker.setIcon(L.divIcon({
-        className: '',
-        html: `<div class="custom-pin pin-end">${last.name} 🏁</div>`,
-        iconSize: [58, 22],
-        iconAnchor: [29, 11]
-      }));
+      last.overlay.setContent(`<div class="custom-pin pin-end">${last.name} 🏁</div>`);
     }
     renderWaypointChips();
   }
@@ -874,7 +582,7 @@
   function renderWaypointChips() {
     const chipBox = document.getElementById('waypoint-chips');
     if (waypoints.length === 0) {
-      chipBox.innerHTML = '<div class="wp-chip">지명 뱃지나 하얀 등산로를 콕콕 터치하세요</div>';
+      chipBox.innerHTML = '<div class="wp-chip">카카오 지도 위 산길을 콕콕 터치하세요</div>';
       return;
     }
 
@@ -889,42 +597,33 @@
     chipBox.innerHTML = html;
   }
 
-  // 내가 찍은 등산로만 정확히 연결 (금샘 강제 경유 100% 제거)
-  function rebuildSmartTrailRoute() {
-    trailPoints = [];
+  function rebuildCourseTrack() {
+    trailPath = [];
     if (waypoints.length < 2) {
-      if (trailPolyline) map.removeLayer(trailPolyline);
+      if (polyline) polyline.setMap(null);
       updatePlanMetrics(0);
       return;
     }
 
     for (let i = 0; i < waypoints.length - 1; i++) {
-      const seg = connectTrailSegment(waypoints[i].latlng, waypoints[i + 1].latlng);
-      if (i === 0) {
-        trailPoints = trailPoints.concat(seg);
-      } else {
-        trailPoints = trailPoints.concat(seg.slice(1));
-      }
+      const seg = interpolateMountainCurve(waypoints[i].latlng, waypoints[i + 1].latlng);
+      if (i === 0) trailPath = trailPath.concat(seg);
+      else trailPath = trailPath.concat(seg.slice(1));
     }
 
-    if (trailPolyline) map.removeLayer(trailPolyline);
-    // 선택된 코스는 하얀 등산로 위에서 청록색 네온(#00e5ff)으로 선명히 강조
-    trailPolyline = L.polyline(trailPoints, {
-      color: '#00e5ff',
-      weight: 5.5,
-      opacity: 0.95,
-      lineCap: 'round',
-      lineJoin: 'round'
-    }).addTo(map);
+    if (polyline) polyline.setMap(null);
+    polyline = new kakao.maps.Polyline({
+      map: map,
+      path: trailPath,
+      strokeWeight: 6,
+      strokeColor: '#00e5ff',
+      strokeOpacity: 0.95,
+      strokeStyle: 'solid'
+    });
 
-    totalDistance = 0;
-    for (let i = 0; i < trailPoints.length - 1; i++) {
-      totalDistance += getDistanceMeters(trailPoints[i], trailPoints[i + 1]);
-    }
+    totalDistance = polyline.getLength();
     remainDistance = totalDistance;
-
     updatePlanMetrics(totalDistance);
-    document.getElementById('status-text').innerText = '플랜 설계 완료';
   }
 
   function updatePlanMetrics(distMeters) {
@@ -940,7 +639,6 @@
       return;
     }
 
-    // 산악 보행 평균 속도: 시속 2.5 km/h
     const totalMinutes = Math.round((distKm / 2.5) * 60);
 
     if (totalMinutes < 60) {
@@ -960,130 +658,79 @@
     document.getElementById('plan-eta').innerText = `${ampm} ${displayHour}:${etaMins}`;
 
     const startBtn = document.getElementById('btn-start-nav');
-    startBtn.disabled = trailPoints.length < 2;
-    startBtn.style.opacity = trailPoints.length < 2 ? '0.35' : '1';
+    startBtn.disabled = trailPath.length < 2;
+    startBtn.style.opacity = trailPath.length < 2 ? '0.35' : '1';
   }
 
   function undoLastWaypoint() {
     if (waypoints.length === 0) return;
     const removed = waypoints.pop();
-    map.removeLayer(removed.marker);
+    removed.overlay.setMap(null);
     updateWaypointLabels();
-    rebuildSmartTrailRoute();
+    rebuildCourseTrack();
+  }
+
+  function fitCourseView() {
+    if (!map || trailPath.length === 0) return;
+    const bounds = new kakao.maps.LatLngBounds();
+    trailPath.forEach(pt => bounds.extend(pt));
+    map.setBounds(bounds);
   }
 
   // ------------------------------------------------------------------
-  // 5. 실시간 내비게이션 & GPS 추적 엔진
+  // 4. 실시간 GPS 내비게이션 모드
   // ------------------------------------------------------------------
+  let currentPos = null;
+  let currentSegIndex = 0;
+
   function launchNavigation() {
-    if (trailPoints.length < 2) return;
+    if (trailPath.length < 2) return;
     isNavigating = true;
 
     document.getElementById('plan-section').style.display = 'none';
     document.getElementById('nav-section').style.display = 'block';
     document.getElementById('progress-track').style.display = 'block';
 
-    currentPos = trailPoints[0];
+    currentPos = trailPath[0];
     currentSegIndex = 0;
-    userHistory = [currentPos];
-    isGpsLost = false;
-    isOffRoute = false;
-    pdrSteps = 0;
     autoFollow = true;
 
-    if (navTargetPulseRing) map.removeLayer(navTargetPulseRing);
-    if (navTargetMarker) map.removeLayer(navTargetMarker);
-
-    navTargetPulseRing = L.circleMarker(currentPos, {
-      radius: 19, fillColor: '#00e5ff', fillOpacity: 0.25, stroke: false
-    }).addTo(map);
-
-    navTargetMarker = L.circleMarker(currentPos, {
-      radius: 7.5, fillColor: '#00e5ff', color: '#ffffff', weight: 2.5, fillOpacity: 1
-    }).addTo(map);
-
-    if (historyPolyline) map.removeLayer(historyPolyline);
-    historyPolyline = L.polyline([], { color: '#00e5ff', weight: 4 }).addTo(map);
-
-    speakAudio("산행 안내를 시작합니다. 안전 산행 되세요.");
+    speakAudio("산행 내비게이션을 시작합니다. 안전 산행 되세요.");
     updateNavHud(0.0, 0.0);
-    map.setView(currentPos, 16);
+    map.panTo(currentPos);
   }
 
-  function handleNavGpsUpdate(rawPoint, rawSpeed) {
-    if (isGpsLost) return;
+  function handleNavPosition(rawPoint, speedKmh) {
+    if (!isNavigating) return;
 
     let minD = Infinity;
-    let bestSeg = currentSegIndex;
-    let bestSnap = rawPoint;
+    let bestIdx = currentSegIndex;
 
-    let startS = Math.max(0, currentSegIndex - 1);
-    let endS = Math.min(trailPoints.length - 2, currentSegIndex + 6);
+    const startIdx = Math.max(0, currentSegIndex - 1);
+    const endIdx = Math.min(trailPath.length - 1, currentSegIndex + 6);
 
-    for (let i = startS; i <= endS; i++) {
-      const snap = snapPointToSegment(rawPoint, trailPoints[i], trailPoints[i + 1]);
-      if (snap.dist < minD) {
-        minD = snap.dist;
-        bestSeg = i;
-        bestSnap = snap.pt;
+    for (let i = startIdx; i <= endIdx; i++) {
+      const d = calculateDistance(rawPoint, trailPath[i]);
+      if (d < minD) {
+        minD = d;
+        bestIdx = i;
       }
     }
 
-    currentSegIndex = bestSeg;
-    isOffRoute = minD > 30.0;
-    currentPos = isOffRoute ? rawPoint : bestSnap;
+    currentSegIndex = bestIdx;
+    currentPos = trailPath[bestIdx];
 
-    userHistory.push(currentPos);
-    historyPolyline.setLatLngs(userHistory);
-    updateNavPosition(minD, rawSpeed);
-
-    if (isOffRoute && minD < 400) {
-      speakAudio("등산로를 이탈했습니다. 코스를 확인하세요.");
-    }
-  }
-
-  function toggleGpsBlind() {
-    isGpsLost = !isGpsLost;
-    const btn = document.getElementById('btn-gps-toggle');
-    if (isGpsLost) {
-      btn.innerText = "📡 GPS 신호 복구";
-      btn.style.background = "#0284c7";
-      pdrSteps = 0;
-      speakAudio("위성 신호 음영 구역입니다. 보행 추측 항법을 가동합니다.");
-    } else {
-      btn.innerText = "🛰️ GPS 두절(PDR)";
-      btn.style.background = "#ea580c";
-      speakAudio("GPS 위성 신호가 정상 복구되었습니다.");
-    }
-    updateNavPosition(isOffRoute ? 35.0 : 0.0, 0.0);
-  }
-
-  function updateNavPosition(offMeters, speedKmh) {
-    navTargetMarker.setLatLng(currentPos);
-    navTargetPulseRing.setLatLng(currentPos);
-
-    if (autoFollow) {
-      map.panTo(currentPos, { animate: true, duration: 0.35 });
+    if (autoFollow && map) {
+      map.panTo(currentPos);
     }
 
-    let theme = '#00e5ff';
-    if (isOffRoute) theme = '#ff1744';
-    else if (isGpsLost) theme = '#ff9100';
-
-    navTargetMarker.setStyle({ fillColor: theme });
-    navTargetPulseRing.setStyle({ fillColor: theme });
-
-    if (currentSegIndex >= trailPoints.length - 1) {
-      remainDistance = 0;
-    } else {
-      let rem = getDistanceMeters(currentPos, trailPoints[currentSegIndex + 1]);
-      for (let i = currentSegIndex + 1; i < trailPoints.length - 1; i++) {
-        rem += getDistanceMeters(trailPoints[i], trailPoints[i + 1]);
-      }
-      remainDistance = rem;
+    let rem = 0;
+    for (let i = currentSegIndex; i < trailPath.length - 1; i++) {
+      rem += calculateDistance(trailPath[i], trailPath[i + 1]);
     }
+    remainDistance = rem;
 
-    updateNavHud(offMeters, speedKmh);
+    updateNavHud(minD, speedKmh);
   }
 
   function updateNavHud(offMeters, speedKmh) {
@@ -1100,14 +747,10 @@
       badge.className = 'status-badge badge-approach';
       statusText.innerText = '산행 들머리 접근 중';
       document.getElementById('nav-off').style.color = '#64b5f6';
-    } else if (isOffRoute) {
+    } else if (offMeters > 35) {
       badge.className = 'status-badge badge-off';
       statusText.innerText = '경로 이탈 경보';
       document.getElementById('nav-off').style.color = '#ff1744';
-    } else if (isGpsLost) {
-      badge.className = 'status-badge badge-pdr';
-      statusText.innerText = `PDR ${pdrSteps}보 추정`;
-      document.getElementById('nav-off').style.color = '#ff9100';
     } else {
       badge.className = 'status-badge badge-gps';
       statusText.innerText = '실시간 보행 추적';
@@ -1115,19 +758,8 @@
     }
   }
 
-  map.on('dragstart', function() {
-    if (isNavigating && autoFollow) {
-      autoFollow = false;
-      document.getElementById('btn-my-loc').classList.remove('active');
-    }
-  });
-
   function exitToPlanning() {
     isNavigating = false;
-    if (navTargetMarker) map.removeLayer(navTargetMarker);
-    if (navTargetPulseRing) map.removeLayer(navTargetPulseRing);
-    if (historyPolyline) map.removeLayer(historyPolyline);
-
     document.getElementById('plan-section').style.display = 'block';
     document.getElementById('nav-section').style.display = 'none';
     document.getElementById('progress-track').style.display = 'none';
@@ -1138,7 +770,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 6. 음성 및 뷰 유틸
+  // 5. 음성 안내
   // ------------------------------------------------------------------
   let lastVoiceTime = 0;
   function speakAudio(text) {
@@ -1151,23 +783,9 @@
     window.speechSynthesis.speak(msg);
   }
 
-  function fitCourseView() {
-    if (trailPoints.length > 0) {
-      map.fitBounds(L.latLngBounds(trailPoints), { padding: [55, 55] });
-    }
-  }
-
-  function zoomIn() { map.zoomIn(); }
-  function zoomOut() { map.zoomOut(); }
-
   window.onload = () => {
-    initRealtimeUserGps();
-    drawKakaoStyleTrails();
-    renderKakaoLandmarks();
+    initRealtimeGps();
   };
-
-  window.addEventListener('resize', () => map.invalidateSize());
-  setTimeout(() => map.invalidateSize(), 200);
 </script>
 </body>
 </html>
