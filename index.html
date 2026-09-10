@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="referrer" content="no-referrer">
   
-  <!-- 모바일 100% 밀착 풀스크린 (노치/홈바 안전영역 대응) -->
+  <!-- 모바일 100% 밀착 풀스크린 (노치/홈바 안전영역 완벽 대응) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -91,7 +91,7 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .switch-btn {
-      padding: 6px 11px;
+      padding: 6px 13px;
       font-size: 11px;
       font-weight: 700;
       color: #94a3b8;
@@ -206,7 +206,6 @@
     .wp-chip.start { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
     .wp-chip.finish { background: rgba(255, 23, 68, 0.2); border-color: #ff1744; color: #ff5252; }
 
-    /* 산행 지표 (거리 / 시간 / 도착예정시각) */
     .summary-metrics {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -297,12 +296,11 @@
 <div id="app-container">
   <div id="map"></div>
 
-  <!-- 상단 HUD -->
+  <!-- 상단 HUD: 트랭글 삭제 및 국토부 정밀 위성 단일화 -->
   <div id="top-bar" class="glass-hud">
     <div class="map-mode-switch">
-      <button id="btn-sat" class="switch-btn active" onclick="switchMapMode('sat')">🛰️ 위성+흰색등산로</button>
-      <button id="btn-topo" class="switch-btn" onclick="switchMapMode('topo')">⛰️ 트랭글 등고선</button>
-      <button id="btn-vworld" class="switch-btn" onclick="switchMapMode('vworld')">🗺️ 국토부 정밀</button>
+      <button id="btn-sat" class="switch-btn active" onclick="switchMapMode('sat')">🛰️ 국토부 정밀 위성</button>
+      <button id="btn-vworld" class="switch-btn" onclick="switchMapMode('vworld')">🗺️ 국토부 전자지형도</button>
     </div>
     <div id="status-badge" class="status-badge badge-plan">
       <span>●</span> <span id="status-text">등산로 로딩 중</span>
@@ -324,7 +322,7 @@
     <!-- [플랜 모드 UI] -->
     <div id="plan-section">
       <div id="waypoint-chips" class="waypoint-chip-scroll">
-        <div class="wp-chip">지도에 보이는 굵은 하얀 등산로를 콕콕 찍으세요</div>
+        <div class="wp-chip">위성 사진 위 하얀 등산로를 콕콕 터치하세요</div>
       </div>
 
       <div class="summary-metrics">
@@ -394,50 +392,49 @@
 
 <script>
   // ------------------------------------------------------------------
-  // 1. 트랭글·램블러 스타일 지도 레이어 구성
+  // 1. 위성 + 국토교통부 정밀 하이브리드 결합 엔진
   // ------------------------------------------------------------------
   const map = L.map('map', {
     zoomControl: false,
     attributionControl: false
-  }).setView([35.2750, 129.0570], 15); // 금정산 고당봉/북문 중심
+  }).setView([35.2750, 129.0570], 15); // 금정산 중심
 
-  // [레이어 1] 초고해상도 위성 영상 (구글 하이브리드)
-  const satLayer = L.tileLayer(
-    'https://mt{s}.google.com/vt/lyrs=y&hl=ko&x={x}&y={y}&z={z}',
+  // [1층 레이어] 고해상도 실제 위성 사진 베이스
+  const satBase = L.tileLayer(
+    'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
   );
 
-  // [레이어 2] 트랭글·램블러 산악 등고선 전문 지도 (CyclOSM)
-  const topoLayer = L.tileLayer(
-    'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
-    { subdomains: ['a', 'b', 'c'], maxZoom: 19 }
+  // [2층 레이어] 국토교통부 브이월드(V-World) 공인 정밀 도로망·행정경계·지명 하이브리드
+  const vworldHybrid = L.tileLayer(
+    'https://xdworld.vworld.kr/2d/Hybrid/service/{z}/{x}/{y}.png',
+    { maxZoom: 19, opacity: 0.95 }
   );
 
-  // [레이어 3] 국토교통부 브이월드 국가 정밀 지형도
-  const vworldLayer = L.tileLayer(
+  // [대체 모드] 국토교통부 브이월드 국가 정밀 전자지형도 (단독 베이스)
+  const vworldBase = L.tileLayer(
     'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png',
     { maxZoom: 19 }
   );
 
-  satLayer.addTo(map); // 기본: 위성 영상
+  // 기본 세팅: 위성 + 국토부 하이브리드 동시 적층
+  satBase.addTo(map);
+  vworldHybrid.addTo(map);
 
   function switchMapMode(mode) {
-    map.removeLayer(satLayer);
-    map.removeLayer(topoLayer);
-    map.removeLayer(vworldLayer);
+    map.removeLayer(satBase);
+    map.removeLayer(vworldHybrid);
+    map.removeLayer(vworldBase);
 
     document.getElementById('btn-sat').classList.remove('active');
-    document.getElementById('btn-topo').classList.remove('active');
     document.getElementById('btn-vworld').classList.remove('active');
 
     if (mode === 'sat') {
-      satLayer.addTo(map);
+      satBase.addTo(map);
+      vworldHybrid.addTo(map);
       document.getElementById('btn-sat').classList.add('active');
-    } else if (mode === 'topo') {
-      topoLayer.addTo(map);
-      document.getElementById('btn-topo').classList.add('active');
     } else {
-      vworldLayer.addTo(map);
+      vworldBase.addTo(map);
       document.getElementById('btn-vworld').classList.add('active');
     }
 
@@ -447,7 +444,7 @@
   // ------------------------------------------------------------------
   // 2. 실제 등산로(오솔길/능선/샛길) 실시간 벡터 수신 & 흰색 네온 렌더링
   // ------------------------------------------------------------------
-  let trailNetwork = []; // 로컬 등산로 세그먼트 배열
+  let trailNetwork = [];
   const trailVectorGroup = L.layerGroup().addTo(map);
   let isTrailVisible = true;
   let loadDebounceTimer = null;
@@ -464,9 +461,9 @@
     }
   }
 
-  // 화면 영역에 있는 실제 등산로 데이터(OSM/산림청 지적) 실시간 수신
+  // 실제 등산로망 실시간 추출 (산림청·국립공원 지적 반영)
   async function loadLiveMountainTrails() {
-    if (map.getZoom() < 13) return; // 너무 넓은 영역 제외
+    if (map.getZoom() < 13) return;
     const b = map.getBounds();
     const south = b.getSouth().toFixed(4);
     const west = b.getWest().toFixed(4);
@@ -489,7 +486,7 @@
           const pts = el.geometry.map(g => L.latLng(g.lat, g.lon));
           trailNetwork.push(pts);
 
-          // 1. 하단 블랙 음영 테두리 (위성 사진에서 선명하게 대비)
+          // 1. 하단 블랙 음영 테두리 (위성 사진에서 시인성 극대화)
           L.polyline(pts, {
             color: '#000000',
             weight: 5.5,
@@ -498,7 +495,7 @@
             lineJoin: 'round'
           }).addTo(trailVectorGroup);
 
-          // 2. 상단 선명한 화이트 네온 등산로
+          // 2. 상단 선명한 화이트 네온 실선 등산로
           const line = L.polyline(pts, {
             color: '#ffffff',
             weight: 3.2,
@@ -508,7 +505,7 @@
           }).addTo(trailVectorGroup);
 
           if (el.tags && el.tags.name) {
-            line.bindTooltip(el.tags.name, { sticky: true, className: 'trail-tooltip' });
+            line.bindTooltip(el.tags.name, { sticky: true });
           }
         }
       });
@@ -517,18 +514,17 @@
         document.getElementById('status-text').innerText = `등산로 ${trailNetwork.length}구간 활성`;
       }
     } catch(e) {
-      console.warn("등산로 로딩 지연(라우터 백업 작동):", e);
+      console.warn("등산로 로딩 백업:", e);
     }
   }
 
-  // 지도를 이동할 때마다 새로운 구역의 등산로를 자동 갱신
   map.on('moveend', () => {
     clearTimeout(loadDebounceTimer);
     loadDebounceTimer = setTimeout(loadLiveMountainTrails, 500);
   });
 
   // ------------------------------------------------------------------
-  // 3. 실시간 내 위치 GPS 추적
+  // 3. 실시간 사용자 GPS 위치 추적
   // ------------------------------------------------------------------
   let userRealLocation = null;
   let userLiveMarker = null;
@@ -620,7 +616,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 4. 실제 등산로 자동 흡착(Snap) 라우팅 엔진 (직선 절대 방지)
+  // 4. 실제 등산로 자석 흡착(Snap) 라우팅 엔진
   // ------------------------------------------------------------------
   let isNavigating = false;
   let waypoints = [];
@@ -644,7 +640,6 @@
     return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
   }
 
-  // 점 p에서 선분 a-b 사이 최단 거리 및 투영점 계산
   function snapPointToSegment(p, a, b) {
     const midLat = (a.lat + b.lat) / 2 * (Math.PI / 180);
     const kx = 111320 * Math.cos(midLat);
@@ -660,7 +655,6 @@
     return { pt: snapped, dist: getDistanceMeters(p, snapped) };
   }
 
-  // 클릭한 지점에서 가장 가까운 실제 등산로 찾기
   function snapToNearestMountainTrail(point) {
     let minD = Infinity;
     let bestSnap = point;
@@ -680,9 +674,9 @@
     return { snappedPoint: (minD < 85 ? bestSnap : point), segment: bestSegment, distance: minD };
   }
 
-  // 실제 등산로 추종 라우팅 (OSM Foot Router -> BRouter -> Trail Snap -> 능선 보간)
+  // 실제 등산로 추종 라우팅
   async function fetchRealTrailRoute(p1, p2) {
-    // 1순위: 보행/등산 전용 OSRM 엔진 (아스팔트 우회 없이 숲길/산길 통과)
+    // 1순위: 산악 보행 전용 엔진 (routed-foot)
     try {
       const osrmUrl = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
       const res = await fetch(osrmUrl);
@@ -692,13 +686,13 @@
           const coords = json.routes[0].geometry.coordinates.map(c => L.latLng(c[1], c[0]));
           const straightD = getDistanceMeters(p1, p2);
           if (json.routes[0].distance < straightD * 3.2) {
-            return coords; // 실제 산길 추종 성공
+            return coords;
           }
         }
       }
     } catch(e) {}
 
-    // 2순위: 산악 전용 BRouter (등고선/능선 전문)
+    // 2순위: 산악 능선 전문 BRouter
     try {
       const brouterUrl = `https://brouter.de/brouter?lonlats=${p1.lng},${p1.lat}|${p2.lng},${p2.lat}&profile=hiking-mountain&alternativeidx=0&format=geojson`;
       const res = await fetch(brouterUrl);
@@ -714,7 +708,6 @@
     const s1 = snapToNearestMountainTrail(p1);
     const s2 = snapToNearestMountainTrail(p2);
     if (s1.segment && s2.segment && s1.segment === s2.segment) {
-      // 동일한 등산로 선상에 찍었을 때: 해당 등산로의 모든 굴곡 포인트를 그대로 추출
       const seg = s1.segment;
       let i1 = 0, i2 = seg.length - 1;
       let min1 = Infinity, min2 = Infinity;
@@ -734,7 +727,7 @@
       return extracted;
     }
 
-    // 4순위 최후 보정: 직선 방지용 스위치백(지그재그) 능선 굴곡 곡선
+    // 4순위: 직선 방지용 스위치백(지그재그) 능선 굴곡 곡선
     const curved = [p1];
     const dist = getDistanceMeters(p1, p2);
     const steps = Math.max(8, Math.min(26, Math.floor(dist / 35)));
@@ -754,11 +747,10 @@
     return curved;
   }
 
-  // 지도 클릭 시 경유지 추가 (하얀 등산로로 자동 자석 흡착)
+  // 지도 클릭 시 하얀 등산로로 자동 흡착 핀 생성
   map.on('click', function(e) {
     if (isNavigating) return;
 
-    // 클릭 지점을 가장 가까운 하얀 등산로 위로 자동 스냅
     const snapped = snapToNearestMountainTrail(e.latlng);
     const targetPoint = snapped.snappedPoint;
 
@@ -810,7 +802,7 @@
   function renderWaypointChips() {
     const chipBox = document.getElementById('waypoint-chips');
     if (waypoints.length === 0) {
-      chipBox.innerHTML = '<div class="wp-chip">지도에 보이는 굵은 하얀 등산로를 콕콕 찍으세요</div>';
+      chipBox.innerHTML = '<div class="wp-chip">위성 사진 위 하얀 등산로를 콕콕 터치하세요</div>';
       return;
     }
 
@@ -825,7 +817,6 @@
     chipBox.innerHTML = html;
   }
 
-  // 실제 등산로를 따라 청록색 코스 완성
   async function rebuildSmartTrailRoute() {
     trailPoints = [];
     if (waypoints.length < 2) {
@@ -1096,7 +1087,6 @@
   function zoomIn() { map.zoomIn(); }
   function zoomOut() { map.zoomOut(); }
 
-  // 앱 시작 시 등산로와 GPS 즉시 가동
   window.onload = () => {
     initRealtimeUserGps();
     loadLiveMountainTrails();
