@@ -1,68 +1,343 @@
-from IPython.display import HTML, display
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0d1117">
+  
+  <title>산길 오프라인 내비게이션</title>
+  
+  <!-- Leaflet 지도 엔진 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-fix_hiking_map_html = """
-<div id="nav-container" style="position: relative; width: 100%; height: 600px; border-radius: 20px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
-  <!-- 1. 리얼 지도 영역 -->
-  <div id="hiking-map" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></div>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
 
-  <!-- 2. 상단 글래스모피즘 상태 바 -->
-  <div style="position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1000; background: rgba(18, 24, 34, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; color: #fff;">
-    <div id="status-tag" style="background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid #00e5ff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800;">
-      ● 산행 플랜 모드
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+      background: #090b0e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #app-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: #0d1117;
+    }
+
+    /* 글래스모피즘 HUD */
+    .glass-hud {
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      color: #ffffff;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      position: absolute;
+    }
+
+    /* 1. 상단 바 */
+    #top-bar {
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      left: calc(12px + env(safe-area-inset-left, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .map-mode-switch {
+      display: flex;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .switch-btn {
+      padding: 7px 13px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      border-radius: 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .switch-btn.active {
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 180, 216, 0.4);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge-plan { background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid #00e5ff; }
+    .badge-gps { background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid #00e676; }
+    .badge-pdr { background: rgba(255, 145, 0, 0.2); color: #ff9100; border: 1px solid #ff9100; }
+    .badge-off { background: rgba(255, 23, 68, 0.2); color: #ff1744; border: 1px solid #ff1744; animation: blink 0.9s infinite alternate; }
+    @keyframes blink { from { opacity: 0.65; } to { opacity: 1; } }
+
+    /* 2. 우측 컨트롤 */
+    #quick-controls {
+      top: calc(76px + env(safe-area-inset-top, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .round-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      background: rgba(13, 17, 23, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      transition: all 0.2s;
+    }
+    .round-btn.active {
+      border-color: #00e5ff;
+      background: rgba(0, 180, 216, 0.3);
+      color: #00e5ff;
+    }
+    .round-btn:active { background: #1e293b; transform: scale(0.93); }
+
+    /* 3. 하단 HUD */
+    #bottom-hud {
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      left: calc(12px + env(safe-area-inset-left, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
+      padding: 14px 18px;
+    }
+
+    .waypoint-chip-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 0 10px 0;
+      margin-bottom: 6px;
+      scrollbar-width: none;
+    }
+    .waypoint-chip-scroll::-webkit-scrollbar { display: none; }
+    .wp-chip {
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 5px 11px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .wp-chip.start { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
+    .wp-chip.finish { background: rgba(255, 23, 68, 0.2); border-color: #ff1744; color: #ff5252; }
+
+    .summary-metrics {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .metric-col { text-align: center; }
+    .metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 3px; }
+    .metric-val { font-size: 18px; font-weight: 900; color: #f8fafc; letter-spacing: -0.3px; }
+
+    #progress-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      display: none;
+    }
+    #progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00b4d8, #00e5ff);
+      transition: width 0.3s;
+    }
+
+    .hud-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .action-btn {
+      padding: 12px 0;
+      border-radius: 12px;
+      border: none;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .action-btn:active { transform: scale(0.96); }
+    .btn-main { background: linear-gradient(135deg, #00b4d8, #0077b6); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.35); }
+    .btn-undo { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; }
+    .btn-warn { background: #ea580c; }
+    .btn-danger { background: #be123c; }
+
+    .custom-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      color: #fff;
+      font-weight: 900;
+      font-size: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      border: 2px solid #ffffff;
+      white-space: nowrap;
+      padding: 2px 7px;
+    }
+    .pin-start { background: #10b981; }
+    .pin-way { background: #0284c7; }
+    .pin-end { background: #e11d48; }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <div id="map"></div>
+
+  <!-- 상단 HUD -->
+  <div id="top-bar" class="glass-hud">
+    <div class="map-mode-switch">
+      <button id="btn-topo" class="switch-btn active" onclick="switchMapMode('topo')">⛰️ 산악 지형도</button>
+      <button id="btn-sat" class="switch-btn" onclick="switchMapMode('sat')">🛰️ 정밀 위성도</button>
     </div>
-    <div id="status-guide" style="font-size: 11px; color: #b0bec5;">지도를 터치해 출발지를 찍으세요</div>
+    <div id="status-badge" class="status-badge badge-plan">
+      <span>●</span> <span id="status-text">플랜 설계 중</span>
+    </div>
   </div>
 
-  <!-- 3. 우측 레이어 전환 버튼 -->
-  <div style="position: absolute; top: 70px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px;">
-    <button onclick="changeMap('osm')" style="width: 40px; height: 40px; border-radius: 12px; background: rgba(18, 24, 34, 0.85); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">🗺️</button>
-    <button onclick="changeMap('sat')" style="width: 40px; height: 40px; border-radius: 12px; background: rgba(18, 24, 34, 0.85); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">🛰️</button>
-    <button onclick="changeMap('dark')" style="width: 40px; height: 40px; border-radius: 12px; background: rgba(18, 24, 34, 0.85); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">🌙</button>
-    <button onclick="fitCourseView()" style="width: 40px; height: 40px; border-radius: 12px; background: rgba(18, 24, 34, 0.85); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">🎯</button>
+  <!-- 우측 컨트롤 버튼 -->
+  <div id="quick-controls">
+    <div id="btn-follow" class="round-btn active" onclick="toggleAutoFollow()" title="내 위치 자동 추종">🎯</div>
+    <div class="round-btn" onclick="fitCourseView()" title="전체 코스 한눈에">🗺️</div>
+    <div class="round-btn" onclick="zoomIn()" title="확대">+</div>
+    <div class="round-btn" onclick="zoomOut()" title="축소">−</div>
   </div>
 
-  <!-- 4. 하단 통합 컨트롤 HUD -->
-  <div style="position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 1000; background: rgba(18, 24, 34, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 12px 16px; color: #fff;">
+  <!-- 하단 스마트 내비게이션 패널 -->
+  <div id="bottom-hud" class="glass-hud">
     
-    <!-- 플랜 설계 단계 UI -->
-    <div id="plan-panel">
-      <div id="step-hint" style="font-size: 12px; color: #eceff1; margin-bottom: 8px; font-weight: 600;">
-        📍 지도를 터치하여 <span style="color: #00e5ff;">[출발점]</span>을 지정하세요.
+    <!-- [플랜 모드 UI] -->
+    <div id="plan-section">
+      <div id="waypoint-chips" class="waypoint-chip-scroll">
+        <div class="wp-chip">지도를 터치해 출발지를 지정하세요</div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <button id="btn-start" onclick="launchNavigation()" disabled style="padding: 10px 0; border-radius: 10px; border: none; background: #00b4d8; color: #fff; font-weight: bold; font-size: 12px; opacity: 0.4;">
-          🚀 내비게이션 시작
+
+      <div class="summary-metrics">
+        <div class="metric-col">
+          <div class="metric-label">총 코스 거리</div>
+          <div id="plan-dist" class="metric-val">0.00 km</div>
+        </div>
+        <div class="metric-col">
+          <div class="metric-label">예상 산행시간</div>
+          <div id="plan-time" class="metric-val">0분</div>
+        </div>
+        <div class="metric-col">
+          <div class="metric-label">경유 포인트</div>
+          <div id="plan-count" class="metric-val">0개</div>
+        </div>
+      </div>
+
+      <div class="hud-btn-row">
+        <button id="btn-undo-wp" class="action-btn btn-undo" onclick="undoLastWaypoint()">
+          ↩ 직전 지점 취소
         </button>
-        <button onclick="clearPlan()" style="padding: 10px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-weight: bold; font-size: 12px;">
-          🔄 플랜 초기화
+        <button id="btn-start-nav" class="action-btn btn-main" style="opacity: 0.35;" onclick="launchNavigation()" disabled>
+          🚀 코스 확정 & 산행 시작
         </button>
       </div>
     </div>
 
-    <!-- 실시간 산행 내비게이션 UI -->
-    <div id="nav-panel" style="display: none;">
-      <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 10px; overflow: hidden;">
-        <div id="progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00b0ff, #00e5ff); transition: width 0.3s;"></div>
+    <!-- [실시간 내비게이션 모드 UI] -->
+    <div id="nav-section" style="display: none;">
+      <div id="progress-track">
+        <div id="progress-fill"></div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-bottom: 10px;">
-        <div>
-          <div style="font-size: 9px; color: #90a4ae; text-transform: uppercase;">남은 거리</div>
-          <div id="txt-remain" style="font-size: 15px; font-weight: 800;">0.00 km</div>
+
+      <div class="summary-metrics">
+        <div class="metric-col">
+          <div class="metric-label">남은 목표 거리</div>
+          <div id="nav-remain" class="metric-val">0.00 km</div>
         </div>
-        <div>
-          <div style="font-size: 9px; color: #90a4ae; text-transform: uppercase;">트랙 이탈</div>
-          <div id="txt-off" style="font-size: 15px; font-weight: 800; color: #00e676;">0.0 m</div>
+        <div class="metric-col">
+          <div class="metric-label">보행 속도</div>
+          <div id="nav-speed" class="metric-val" style="color: #00e5ff;">0.0 km/h</div>
         </div>
-        <div>
-          <div style="font-size: 9px; color: #90a4ae; text-transform: uppercase;">완주율</div>
-          <div id="txt-rate" style="font-size: 15px; font-weight: 800; color: #00e5ff;">0%</div>
+        <div class="metric-col">
+          <div class="metric-label">트랙 이탈</div>
+          <div id="nav-off" class="metric-val" style="color: #00e676;">0.0 m</div>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <button onclick="forwardWalk(5)" style="padding: 9px 0; border-radius: 10px; border: none; background: #00b4d8; color: #fff; font-weight: bold; font-size: 12px;">👣 5보 전진</button>
-        <button id="btn-gps" onclick="toggleBlindPdr()" style="padding: 9px 0; border-radius: 10px; border: none; background: #e65100; color: #fff; font-weight: bold; font-size: 12px;">🛰️ GPS 두절</button>
-        <button onclick="forceDeviate()" style="padding: 9px 0; border-radius: 10px; border: none; background: #c2185b; color: #fff; font-weight: bold; font-size: 12px;">⚠️ 이탈 테스트</button>
-        <button onclick="replanCourse()" style="padding: 9px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-weight: bold; font-size: 12px;">📋 코스 재설계</button>
+
+      <div class="hud-btn-row" style="margin-bottom: 8px;">
+        <button class="action-btn btn-main" onclick="simulateWalk(5)">👣 가상 5보 전진</button>
+        <button id="btn-gps-toggle" class="action-btn btn-warn" onclick="toggleGpsBlind()">🛰️ GPS 두절(PDR)</button>
+      </div>
+      <div class="hud-btn-row">
+        <button class="action-btn btn-danger" onclick="simulateDeviate()">⚠️ 이탈 테스트</button>
+        <button class="action-btn btn-undo" onclick="exitToPlanning()">📋 코스 재설계</button>
       </div>
     </div>
 
@@ -70,270 +345,473 @@ fix_hiking_map_html = """
 </div>
 
 <script>
-(function() {
-  function loadLeaflet(callback) {
-    if (window.L) { callback(); return; }
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(css);
+  // 1. 지도 레이어 설정 (구글 지형도 & 하이브리드 위성)
+  const map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([35.2750, 129.0570], 14);
 
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = callback;
-    document.head.appendChild(script);
+  const topoLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&hl=ko&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 19
+  });
+
+  const satLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&hl=ko&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 19
+  });
+
+  topoLayer.addTo(map);
+
+  function switchMapMode(mode) {
+    if (mode === 'topo') {
+      map.removeLayer(satLayer);
+      topoLayer.addTo(map);
+      document.getElementById('btn-topo').classList.add('active');
+      document.getElementById('btn-sat').classList.remove('active');
+    } else {
+      map.removeLayer(topoLayer);
+      satLayer.addTo(map);
+      document.getElementById('btn-sat').classList.add('active');
+      document.getElementById('btn-topo').classList.remove('active');
+    }
   }
 
-  loadLeaflet(function() {
-    // 1. 지도 초기화 (차단 없는 고속 표준 타일 사용)
-    const map = L.map('hiking-map', {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([35.2750, 129.0570], 14);
+  // 2. 코스 설계 변수
+  let isNavigating = false;
+  let waypoints = [];
+  let trailPoints = [];
+  let trailPolyline = null;
+  let historyPolyline = null;
+  let userMarker = null;
+  let userPulseRing = null;
 
-    const baseLayers = {
-      // 표준 오픈스트리트맵 (절대 차단되지 않고 등산로·지명 한글 지원)
-      osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }),
-      // 고해상도 위성 영상 (지형 암릉 확인용)
-      sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
-      // 야간 다크 모드
-      dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 })
-    };
-    baseLayers.osm.addTo(map);
+  let currentPos = null;
+  let currentSegIndex = 0;
+  let totalDistance = 0;
+  let remainDistance = 0;
+  let isGpsLost = false;
+  let isOffRoute = false;
+  let pdrSteps = 0;
+  let userHistory = [];
 
-    // 모바일 렌더링 검은 화면 방지 (크기 강제 재계산)
-    setTimeout(() => { map.invalidateSize(); }, 300);
+  // 실시간 보행 추적 & 자동 추종 변수
+  let gpsWatchId = null;
+  let autoFollow = true;
+  let lastGpsTimestamp = 0;
 
-    window.changeMap = function(type) {
-      Object.values(baseLayers).forEach(l => map.removeLayer(l));
-      baseLayers[type].addTo(map);
-    };
+  function getDistanceMeters(p1, p2) {
+    return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
+  }
 
-    // 2. 상태 변수
-    let mode = 'PLAN_START';
-    let startPoint = null, endPoint = null;
-    let startMarker = null, endMarker = null;
-    let trailPolyline = null, historyPolyline = null;
-    let userMarker = null, userHalo = null;
-    let trailPoints = [];
-    let curPos = null, curSeg = 0;
-    let totalLen = 0, remainLen = 0;
-    let isBlind = false, isOff = false, pdrCount = 0;
-    let userPath = [];
+  // 선분 직교 투영 (Snap-to-Trail)
+  function snapToSegment(p, a, b) {
+    const midLat = (a.lat + b.lat) / 2 * (Math.PI / 180);
+    const kx = 111320 * Math.cos(midLat);
+    const ky = 110574;
+    const ax = a.lng * kx, ay = a.lat * ky;
+    const bx = b.lng * kx, by = b.lat * ky;
+    const px = p.lng * kx, py = p.lat * ky;
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return { pt: a, dist: getDistanceMeters(p, a) };
+    let t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    const snapped = L.latLng((ay + t * dy) / ky, (ax + t * dx) / kx);
+    return { pt: snapped, dist: getDistanceMeters(p, snapped) };
+  }
 
-    function distMeters(p1, p2) {
-      return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
-    }
+  // 지도 터치 시 경유지 핀 생성
+  map.on('click', function(e) {
+    if (isNavigating) return;
 
-    // 3. 지도 터치 이벤트
-    map.on('click', function(e) {
-      if (mode === 'PLAN_START') {
-        startPoint = e.latlng;
-        if (startMarker) map.removeLayer(startMarker);
-        startMarker = L.circleMarker(startPoint, {
-          radius: 8, fillColor: '#00e676', color: '#fff', weight: 2, fillOpacity: 1
-        }).addTo(map);
+    const idx = waypoints.length;
+    let type = (idx === 0) ? 'start' : 'way';
+    let name = (idx === 0) ? '출발' : `경유 ${idx}`;
+    let pinClass = (idx === 0) ? 'pin-start' : 'pin-way';
 
-        mode = 'PLAN_END';
-        document.getElementById('step-hint').innerHTML = '📍 지도를 터치하여 <span style="color: #ff5252;">[도착점(정상)]</span>을 지정하세요.';
-        document.getElementById('status-guide').innerText = '출발지 설정 완료';
-      }
-      else if (mode === 'PLAN_END') {
-        endPoint = e.latlng;
-        if (endMarker) map.removeLayer(endMarker);
-        endMarker = L.circleMarker(endPoint, {
-          radius: 9, fillColor: '#ff1744', color: '#fff', weight: 2, fillOpacity: 1
-        }).addTo(map);
-
-        createTrail(startPoint, endPoint);
-        mode = 'PLAN_READY';
-
-        const startBtn = document.getElementById('btn-start');
-        startBtn.disabled = false;
-        startBtn.style.opacity = '1';
-        document.getElementById('step-hint').innerHTML = '✅ 등산로 플랜 완성! <strong>[내비게이션 시작]</strong>을 누르세요.';
-        document.getElementById('status-guide').innerText = `총 거리: ${(totalLen/1000).toFixed(2)} km`;
-      }
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="custom-pin ${pinClass}">${name}</div>`,
+      iconSize: [46, 22],
+      iconAnchor: [23, 11]
     });
 
-    // 능선 모사 곡선 등산로 생성
-    function createTrail(start, end) {
-      trailPoints = [start];
-      const count = 12;
-      const dLat = (end.lat - start.lat) / count;
-      const dLng = (end.lng - start.lng) / count;
-      const perpLat = -dLng, perpLng = dLat;
+    const marker = L.marker(e.latlng, { icon: icon }).addTo(map);
+    waypoints.push({ latlng: e.latlng, marker: marker, type: type, name: name });
 
-      for (let i = 1; i < count; i++) {
-        const curve = Math.sin(i * 0.9) * 0.45;
+    updateWaypointLabels();
+    rebuildTrailPath();
+  });
+
+  function updateWaypointLabels() {
+    if (waypoints.length >= 2) {
+      for (let i = 1; i < waypoints.length - 1; i++) {
+        waypoints[i].type = 'way';
+        waypoints[i].name = `경유 ${i}`;
+        waypoints[i].marker.setIcon(L.divIcon({
+          className: '',
+          html: `<div class="custom-pin pin-way">경유 ${i}</div>`,
+          iconSize: [48, 22],
+          iconAnchor: [24, 11]
+        }));
+      }
+
+      const last = waypoints[waypoints.length - 1];
+      last.type = 'finish';
+      last.name = '도착';
+      last.marker.setIcon(L.divIcon({
+        className: '',
+        html: `<div class="custom-pin pin-end">도착 🏁</div>`,
+        iconSize: [52, 22],
+        iconAnchor: [26, 11]
+      }));
+    }
+    renderWaypointChips();
+  }
+
+  function renderWaypointChips() {
+    const chipBox = document.getElementById('waypoint-chips');
+    if (waypoints.length === 0) {
+      chipBox.innerHTML = '<div class="wp-chip">지도를 터치해 출발지를 지정하세요</div>';
+      return;
+    }
+
+    let html = '';
+    waypoints.forEach((wp, i) => {
+      let cls = 'wp-chip';
+      if (wp.type === 'start') cls += ' start';
+      else if (wp.type === 'finish') cls += ' finish';
+      html += `<div class="${cls}">📍 ${wp.name}</div>`;
+      if (i < waypoints.length - 1) html += '<span style="color:#64748b; font-size:10px; align-self:center;">➔</span>';
+    });
+    chipBox.innerHTML = html;
+  }
+
+  function rebuildTrailPath() {
+    trailPoints = [];
+    if (waypoints.length < 2) {
+      if (trailPolyline) map.removeLayer(trailPolyline);
+      updatePlanMetrics(0);
+      return;
+    }
+
+    for (let w = 0; w < waypoints.length - 1; w++) {
+      const pA = waypoints[w].latlng;
+      const pB = waypoints[w + 1].latlng;
+      const steps = 8;
+      const dLat = (pB.lat - pA.lat) / steps;
+      const dLng = (pB.lng - pA.lng) / steps;
+      const perpLat = -dLng * 0.35;
+      const perpLng = dLat * 0.35;
+
+      for (let i = (w === 0 ? 0 : 1); i <= steps; i++) {
+        const curve = Math.sin((i / steps) * Math.PI) * (w % 2 === 0 ? 1 : -1);
         trailPoints.push(L.latLng(
-          start.lat + dLat * i + perpLat * curve,
-          start.lng + dLng * i + perpLng * curve
+          pA.lat + dLat * i + perpLat * curve,
+          pA.lng + dLng * i + perpLng * curve
         ));
       }
-      trailPoints.push(end);
-
-      if (trailPolyline) map.removeLayer(trailPolyline);
-      trailPolyline = L.polyline(trailPoints, {
-        color: '#00e5ff', weight: 5, opacity: 0.9, lineCap: 'round', dashArray: '2, 3'
-      }).addTo(map);
-
-      totalLen = 0;
-      for (let i = 0; i < trailPoints.length - 1; i++) {
-        totalLen += distMeters(trailPoints[i], trailPoints[i+1]);
-      }
-      remainLen = totalLen;
-      window.fitCourseView();
     }
 
-    window.fitCourseView = function() {
-      if (trailPoints.length > 0) {
-        map.fitBounds(L.latLngBounds(trailPoints), { padding: [50, 50] });
-      }
-    };
+    if (trailPolyline) map.removeLayer(trailPolyline);
+    trailPolyline = L.polyline(trailPoints, {
+      color: '#00e5ff', weight: 5, opacity: 0.95, lineCap: 'round', dashArray: '2, 3'
+    }).addTo(map);
 
-    // 4. 내비게이션 동작
-    window.launchNavigation = function() {
-      mode = 'NAVIGATING';
-      document.getElementById('plan-panel').style.display = 'none';
-      document.getElementById('nav-panel').style.display = 'block';
+    totalDistance = 0;
+    for (let i = 0; i < trailPoints.length - 1; i++) {
+      totalDistance += getDistanceMeters(trailPoints[i], trailPoints[i + 1]);
+    }
+    remainDistance = totalDistance;
+    updatePlanMetrics(totalDistance);
+  }
 
-      curPos = trailPoints[0];
-      curSeg = 0;
-      userPath = [curPos];
-      isBlind = false; isOff = false; pdrCount = 0;
+  function updatePlanMetrics(distMeters) {
+    const distKm = distMeters / 1000;
+    document.getElementById('plan-dist').innerText = `${distKm.toFixed(2)} km`;
+    document.getElementById('plan-count').innerText = `${waypoints.length}개 지점`;
 
-      if (userHalo) map.removeLayer(userHalo);
-      if (userMarker) map.removeLayer(userMarker);
-      userHalo = L.circleMarker(curPos, { radius: 18, fillColor: '#00e5ff', fillOpacity: 0.25, stroke: false }).addTo(map);
-      userMarker = L.circleMarker(curPos, { radius: 7, fillColor: '#00e5ff', color: '#fff', weight: 2.5, fillOpacity: 1 }).addTo(map);
+    const hours = distKm / 2.5;
+    const totalMinutes = Math.round(hours * 60);
+    document.getElementById('plan-time').innerText = (totalMinutes < 60)
+      ? `${totalMinutes}분`
+      : `${Math.floor(totalMinutes / 60)}시간 ${totalMinutes % 60}분`;
 
-      if (historyPolyline) map.removeLayer(historyPolyline);
-      historyPolyline = L.polyline([], { color: '#00e5ff', weight: 4 }).addTo(map);
+    const startBtn = document.getElementById('btn-start-nav');
+    startBtn.disabled = waypoints.length < 2;
+    startBtn.style.opacity = waypoints.length < 2 ? '0.35' : '1';
+  }
 
-      updateHudView();
-      map.setView(curPos, 16);
-    };
+  function undoLastWaypoint() {
+    if (waypoints.length === 0) return;
+    const removed = waypoints.pop();
+    map.removeLayer(removed.marker);
+    updateWaypointLabels();
+    rebuildTrailPath();
+  }
 
-    window.forwardWalk = function(steps) {
-      if (mode !== 'NAVIGATING' || curSeg >= trailPoints.length - 1) return;
-      const stepM = steps * 0.65;
-      if (isBlind) pdrCount += steps;
+  // ------------------------------------------------------------------
+  // 3. 실시간 실제 GPS 보행 추적 & 내비게이션 엔진
+  // ------------------------------------------------------------------
+  function launchNavigation() {
+    if (waypoints.length < 2) return;
+    isNavigating = true;
 
-      const target = trailPoints[curSeg + 1];
-      const dist = distMeters(curPos, target);
+    document.getElementById('plan-section').style.display = 'none';
+    document.getElementById('nav-section').style.display = 'block';
+    document.getElementById('progress-track').style.display = 'block';
 
-      if (dist <= stepM) {
-        curSeg++;
-        curPos = target;
-      } else {
-        const r = stepM / dist;
-        curPos = L.latLng(curPos.lat + (target.lat - curPos.lat) * r, curPos.lng + (target.lng - curPos.lng) * r);
-      }
+    currentPos = trailPoints[0];
+    currentSegIndex = 0;
+    userHistory = [currentPos];
+    isGpsLost = false;
+    isOffRoute = false;
+    pdrSteps = 0;
+    autoFollow = true;
+    document.getElementById('btn-follow').classList.add('active');
 
-      isOff = false;
-      userPath.push(curPos);
-      historyPolyline.setLatLngs(userPath);
-      syncPos(0.0);
-    };
+    if (userPulseRing) map.removeLayer(userPulseRing);
+    if (userMarker) map.removeLayer(userMarker);
 
-    window.forceDeviate = function() {
-      if (mode !== 'NAVIGATING') return;
-      curPos = L.latLng(curPos.lat + 0.00035, curPos.lng + 0.00025);
-      isOff = true;
-      userPath.push(curPos);
-      historyPolyline.setLatLngs(userPath);
-      syncPos(35.0);
-    };
+    userPulseRing = L.circleMarker(currentPos, {
+      radius: 19, fillColor: '#00e5ff', fillOpacity: 0.25, stroke: false
+    }).addTo(map);
 
-    window.toggleBlindPdr = function() {
-      isBlind = !isBlind;
-      const btn = document.getElementById('btn-gps');
-      btn.innerText = isBlind ? "📡 GPS 복구" : "🛰️ GPS 두절";
-      btn.style.background = isBlind ? "#00b4d8" : "#e65100";
-      pdrCount = 0;
-      syncPos(isOff ? 35.0 : 0.0);
-    };
+    userMarker = L.circleMarker(currentPos, {
+      radius: 7.5, fillColor: '#00e5ff', color: '#ffffff', weight: 2.5, fillOpacity: 1
+    }).addTo(map);
 
-    function syncPos(offDist) {
-      userMarker.setLatLng(curPos);
-      userHalo.setLatLng(curPos);
-      map.panTo(curPos, { animate: true, duration: 0.3 });
+    if (historyPolyline) map.removeLayer(historyPolyline);
+    historyPolyline = L.polyline([], { color: '#00e5ff', weight: 4 }).addTo(map);
 
-      const c = isOff ? '#ff1744' : (isBlind ? '#ff9100' : '#00e5ff');
-      userMarker.setStyle({ fillColor: c });
-      userHalo.setStyle({ fillColor: c });
+    speakAudio("실시간 보행 추적을 시작합니다. 안전 산행 되세요.");
+    updateNavHud(0.0, 0.0);
+    map.setView(currentPos, 17);
 
-      // 남은 거리 재계산
-      if (curSeg >= trailPoints.length - 1) {
-        remainLen = 0;
-      } else {
-        let rem = distMeters(curPos, trailPoints[curSeg + 1]);
-        for (let i = curSeg + 1; i < trailPoints.length - 1; i++) {
-          rem += distMeters(trailPoints[i], trailPoints[i+1]);
+    // ★ 실시간 스마트폰 GPS 추적 가동
+    startRealTimeGps();
+  }
+
+  function startRealTimeGps() {
+    if (!navigator.geolocation) {
+      alert("스마트폰 위치 권한을 사용할 수 없습니다.");
+      return;
+    }
+
+    if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+
+    gpsWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (isGpsLost) return; // GPS 두절 테스트 중일 때는 무시
+        lastGpsTimestamp = Date.now();
+
+        const rawLat = pos.coords.latitude;
+        const rawLng = pos.coords.longitude;
+        const rawSpeed = (pos.coords.speed && pos.coords.speed > 0) ? (pos.coords.speed * 3.6) : 0.0;
+        const rawPoint = L.latLng(rawLat, rawLng);
+
+        // 등산로 매칭 (가장 가까운 구간 스냅)
+        let minD = Infinity;
+        let bestSeg = currentSegIndex;
+        let bestSnap = rawPoint;
+
+        // 현재 진행 구간 앞뒤 3개 구간 집중 탐색
+        let startS = Math.max(0, currentSegIndex - 1);
+        let endS = Math.min(trailPoints.length - 2, currentSegIndex + 4);
+
+        for (let i = startS; i <= endS; i++) {
+          const snap = snapToSegment(rawPoint, trailPoints[i], trailPoints[i + 1]);
+          if (snap.dist < minD) {
+            minD = snap.dist;
+            bestSeg = i;
+            bestSnap = snap.pt;
+          }
         }
-        remainLen = rem;
-      }
 
-      document.getElementById('txt-off').innerText = `${offDist.toFixed(1)} m`;
-      document.getElementById('txt-off').style.color = isOff ? '#ff1744' : '#00e676';
-      updateHudView();
+        currentSegIndex = bestSeg;
+        isOffRoute = minD > 25.0; // 25미터 초과 시 이탈 판정
+        currentPos = isOffRoute ? rawPoint : bestSnap;
+
+        userHistory.push(currentPos);
+        historyPolyline.setLatLngs(userHistory);
+        updateNavPosition(minD, rawSpeed);
+
+        if (isOffRoute) speakAudio("등산로를 이탈했습니다. 코스를 확인하세요.");
+      },
+      (err) => {
+        console.warn("GPS 수신 오류:", err.message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000
+      }
+    );
+  }
+
+  // 실내 테스트용 가상 전진
+  function simulateWalk(steps) {
+    if (!isNavigating || currentSegIndex >= trailPoints.length - 1) return;
+    const stepMeters = steps * 0.65;
+    if (isGpsLost) pdrSteps += steps;
+
+    const target = trailPoints[currentSegIndex + 1];
+    const dist = getDistanceMeters(currentPos, target);
+
+    if (dist <= stepMeters) {
+      currentSegIndex++;
+      currentPos = target;
+    } else {
+      const r = stepMeters / dist;
+      currentPos = L.latLng(
+        currentPos.lat + (target.lat - currentPos.lat) * r,
+        currentPos.lng + (target.lng - currentPos.lng) * r
+      );
     }
 
-    function updateHudView() {
-      const tag = document.getElementById('status-tag');
-      const guide = document.getElementById('status-guide');
-      const pct = Math.min(100, Math.max(0, Math.round((1 - remainLen / totalLen) * 100)));
+    isOffRoute = false;
+    userHistory.push(currentPos);
+    historyPolyline.setLatLngs(userHistory);
+    updateNavPosition(0.0, 3.2); // 시뮬레이션 시속 3.2km/h
+  }
 
-      document.getElementById('txt-remain').innerText = `${(remainLen/1000).toFixed(2)} km`;
-      document.getElementById('txt-rate').innerText = `${pct}%`;
-      document.getElementById('progress-fill').style.width = `${pct}%`;
+  function simulateDeviate() {
+    if (!isNavigating) return;
+    currentPos = L.latLng(currentPos.lat + 0.00035, currentPos.lng + 0.00028);
+    isOffRoute = true;
+    userHistory.push(currentPos);
+    historyPolyline.setLatLngs(userHistory);
+    updateNavPosition(38.5, 2.5);
+    speakAudio("등산로를 이탈했습니다. 코스를 확인하세요.");
+  }
 
-      if (isOff) {
-        tag.style.background = 'rgba(255, 23, 68, 0.2)';
-        tag.style.color = '#ff1744';
-        tag.style.borderColor = '#ff1744';
-        tag.innerText = '● 경로 이탈 발생';
-        guide.innerText = '등산로에서 25m 벗어남';
-      } else if (isBlind) {
-        tag.style.background = 'rgba(255, 145, 0, 0.2)';
-        tag.style.color = '#ff9100';
-        tag.style.borderColor = '#ff9100';
-        tag.innerText = '● 보행 추측 항법(PDR)';
-        guide.innerText = `음영 구역 ${pdrCount}보 추정 중`;
-      } else {
-        tag.style.background = 'rgba(0, 230, 118, 0.2)';
-        tag.style.color = '#00e676';
-        tag.style.borderColor = '#00e676';
-        tag.innerText = '● GPS 정상 추적';
-        guide.innerText = '정규 등산로 운행 중';
-      }
+  function toggleGpsBlind() {
+    isGpsLost = !isGpsLost;
+    const btn = document.getElementById('btn-gps-toggle');
+    if (isGpsLost) {
+      btn.innerText = "📡 GPS 신호 복구";
+      btn.style.background = "#0284c7";
+      pdrSteps = 0;
+      speakAudio("위성 신호 음영 구역입니다. 보행 추측 항법을 가동합니다.");
+    } else {
+      btn.innerText = "🛰️ GPS 두절(PDR)";
+      btn.style.background = "#ea580c";
+      speakAudio("GPS 위성 신호가 정상 복구되었습니다.");
+    }
+    updateNavPosition(isOffRoute ? 38.5 : 0.0, 0.0);
+  }
+
+  function updateNavPosition(offMeters, speedKmh) {
+    userMarker.setLatLng(currentPos);
+    userPulseRing.setLatLng(currentPos);
+
+    // ★ 자동 추종 켜져 있으면 지도가 사용자를 따라 이동
+    if (autoFollow) {
+      map.panTo(currentPos, { animate: true, duration: 0.35 });
     }
 
-    window.clearPlan = function() {
-      mode = 'PLAN_START';
-      if (startMarker) map.removeLayer(startMarker);
-      if (endMarker) map.removeLayer(endMarker);
-      if (trailPolyline) map.removeLayer(trailPolyline);
-      trailPoints = [];
-      document.getElementById('btn-start').disabled = true;
-      document.getElementById('btn-start').style.opacity = '0.4';
-      document.getElementById('step-hint').innerHTML = '📍 지도를 터치하여 <span style="color: #00e5ff;">[출발점]</span>을 지정하세요.';
-      document.getElementById('status-guide').innerText = '지도를 터치해 출발지를 찍으세요';
-    };
+    let theme = '#00e5ff';
+    if (isOffRoute) theme = '#ff1744';
+    else if (isGpsLost) theme = '#ff9100';
 
-    window.replanCourse = function() {
-      if (userMarker) map.removeLayer(userMarker);
-      if (userHalo) map.removeLayer(userHalo);
-      if (historyPolyline) map.removeLayer(historyPolyline);
-      document.getElementById('plan-panel').style.display = 'block';
-      document.getElementById('nav-panel').style.display = 'none';
-      mode = 'PLAN_READY';
-      window.fitCourseView();
-    };
+    userMarker.setStyle({ fillColor: theme });
+    userPulseRing.setStyle({ fillColor: theme });
+
+    if (currentSegIndex >= trailPoints.length - 1) {
+      remainDistance = 0;
+    } else {
+      let rem = getDistanceMeters(currentPos, trailPoints[currentSegIndex + 1]);
+      for (let i = currentSegIndex + 1; i < trailPoints.length - 1; i++) {
+        rem += getDistanceMeters(trailPoints[i], trailPoints[i + 1]);
+      }
+      remainDistance = rem;
+    }
+
+    updateNavHud(offMeters, speedKmh);
+  }
+
+  function updateNavHud(offMeters, speedKmh) {
+    const badge = document.getElementById('status-badge');
+    const statusText = document.getElementById('status-text');
+    const pct = Math.min(100, Math.max(0, Math.round((1 - remainDistance / totalDistance) * 100)));
+
+    document.getElementById('nav-remain').innerText = `${(remainDistance / 1000).toFixed(2)} km`;
+    document.getElementById('progress-fill').style.width = `${pct}%`;
+    document.getElementById('nav-off').innerText = `${offMeters.toFixed(1)} m`;
+    document.getElementById('nav-off').style.color = isOffRoute ? '#ff1744' : '#00e676';
+    document.getElementById('nav-speed').innerText = `${speedKmh.toFixed(1)} km/h`;
+
+    if (isOffRoute) {
+      badge.className = 'status-badge badge-off';
+      statusText.innerText = '경로 이탈 경보';
+    } else if (isGpsLost) {
+      badge.className = 'status-badge badge-pdr';
+      statusText.innerText = `PDR ${pdrSteps}보 추정`;
+    } else {
+      badge.className = 'status-badge badge-gps';
+      statusText.innerText = '실시간 보행 추적';
+    }
+  }
+
+  // 사용자가 지도를 직접 드래그하면 자동 추종 일시 해제
+  map.on('dragstart', function() {
+    if (isNavigating && autoFollow) {
+      autoFollow = false;
+      document.getElementById('btn-follow').classList.remove('active');
+    }
   });
-})();
-</script>
-"""
 
-display(HTML(fix_hiking_map_html))
+  function toggleAutoFollow() {
+    autoFollow = !autoFollow;
+    const btn = document.getElementById('btn-follow');
+    if (autoFollow) {
+      btn.classList.add('active');
+      if (currentPos) map.panTo(currentPos, { animate: true });
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+
+  function exitToPlanning() {
+    isNavigating = false;
+    if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+
+    if (userMarker) map.removeLayer(userMarker);
+    if (userPulseRing) map.removeLayer(userPulseRing);
+    if (historyPolyline) map.removeLayer(historyPolyline);
+
+    document.getElementById('plan-section').style.display = 'block';
+    document.getElementById('nav-section').style.display = 'none';
+    document.getElementById('progress-track').style.display = 'none';
+
+    document.getElementById('status-badge').className = 'status-badge badge-plan';
+    document.getElementById('status-text').innerText = '플랜 설계 중';
+    fitCourseView();
+  }
+
+  // 4. 음성 및 뷰 유틸
+  let lastVoiceTime = 0;
+  function speakAudio(text) {
+    if (!('speechSynthesis' in window)) return;
+    if (Date.now() - lastVoiceTime < 6000) return;
+    lastVoiceTime = Date.now();
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = 'ko-KR';
+    window.speechSynthesis.speak(msg);
+  }
+
+  function fitCourseView() {
+    if (trailPoints.length > 0) {
+      map.fitBounds(L.latLngBounds(trailPoints), { padding: [55, 55] });
+    }
+  }
+
+  function zoomIn() { map.zoomIn(); }
+  function zoomOut() { map.zoomOut(); }
+
+  window.addEventListener('resize', () => map.invalidateSize());
+  setTimeout(() => map.invalidateSize(), 200);
+</script>
+</body>
+</html>
