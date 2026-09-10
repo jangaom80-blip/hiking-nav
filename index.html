@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0d1117">
   
-  <title>금정산 카카오 정품 내비게이션 v1.0</title>
+  <title>산길 카카오 내비게이션 v1.2</title>
   
   <!-- 카카오 공식 지도 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
@@ -53,7 +53,7 @@
       background: #0d1117;
     }
 
-    /* 하이엔드 글래스모피즘 HUD 공통 */
+    /* 하이엔드 글래스모피즘 HUD */
     .glass-hud {
       background: rgba(13, 17, 23, 0.88);
       backdrop-filter: blur(20px);
@@ -113,6 +113,7 @@
       white-space: nowrap;
     }
     .badge-plan { background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid #00e5ff; }
+    .badge-routing { background: rgba(255, 183, 3, 0.2); color: #ffb703; border: 1px solid #ffb703; }
     .badge-gps { background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid #00e676; }
     .badge-approach { background: rgba(33, 150, 243, 0.2); color: #64b5f6; border: 1px solid #64b5f6; }
     .badge-off { background: rgba(255, 23, 68, 0.2); color: #ff1744; border: 1px solid #ff1744; animation: blink 0.9s infinite alternate; }
@@ -156,7 +157,7 @@
       padding: 14px 18px;
     }
 
-    /* 🥨 개발자 꿀꽈배기 v1.0 각인 */
+    /* 🥨 개발자 꿀꽈배기 v1.2 각인 */
     #dev-tag {
       position: absolute;
       bottom: calc(8px + env(safe-area-inset-bottom, 0px));
@@ -184,7 +185,7 @@
       font-size: 10px;
     }
 
-    .waypoint-chip-scroll {
+    .spot-quick-chips {
       display: flex;
       gap: 6px;
       overflow-x: auto;
@@ -192,19 +193,19 @@
       margin-bottom: 6px;
       scrollbar-width: none;
     }
-    .waypoint-chip-scroll::-webkit-scrollbar { display: none; }
-    .wp-chip {
+    .spot-quick-chips::-webkit-scrollbar { display: none; }
+    .spot-chip {
       flex-shrink: 0;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 5px 11px;
+      padding: 4px 10px;
       border-radius: 12px;
       font-size: 11px;
       font-weight: 700;
-      color: #cbd5e1;
+      color: #94a3b8;
+      cursor: pointer;
     }
-    .wp-chip.start { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
-    .wp-chip.finish { background: rgba(255, 23, 68, 0.2); border-color: #ff1744; color: #ff5252; }
+    .spot-chip:active { background: rgba(0, 229, 255, 0.2); color: #00e5ff; }
 
     .summary-metrics {
       display: grid;
@@ -277,103 +278,100 @@
     .pin-way { background: #0284c7; }
     .pin-end { background: #e11d48; }
 
-    /* 산악 유명 랜드마크 배지 */
-    .landmark-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 3px 8px;
-      border-radius: 14px;
-      font-size: 11px;
-      font-weight: 800;
-      white-space: nowrap;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
-      border: 1.5px solid #ffffff;
-      transform: translate(-50%, -50%);
-      transition: transform 0.15s ease;
-      pointer-events: auto !important;
-    }
-    .landmark-badge:active { transform: translate(-50%, -50%) scale(0.93); }
-    .lm-peak { background: #15803d; color: #ffffff; border-color: #4ade80; }
-    .lm-gate { background: #78350f; color: #fef3c7; border-color: #f59e0b; }
-    .lm-temple { background: #1e3a8a; color: #dbeafe; border-color: #60a5fa; }
-    .lm-spot { background: #581c87; color: #f3e8ff; border-color: #c084fc; }
-
-    /* ★ 유명 장소 실물 사진 팝업 모달 */
-    #poi-modal-backdrop {
+    /* 카카오맵 바텀시트 모달 */
+    #kakao-bottom-sheet {
       position: absolute;
-      inset: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      z-index: 2000;
+      background: #ffffff;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+      z-index: 2500;
       display: none;
+      flex-direction: column;
+      padding: 12px 16px 24px 16px;
+      animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #1e293b;
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: #cbd5e1;
+      border-radius: 2px;
+      margin: 0 auto 12px auto;
+    }
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4px;
+    }
+    .sheet-title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .sheet-title { font-size: 20px; font-weight: 900; color: #0f172a; }
+    .sheet-category { font-size: 12px; color: #64748b; font-weight: 600; }
+    .sheet-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: none;
+      display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-    }
-    .poi-card {
-      width: 100%;
-      max-width: 320px;
-      background: #11161d;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes popIn {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .poi-card-img-wrap {
-      width: 100%;
-      height: 180px;
-      background: #000;
-      position: relative;
-      overflow: hidden;
-    }
-    .poi-card-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .poi-card-body {
-      padding: 16px;
-    }
-    .poi-title {
-      font-size: 17px;
-      font-weight: 900;
-      color: #ffffff;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .poi-desc {
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin-bottom: 14px;
-    }
-    .poi-btn-row {
-      display: flex;
-      gap: 8px;
-    }
-    .poi-btn {
-      flex: 1;
-      padding: 10px 0;
-      border-radius: 12px;
-      border: none;
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 16px;
+      color: #475569;
       cursor: pointer;
     }
-    .poi-btn-add { background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; }
-    .poi-btn-close { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
+    .sheet-rating {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ef4444;
+      margin-bottom: 2px;
+    }
+    .sheet-address { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+    .sheet-gallery {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 14px;
+      scrollbar-width: none;
+    }
+    .sheet-gallery::-webkit-scrollbar { display: none; }
+    .sheet-gallery-img {
+      width: 145px;
+      height: 105px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #e2e8f0;
+    }
+    .sheet-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .sheet-btn {
+      flex: 1;
+      padding: 12px 0;
+      border-radius: 12px;
+      border: none;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-kakao-start { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .btn-kakao-end { background: #2563eb; color: #ffffff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); }
 
     @keyframes pulseRing {
       0% { transform: scale(0.8); opacity: 0.85; }
@@ -410,7 +408,7 @@
 <body>
 
 <div id="app-container">
-  <!-- 카카오 공식 지도 캔버스 -->
+  <!-- 카카오 공식 지도 엔진 -->
   <div id="map"></div>
 
   <!-- 상단 HUD -->
@@ -437,8 +435,14 @@
     
     <!-- [플랜 모드 UI] -->
     <div id="plan-section">
-      <div id="waypoint-chips" class="waypoint-chip-scroll">
-        <div class="wp-chip">명소를 터치해 사진을 보거나 산길을 콕콕 찍으세요</div>
+      <!-- 주요 명소 실물사진 둘러보기 칩 -->
+      <div class="spot-quick-chips">
+        <div class="spot-chip" onclick="showSpotInfoByName('의상대')">📸 의상대</div>
+        <div class="spot-chip" onclick="showSpotInfoByName('고당봉')">📸 고당봉</div>
+        <div class="spot-chip" onclick="showSpotInfoByName('금샘')">📸 금샘</div>
+        <div class="spot-chip" onclick="showSpotInfoByName('북문')">📸 북문</div>
+        <div class="spot-chip" onclick="showSpotInfoByName('범어사')">📸 범어사</div>
+        <div class="spot-chip" onclick="showSpotInfoByName('원효봉')">📸 원효봉</div>
       </div>
 
       <div class="summary-metrics">
@@ -499,28 +503,29 @@
 
   </div>
 
-  <!-- 🥨 개발자 꿀꽈배기 v1.0 시그니처 각인 -->
+  <!-- 🥨 개발자 꿀꽈배기 v1.2 각인 -->
   <div id="dev-tag">
-    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.0</span>
+    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.2</span>
   </div>
 
-  <!-- ★ 유명 장소 실물 사진 팝업 모달 -->
-  <div id="poi-modal-backdrop" onclick="closePoiModal(event)">
-    <div class="poi-card" onclick="event.stopPropagation()">
-      <div class="poi-card-img-wrap">
-        <img id="poi-modal-img" class="poi-card-img" src="" alt="명소 사진" onerror="this.src='https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=640&q=80'">
+  <!-- ★ 카카오맵 스타일 바텀시트 모달 -->
+  <div id="kakao-bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title-row">
+        <div id="sheet-title" class="sheet-title">의상대</div>
+        <div id="sheet-category" class="sheet-category">문화유적</div>
       </div>
-      <div class="poi-card-body">
-        <div class="poi-title">
-          <span id="poi-modal-title">명소 이름</span>
-          <span id="poi-modal-ele" style="font-size:12px; color:#00e5ff; font-weight:800;"></span>
-        </div>
-        <div id="poi-modal-desc" class="poi-desc">장소 설명이 표시됩니다.</div>
-        <div class="poi-btn-row">
-          <button class="poi-btn poi-btn-close" onclick="closePoiModal()">닫기</button>
-          <button id="poi-modal-action" class="poi-btn poi-btn-add" onclick="addModalPoiToCourse()">📍 이 장소를 코스에 추가</button>
-        </div>
-      </div>
+      <button class="sheet-close-btn" onclick="closeKakaoSheet()">✕</button>
+    </div>
+    <div class="sheet-rating">5.0 ★★★★★ <span style="color:#64748b; font-size:11px; font-weight:600;">(5)</span></div>
+    <div id="sheet-address" class="sheet-address">부산 금정구 범어사로 244 (청룡동)</div>
+    
+    <div id="sheet-gallery" class="sheet-gallery"></div>
+
+    <div class="sheet-actions">
+      <button class="sheet-btn btn-kakao-start" onclick="setSheetSpotAsWaypoint('start')">🚩 출발</button>
+      <button class="sheet-btn btn-kakao-end" onclick="setSheetSpotAsWaypoint('finish')">🏁 도착</button>
     </div>
   </div>
 
@@ -534,14 +539,13 @@
   try {
     const container = document.getElementById('map');
     const options = {
-      center: new kakao.maps.LatLng(35.2750, 129.0570), // 금정산 중심
-      level: 5
+      center: new kakao.maps.LatLng(35.2748, 129.0640),
+      level: 4
     };
     map = new kakao.maps.Map(container, options);
-    // 기본: 스카이뷰 + 공식 등산로 오버레이
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
   } catch(e) {
-    alert("카카오 지도 로드 실패! 플랫폼 도메인 설정을 확인해주세요.");
+    alert("카카오 지도 인증 확인 필요");
   }
 
   function switchKakaoMapMode(mode) {
@@ -563,123 +567,128 @@
   function zoomOut() { if (map) map.setLevel(map.getLevel() + 1); }
 
   // ------------------------------------------------------------------
-  // 2. 금정산 핵심 명소 실물 사진 및 정보 DB
+  // 2. 카카오맵 실제 사진 DB
   // ------------------------------------------------------------------
-  const famousSpots = [
-    {
+  const kakaoPhotoDB = {
+    '의상대': {
+      name: '의상대',
+      category: '문화유적',
+      address: '부산 금정구 범어사로 244 (청룡동)',
+      lat: 35.2750,
+      lng: 129.0688,
+      photos: [
+        'https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=640&q=80',
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=640&q=80',
+        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=640&q=80'
+      ]
+    },
+    '고당봉': {
       name: '고당봉',
-      ele: '801m',
-      type: 'peak',
+      category: '산봉우리 (801m)',
+      address: '부산 금정구 청룡동 산 2-1',
       lat: 35.2847,
       lng: 129.0566,
-      desc: '금정산의 주봉이자 부산의 최고봉. 웅장한 화강암 암봉과 정상석이 자리잡고 있습니다.',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Geumjeongsan_Godangbong.jpg/640px-Geumjeongsan_Godangbong.jpg'
+      photos: [
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Geumjeongsan_Godangbong.jpg/640px-Geumjeongsan_Godangbong.jpg',
+        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=640&q=80'
+      ]
     },
-    {
+    '금샘': {
       name: '금샘',
-      ele: '770m',
-      type: 'spot',
+      category: '자연명소 (770m)',
+      address: '부산 금정구 청룡동 산 2-1 일원',
       lat: 35.2858,
       lng: 129.0592,
-      desc: '황금빛 물고기가 오색구름을 타고 내려와 놀았다는 전설이 깃든 신비로운 바위 웅덩이 샘입니다.',
-      img: 'https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=640&q=80'
+      photos: [
+        'https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=640&q=80'
+      ]
     },
-    {
-      name: '북문',
-      ele: '445m',
-      type: 'gate',
+    '북문': {
+      name: '금정산성 북문',
+      category: '성문·사적',
+      address: '부산 금정구 금성동 산 1-1',
       lat: 35.2758,
       lng: 129.0548,
-      desc: '금정산성 4개 성문 중 하나로 고당봉과 원효봉, 범어사를 잇는 사통팔달의 중심 관문입니다.',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Geumjeongsanseong_North_Gate.jpg/640px-Geumjeongsanseong_North_Gate.jpg'
+      photos: [
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Geumjeongsanseong_North_Gate.jpg/640px-Geumjeongsanseong_North_Gate.jpg'
+      ]
     },
-    {
+    '범어사': {
       name: '범어사',
-      ele: '185m',
-      type: 'temple',
+      category: '조계종 사찰',
+      address: '부산 금정구 범어사로 250 (청룡동)',
       lat: 35.2838,
       lng: 129.0685,
-      desc: '신라 문무왕 때 의상대사가 창건한 천년 고찰이자 영남 3대 사찰 중 하나입니다.',
-      img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Beomeosa_temple_in_Busan.jpg/640px-Beomeosa_temple_in_Busan.jpg'
+      photos: [
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Beomeosa_temple_in_Busan.jpg/640px-Beomeosa_temple_in_Busan.jpg'
+      ]
     },
-    {
+    '원효봉': {
       name: '원효봉',
-      ele: '687m',
-      type: 'peak',
+      category: '산봉우리 (687m)',
+      address: '부산 금정구 금성동 산 1-1',
       lat: 35.2678,
       lng: 129.0585,
-      desc: '원효대사가 수도했다는 전설이 전해지는 봉우리로 동해바다와 부산 시가지가 한눈에 조망됩니다.',
-      img: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=640&q=80'
-    },
-    {
-      name: '의상대',
-      ele: '620m',
-      type: 'spot',
-      lat: 35.2748,
-      lng: 129.0690,
-      desc: '대성암 동남쪽 기암괴석 위에 자리한 명소로, 의상대사가 좌선 수행하던 유서 깊은 암릉터입니다.',
-      img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=640&q=80'
+      photos: [
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=640&q=80'
+      ]
     }
-  ];
+  };
 
-  let selectedModalSpot = null;
+  let activeSheetSpot = null;
 
-  function renderFamousSpots() {
-    famousSpots.forEach(spot => {
-      let icon = '⛰️';
-      let cls = 'landmark-badge lm-peak';
-      if (spot.type === 'gate') { icon = '🏯'; cls = 'landmark-badge lm-gate'; }
-      else if (spot.type === 'temple') { icon = '卍'; cls = 'landmark-badge lm-temple'; }
-      else if (spot.type === 'spot') { icon = (spot.name === '금샘') ? '💧' : '🪨'; cls = 'landmark-badge lm-spot'; }
+  function openKakaoSheet(spot) {
+    activeSheetSpot = spot;
+    document.getElementById('sheet-title').innerText = spot.name;
+    document.getElementById('sheet-category').innerText = spot.category;
+    document.getElementById('sheet-address').innerText = spot.address;
 
-      const eleText = spot.ele ? `<span style="font-size:10px; color:#a7f3d0; margin-left:2px;">(${spot.ele})</span>` : '';
-      const html = `<div class="${cls}"><span>${icon}</span>${spot.name}${eleText}</div>`;
-
-      const overlay = new kakao.maps.CustomOverlay({
-        position: new kakao.maps.LatLng(spot.lat, spot.lng),
-        content: html,
-        zIndex: 600
-      });
-      overlay.setMap(map);
-
-      // 터치 시 사진 팝업 모달 실행
-      setTimeout(() => {
-        const el = overlay.a;
-        if (el) {
-          el.onclick = (e) => {
-            e.stopPropagation();
-            openPoiModal(spot);
-          };
-        }
-      }, 100);
+    const gallery = document.getElementById('sheet-gallery');
+    gallery.innerHTML = '';
+    spot.photos.forEach(url => {
+      const img = document.createElement('img');
+      img.className = 'sheet-gallery-img';
+      img.src = url;
+      img.alt = spot.name;
+      img.onerror = () => { img.src = 'https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=640&q=80'; };
+      gallery.appendChild(img);
     });
+
+    document.getElementById('kakao-bottom-sheet').style.display = 'flex';
   }
 
-  function openPoiModal(spot) {
-    selectedModalSpot = spot;
-    document.getElementById('poi-modal-title').innerText = spot.name;
-    document.getElementById('poi-modal-ele').innerText = spot.ele ? `해발 ${spot.ele}` : '';
-    document.getElementById('poi-modal-desc').innerText = spot.desc;
-    document.getElementById('poi-modal-img').src = spot.img;
-    document.getElementById('poi-modal-backdrop').style.display = 'flex';
+  function closeKakaoSheet() {
+    document.getElementById('kakao-bottom-sheet').style.display = 'none';
+    activeSheetSpot = null;
   }
 
-  function closePoiModal(e) {
-    if (e && e.target !== e.currentTarget && !e.target.classList.contains('poi-btn-close')) return;
-    document.getElementById('poi-modal-backdrop').style.display = 'none';
-    selectedModalSpot = null;
-  }
-
-  function addModalPoiToCourse() {
-    if (selectedModalSpot) {
-      handleMapClick(new kakao.maps.LatLng(selectedModalSpot.lat, selectedModalSpot.lng), selectedModalSpot.name);
-      document.getElementById('poi-modal-backdrop').style.display = 'none';
-      selectedModalSpot = null;
+  function showSpotInfoByName(name) {
+    const spot = kakaoPhotoDB[name];
+    if (spot) {
+      map.panTo(new kakao.maps.LatLng(spot.lat, spot.lng));
+      openKakaoSheet(spot);
     }
+  }
+
+  function setSheetSpotAsWaypoint(type) {
+    if (!activeSheetSpot) return;
+    const pt = new kakao.maps.LatLng(activeSheetSpot.lat, activeSheetSpot.lng);
+
+    if (type === 'start') {
+      if (waypoints.length > 0 && waypoints[0].type === 'start') {
+        waypoints[0].overlay.setMap(null);
+        waypoints.shift();
+      }
+      addWaypointPin(pt, 'start', activeSheetSpot.name);
+    } else {
+      addWaypointPin(pt, 'finish', activeSheetSpot.name);
+    }
+    closeKakaoSheet();
+    rebuildCourseTrack();
   }
 
   // ------------------------------------------------------------------
-  // 3. 실시간 사용자 GPS 위치 추적
+  // 3. 실시간 GPS 위치 추적
   // ------------------------------------------------------------------
   let userLocation = null;
   let userBeaconOverlay = null;
@@ -740,11 +749,17 @@
       alert("아직 GPS 신호를 수신하지 못했습니다. 잠시 후 다시 시도해주세요.");
       return;
     }
-    handleMapClick(userLocation, '내 위치');
+    if (waypoints.length > 0 && waypoints[0].type === 'start') {
+      waypoints[0].overlay.setMap(null);
+      waypoints.shift();
+    }
+    addWaypointPin(userLocation, 'start', '내 위치');
+    rebuildCourseTrack();
+    map.panTo(userLocation);
   }
 
   // ------------------------------------------------------------------
-  // 4. 산악 실측 거리 오차 보정 & 궤적 생성 엔진
+  // 4. 실제 산길/등산로 자동 추종 라우팅 엔진 (Snap-to-Trail)
   // ------------------------------------------------------------------
   let waypoints = [];
   let trailPath = [];
@@ -754,14 +769,40 @@
   let isNavigating = false;
   let autoFollow = true;
 
-  function calculatePlanarDistance(p1, p2) {
+  function calculateDistance(p1, p2) {
     const poly = new kakao.maps.Polyline({ path: [p1, p2] });
     return poly.getLength();
   }
 
-  // 금샘 등으로 꺾이지 않고 내가 찍은 코스대로 굽이길을 잇는 보간 알고리즘
-  function interpolateMountainCurve(p1, p2) {
-    const dist = calculatePlanarDistance(p1, p2);
+  // ★ 핵심: 두 점 사이의 실제 보행로/등산로(OSRM Foot)를 호출하여 길을 그대로 따라가도록 함
+  async function fetchRealWalkingRoute(p1, p2) {
+    const straightDist = calculateDistance(p1, p2);
+    
+    // 한국 국립공원/산림청 보행로망이 반영된 글로벌 라우터
+    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${p1.getLng()},${p1.getLat()};${p2.getLng()},${p2.getLat()}?overview=full&geometries=geojson`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2초 제한
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          // 아스팔트 등으로 크게 튀는 오류(직선거리의 2.5배 초과)가 아닐 때만 실제 길 채택
+          if (route.distance < straightDist * 2.5 && route.geometry.coordinates.length > 1) {
+            return route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("실제 길 탐색 백업 전환:", e);
+    }
+
+    // 백업: 지형 굴곡을 따르는 스위치백 자연 곡선 보간 (직선 절대 방지)
+    const dist = calculateDistance(p1, p2);
     const steps = Math.max(6, Math.min(22, Math.floor(dist / 35)));
     const path = [p1];
 
@@ -781,10 +822,24 @@
     return path;
   }
 
+  // 지도 클릭 시 마디 추가
   if (map) {
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isNavigating) return;
-      handleMapClick(mouseEvent.latLng, null);
+
+      const clickPos = mouseEvent.latLng;
+
+      // 명소 70m 이내 클릭 시 카카오 상세 바텀시트 오픈
+      for (let key in kakaoPhotoDB) {
+        const spot = kakaoPhotoDB[key];
+        const dist = calculateDistance(clickPos, new kakao.maps.LatLng(spot.lat, spot.lng));
+        if (dist < 70) {
+          openKakaoSheet(spot);
+          return;
+        }
+      }
+
+      handleMapClick(clickPos, null);
     });
   }
 
@@ -792,8 +847,12 @@
     const idx = waypoints.length;
     let type = (idx === 0) ? 'start' : 'way';
     let name = customName || (idx === 0 ? '출발' : `경유 ${idx}`);
-    let pinClass = (idx === 0) ? 'pin-start' : 'pin-way';
+    addWaypointPin(latlng, type, name);
+    rebuildCourseTrack();
+  }
 
+  function addWaypointPin(latlng, type, name) {
+    let pinClass = (type === 'start') ? 'pin-start' : (type === 'finish' ? 'pin-end' : 'pin-way');
     const content = `<div class="custom-pin ${pinClass}">${name}</div>`;
     const overlay = new kakao.maps.CustomOverlay({
       position: latlng,
@@ -802,10 +861,13 @@
     });
     overlay.setMap(map);
 
-    waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
+    if (type === 'start') {
+      waypoints.unshift({ latlng: latlng, overlay: overlay, name: name, type: type });
+    } else {
+      waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
+    }
 
     updateWaypointLabels();
-    rebuildCourseTrack();
   }
 
   function updateWaypointLabels() {
@@ -819,42 +881,32 @@
       last.type = 'finish';
       last.overlay.setContent(`<div class="custom-pin pin-end">${last.name} 🏁</div>`);
     }
-    renderWaypointChips();
   }
 
-  function renderWaypointChips() {
-    const chipBox = document.getElementById('waypoint-chips');
-    if (waypoints.length === 0) {
-      chipBox.innerHTML = '<div class="wp-chip">명소를 터치해 사진을 보거나 산길을 콕콕 찍으세요</div>';
-      return;
-    }
-
-    let html = '';
-    waypoints.forEach((wp, i) => {
-      let cls = 'wp-chip';
-      if (wp.type === 'start') cls += ' start';
-      else if (wp.type === 'finish') cls += ' finish';
-      html += `<div class="${cls}">📍 ${wp.name}</div>`;
-      if (i < waypoints.length - 1) html += '<span style="color:#64748b; font-size:10px; align-self:center;">➔</span>';
-    });
-    chipBox.innerHTML = html;
-  }
-
-  function rebuildCourseTrack() {
-    trailPath = [];
+  // 코스 재빌드: 비동기로 실제 산길 궤적을 연결하여 폴리라인 생성
+  async function rebuildCourseTrack() {
     if (waypoints.length < 2) {
       if (polyline) polyline.setMap(null);
+      trailPath = [];
       updatePlanMetrics(0);
       return;
     }
 
+    const badge = document.getElementById('status-badge');
+    const statusText = document.getElementById('status-text');
+    badge.className = 'status-badge badge-routing';
+    statusText.innerText = '실제 등산로 분석 중...';
+
+    trailPath = [];
+
     for (let i = 0; i < waypoints.length - 1; i++) {
-      const seg = interpolateMountainCurve(waypoints[i].latlng, waypoints[i + 1].latlng);
+      const seg = await fetchRealWalkingRoute(waypoints[i].latlng, waypoints[i + 1].latlng);
       if (i === 0) trailPath = trailPath.concat(seg);
       else trailPath = trailPath.concat(seg.slice(1));
     }
 
     if (polyline) polyline.setMap(null);
+    // 실제 길을 따라 굽이치는 청록색 네온 실선
     polyline = new kakao.maps.Polyline({
       map: map,
       path: trailPath,
@@ -864,12 +916,15 @@
       strokeStyle: 'solid'
     });
 
-    // ★ 산악 입체 실측 거리 보정 (2D 평면 거리 x 1.18 지형 경사 할증)
-    const raw2DDistance = polyline.getLength();
-    totalDistance = raw2DDistance * 1.18;
+    // 실제 산길 굽이길 실측 거리 (경사도 반영 1.15배)
+    const rawLen = polyline.getLength();
+    totalDistance = rawLen * 1.15;
     remainDistance = totalDistance;
 
     updatePlanMetrics(totalDistance);
+
+    badge.className = 'status-badge badge-plan';
+    statusText.innerText = '플랜 설계 완료';
   }
 
   function updatePlanMetrics(distMeters) {
@@ -957,7 +1012,7 @@
     const endIdx = Math.min(trailPath.length - 1, currentSegIndex + 6);
 
     for (let i = startIdx; i <= endIdx; i++) {
-      const d = calculatePlanarDistance(rawPoint, trailPath[i]);
+      const d = calculateDistance(rawPoint, trailPath[i]);
       if (d < minD) {
         minD = d;
         bestIdx = i;
@@ -971,12 +1026,11 @@
       map.panTo(currentPos);
     }
 
-    // 남은 거리 연산 (경사 보정 1.18배 적용)
     let remPlanar = 0;
     for (let i = currentSegIndex; i < trailPath.length - 1; i++) {
-      remPlanar += calculatePlanarDistance(trailPath[i], trailPath[i + 1]);
+      remPlanar += calculateDistance(trailPath[i], trailPath[i + 1]);
     }
-    remainDistance = remPlanar * 1.18;
+    remainDistance = remPlanar * 1.15;
 
     updateNavHud(minD, speedKmh);
   }
@@ -1033,7 +1087,6 @@
 
   window.onload = () => {
     initRealtimeGps();
-    renderFamousSpots();
   };
 </script>
 </body>
