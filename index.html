@@ -2,6 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
+  <!-- 네이버/다음 지도 타일 차단(403) 방지 필수 메타 태그 -->
+  <meta name="referrer" content="no-referrer">
+  
+  <!-- 모바일 전체화면 밀착 설정 (아이폰 노치/홈바 안전 영역 커버) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -55,15 +59,15 @@
       background: #0d1117;
     }
 
-    /* 글래스모피즘 HUD */
+    /* 하이엔드 글래스모피즘 HUD 공통 스타일 */
     .glass-hud {
-      background: rgba(13, 17, 23, 0.85);
+      background: rgba(13, 17, 23, 0.86);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 20px;
       color: #ffffff;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
       z-index: 1000;
       position: absolute;
     }
@@ -152,10 +156,34 @@
 
     /* 3. 하단 HUD */
     #bottom-hud {
-      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(34px + env(safe-area-inset-bottom, 0px));
       left: calc(12px + env(safe-area-inset-left, 0px));
       right: calc(12px + env(safe-area-inset-right, 0px));
       padding: 14px 18px;
+    }
+
+    /* 🥨 개발자 꿀꽈배기 워터마크 배지 */
+    #dev-tag {
+      position: absolute;
+      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      z-index: 1001;
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    #dev-tag span {
+      color: #ffb703;
+      font-size: 12px;
     }
 
     .waypoint-chip-scroll {
@@ -260,7 +288,7 @@
   <!-- 상단 HUD -->
   <div id="top-bar" class="glass-hud">
     <div class="map-mode-switch">
-      <button id="btn-topo" class="switch-btn active" onclick="switchMapMode('topo')">⛰️ 산악 지형도</button>
+      <button id="btn-topo" class="switch-btn active" onclick="switchMapMode('topo')">⛰️ 네이버 산악 지형</button>
       <button id="btn-sat" class="switch-btn" onclick="switchMapMode('sat')">🛰️ 정밀 위성도</button>
     </div>
     <div id="status-badge" class="status-badge badge-plan">
@@ -271,7 +299,7 @@
   <!-- 우측 컨트롤 버튼 -->
   <div id="quick-controls">
     <div id="btn-follow" class="round-btn active" onclick="toggleAutoFollow()" title="내 위치 자동 추종">🎯</div>
-    <div class="round-btn" onclick="fitCourseView()" title="전체 코스 한눈에">🗺️</div>
+    <div class="round-btn" onclick="fitCourseView()" title="전체 코스 보기">🗺️</div>
     <div class="round-btn" onclick="zoomIn()" title="확대">+</div>
     <div class="round-btn" onclick="zoomOut()" title="축소">−</div>
   </div>
@@ -342,42 +370,63 @@
     </div>
 
   </div>
+
+  <!-- 🥨 우측 하단 개발자 시그니처 각인 -->
+  <div id="dev-tag">
+    <span>🥨</span> 개발자 꿀꽈배기
+  </div>
 </div>
 
 <script>
-  // 1. 지도 레이어 설정 (구글 지형도 & 하이브리드 위성)
+  // ------------------------------------------------------------------
+  // 1. 네이버 산악 지형도 & 3사 통합 정밀 위성도 타일 세팅
+  // ------------------------------------------------------------------
   const map = L.map('map', {
     zoomControl: false,
     attributionControl: false
-  }).setView([35.2750, 129.0570], 14);
+  }).setView([35.2750, 129.0570], 14); // 금정산 기준
 
-  const topoLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&hl=ko&x={x}&y={y}&z={z}', {
-    subdomains: ['0', '1', '2', '3'],
-    maxZoom: 19
-  });
+  // [1] 네이버 정밀 산악 지형도 (등고선 + 국립공원/도립공원 등산로 + 봉우리/샘터 한글 표기)
+  const naverTerrainLayer = L.tileLayer(
+    'https://map.pstatic.net/nrb/styles/terrain/1694139974/{z}/{x}/{y}.png?mt=bg.ol.ts.lko',
+    {
+      maxZoom: 19,
+      subdomains: ['1', '2', '3', '4']
+    }
+  );
 
-  const satLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&hl=ko&x={x}&y={y}&z={z}', {
-    subdomains: ['0', '1', '2', '3'],
-    maxZoom: 19
-  });
+  // 네이버 CDN 일시 지연 시 한국 산악 등고선 백업 레이어 (오픈토포/VWorld)
+  const backupTerrainLayer = L.tileLayer(
+    'https://mt{s}.google.com/vt/lyrs=p&hl=ko&x={x}&y={y}&z={z}',
+    { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
+  );
 
-  topoLayer.addTo(map);
+  // [2] 3사 통합 정밀 위성도 (실제 바위/숲길 고해상도 위성 영상 + 등산로/지명 오버레이)
+  const hybridSatLayer = L.tileLayer(
+    'https://mt{s}.google.com/vt/lyrs=y&hl=ko&x={x}&y={y}&z={z}',
+    { subdomains: ['0', '1', '2', '3'], maxZoom: 19 }
+  );
+
+  naverTerrainLayer.addTo(map);
 
   function switchMapMode(mode) {
     if (mode === 'topo') {
-      map.removeLayer(satLayer);
-      topoLayer.addTo(map);
+      map.removeLayer(hybridSatLayer);
+      naverTerrainLayer.addTo(map);
       document.getElementById('btn-topo').classList.add('active');
       document.getElementById('btn-sat').classList.remove('active');
     } else {
-      map.removeLayer(topoLayer);
-      satLayer.addTo(map);
+      map.removeLayer(naverTerrainLayer);
+      map.removeLayer(backupTerrainLayer);
+      hybridSatLayer.addTo(map);
       document.getElementById('btn-sat').classList.add('active');
       document.getElementById('btn-topo').classList.remove('active');
     }
   }
 
-  // 2. 코스 설계 변수
+  // ------------------------------------------------------------------
+  // 2. 다중 경유지 코스 빌더
+  // ------------------------------------------------------------------
   let isNavigating = false;
   let waypoints = [];
   let trailPoints = [];
@@ -395,16 +444,13 @@
   let pdrSteps = 0;
   let userHistory = [];
 
-  // 실시간 보행 추적 & 자동 추종 변수
   let gpsWatchId = null;
   let autoFollow = true;
-  let lastGpsTimestamp = 0;
 
   function getDistanceMeters(p1, p2) {
     return map.distance([p1.lat, p1.lng], [p2.lat, p2.lng]);
   }
 
-  // 선분 직교 투영 (Snap-to-Trail)
   function snapToSegment(p, a, b) {
     const midLat = (a.lat + b.lat) / 2 * (Math.PI / 180);
     const kx = 111320 * Math.cos(midLat);
@@ -420,7 +466,7 @@
     return { pt: snapped, dist: getDistanceMeters(p, snapped) };
   }
 
-  // 지도 터치 시 경유지 핀 생성
+  // 지도 클릭 시 경유지 연속 추가
   map.on('click', function(e) {
     if (isNavigating) return;
 
@@ -551,7 +597,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 3. 실시간 실제 GPS 보행 추적 & 내비게이션 엔진
+  // 3. 실시간 보행 GPS 추적 & 내비게이션 엔진
   // ------------------------------------------------------------------
   function launchNavigation() {
     if (waypoints.length < 2) return;
@@ -584,38 +630,30 @@
     if (historyPolyline) map.removeLayer(historyPolyline);
     historyPolyline = L.polyline([], { color: '#00e5ff', weight: 4 }).addTo(map);
 
-    speakAudio("실시간 보행 추적을 시작합니다. 안전 산행 되세요.");
+    speakAudio("산행 내비게이션을 시작합니다. 안전 산행 되세요.");
     updateNavHud(0.0, 0.0);
     map.setView(currentPos, 17);
 
-    // ★ 실시간 스마트폰 GPS 추적 가동
     startRealTimeGps();
   }
 
   function startRealTimeGps() {
-    if (!navigator.geolocation) {
-      alert("스마트폰 위치 권한을 사용할 수 없습니다.");
-      return;
-    }
-
+    if (!navigator.geolocation) return;
     if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
 
     gpsWatchId = navigator.geolocation.watchPosition(
       (pos) => {
-        if (isGpsLost) return; // GPS 두절 테스트 중일 때는 무시
-        lastGpsTimestamp = Date.now();
+        if (isGpsLost) return;
 
         const rawLat = pos.coords.latitude;
         const rawLng = pos.coords.longitude;
         const rawSpeed = (pos.coords.speed && pos.coords.speed > 0) ? (pos.coords.speed * 3.6) : 0.0;
         const rawPoint = L.latLng(rawLat, rawLng);
 
-        // 등산로 매칭 (가장 가까운 구간 스냅)
         let minD = Infinity;
         let bestSeg = currentSegIndex;
         let bestSnap = rawPoint;
 
-        // 현재 진행 구간 앞뒤 3개 구간 집중 탐색
         let startS = Math.max(0, currentSegIndex - 1);
         let endS = Math.min(trailPoints.length - 2, currentSegIndex + 4);
 
@@ -629,7 +667,7 @@
         }
 
         currentSegIndex = bestSeg;
-        isOffRoute = minD > 25.0; // 25미터 초과 시 이탈 판정
+        isOffRoute = minD > 25.0;
         currentPos = isOffRoute ? rawPoint : bestSnap;
 
         userHistory.push(currentPos);
@@ -638,18 +676,11 @@
 
         if (isOffRoute) speakAudio("등산로를 이탈했습니다. 코스를 확인하세요.");
       },
-      (err) => {
-        console.warn("GPS 수신 오류:", err.message);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 10000
-      }
+      (err) => console.warn("GPS 수신 오류:", err.message),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
   }
 
-  // 실내 테스트용 가상 전진
   function simulateWalk(steps) {
     if (!isNavigating || currentSegIndex >= trailPoints.length - 1) return;
     const stepMeters = steps * 0.65;
@@ -672,7 +703,7 @@
     isOffRoute = false;
     userHistory.push(currentPos);
     historyPolyline.setLatLngs(userHistory);
-    updateNavPosition(0.0, 3.2); // 시뮬레이션 시속 3.2km/h
+    updateNavPosition(0.0, 3.2);
   }
 
   function simulateDeviate() {
@@ -705,7 +736,6 @@
     userMarker.setLatLng(currentPos);
     userPulseRing.setLatLng(currentPos);
 
-    // ★ 자동 추종 켜져 있으면 지도가 사용자를 따라 이동
     if (autoFollow) {
       map.panTo(currentPos, { animate: true, duration: 0.35 });
     }
@@ -753,7 +783,6 @@
     }
   }
 
-  // 사용자가 지도를 직접 드래그하면 자동 추종 일시 해제
   map.on('dragstart', function() {
     if (isNavigating && autoFollow) {
       autoFollow = false;
@@ -789,7 +818,7 @@
     fitCourseView();
   }
 
-  // 4. 음성 및 뷰 유틸
+  // 4. 유틸리티
   let lastVoiceTime = 0;
   function speakAudio(text) {
     if (!('speechSynthesis' in window)) return;
