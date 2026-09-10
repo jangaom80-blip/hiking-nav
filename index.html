@@ -9,8 +9,8 @@
   
   <title>카카오 정품 산길 내비게이션</title>
   
-  <!-- 카카오 공식 지도 SDK (입력해주신 정품 JavaScript 키 탑재) -->
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=cdf8087cb547c476e0b75bd245890dab&libraries=services"></script>
+  <!-- 모니터 화면의 진짜 카카오 JavaScript 키 탑재 -->
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 
   <style>
     * {
@@ -53,7 +53,7 @@
       background: #0d1117;
     }
 
-    /* 하이엔드 글래스모피즘 HUD 공통 */
+    /* 하이엔드 글래스모피즘 HUD */
     .glass-hud {
       background: rgba(13, 17, 23, 0.88);
       backdrop-filter: blur(20px);
@@ -249,7 +249,6 @@
     .btn-main { background: linear-gradient(135deg, #00b4d8, #0077b6); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.35); }
     .btn-undo { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; }
 
-    /* 마커 핀 */
     .custom-pin {
       display: flex;
       align-items: center;
@@ -303,7 +302,6 @@
 <body>
 
 <div id="app-container">
-  <!-- 카카오 공식 지도 엔진 영역 -->
   <div id="map"></div>
 
   <!-- 상단 HUD -->
@@ -406,15 +404,15 @@
   try {
     const container = document.getElementById('map');
     const options = {
-      center: new kakao.maps.LatLng(35.2750, 129.0570), // 금정산 고당봉/북문 중심
+      center: new kakao.maps.LatLng(35.2750, 129.0570), // 금정산 중심
       level: 5
     };
     map = new kakao.maps.Map(container, options);
 
-    // 기본: 카카오 스카이뷰 + 공식 등산로/지명 오버레이 (HYBRID)
+    // 기본: 카카오 스카이뷰 + 공식 등산로/지명 오버레이
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
   } catch(e) {
-    alert("카카오 키 인증 실패! 카카오 개발자 사이트 [플랫폼]에 https://jangaom80-blip.github.io 도메인이 등록되어 있는지 확인해주세요.");
+    alert("카카오 키 인증 확인 필요: 도메인에 https://jangaom80-blip.github.io 등록 확인");
   }
 
   function switchKakaoMapMode(mode) {
@@ -426,7 +424,7 @@
       document.getElementById('btn-road').classList.remove('active');
     } else {
       map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-      map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN); // 등고선 지형도 결합
+      map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
       document.getElementById('btn-road').classList.add('active');
       document.getElementById('btn-sky').classList.remove('active');
     }
@@ -501,7 +499,7 @@
   }
 
   // ------------------------------------------------------------------
-  // 3. 코스 설계 엔진 (금샘 우회 제거 & 정확한 등산로 곡선 보간)
+  // 3. 코스 설계 엔진 (금샘 우회 버그 원천 방지)
   // ------------------------------------------------------------------
   let waypoints = [];
   let trailPath = [];
@@ -516,7 +514,6 @@
     return poly.getLength();
   }
 
-  // 사용자가 찍은 지점 사이를 왜곡 없이 능선 곡선으로 연결 (금샘 강제 경유 방지)
   function interpolateMountainCurve(p1, p2) {
     const dist = calculateDistance(p1, p2);
     const steps = Math.max(6, Math.min(22, Math.floor(dist / 35)));
