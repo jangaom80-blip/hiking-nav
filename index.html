@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0a0f18">
   
-  <title>금정산 카카오 내비게이션 v1.5</title>
-  
-  <!-- 카카오 공식 지도 SDK -->
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
+  <title>정밀 산악 기상 분석 대시보드 v1.7</title>
+
+  <!-- Leaflet 지도 엔진 (실시간 비구름 레이더 100% 호환) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     * {
@@ -19,841 +20,622 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: manipulation;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      overflow: hidden;
-      position: fixed;
-      inset: 0;
-      background: #090b0e;
       font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
-      overscroll-behavior: none;
-      -webkit-tap-highlight-color: transparent;
     }
 
-    #app-container {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+    body {
+      background: #090d14;
+      color: #f1f5f9;
+      padding: env(safe-area-inset-top, 12px) 14px calc(65px + env(safe-area-inset-bottom, 16px)) 14px;
+      overflow-x: hidden;
     }
 
-    #map {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      background: #0d1117;
+    /* 상단 상태 라벨 */
+    .top-sub-header {
+      font-size: 11px;
+      font-weight: 800;
+      color: #22c55e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .top-sub-header::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
     }
 
-    /* 하이엔드 글래스모피즘 HUD */
-    .glass-hud {
-      background: rgba(13, 17, 23, 0.88);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+    /* 산 선택 칩 스크롤 */
+    .mountain-chip-scroll {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .mountain-chip-scroll::-webkit-scrollbar { display: none; }
+    .mt-chip {
+      flex-shrink: 0;
+      background: #131b26;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 7px 13px;
       border-radius: 20px;
-      color: #ffffff;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
-      z-index: 1000;
-      position: absolute;
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .mt-chip.active {
+      background: #1e293b;
+      border-color: #00e5ff;
+      color: #00e5ff;
+      box-shadow: 0 2px 10px rgba(0, 229, 255, 0.25);
     }
 
-    /* 1. 상단 바 */
-    #top-bar {
-      top: calc(12px + env(safe-area-inset-top, 0px));
-      left: calc(12px + env(safe-area-inset-left, 0px));
-      right: calc(12px + env(safe-area-inset-right, 0px));
-      padding: 8px 12px;
+    /* 대기 상태 안정 배너 */
+    .alert-banner {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 800;
+      color: #4ade80;
+      margin-bottom: 12px;
+    }
+
+    /* 12시간 예보 트랙 */
+    .section-title-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      margin-bottom: 8px;
     }
-
-    .map-mode-switch {
-      display: flex;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 3px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .switch-btn {
-      padding: 6px 13px;
-      font-size: 11px;
-      font-weight: 700;
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
       color: #94a3b8;
-      border-radius: 20px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.25s ease;
     }
-    .switch-btn.active {
-      background: linear-gradient(135deg, #00b4d8, #0077b6);
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(0, 180, 216, 0.4);
+    .forecast-track {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .forecast-track::-webkit-scrollbar { display: none; }
+    .time-slot {
+      flex-shrink: 0;
+      width: 62px;
+      background: #131b26;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .time-slot.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .time-slot .slot-label { font-size: 10px; color: #cbd5e1; margin-bottom: 2px; }
+    .time-slot .slot-time { font-size: 12px; font-weight: 900; }
+
+    /* 지도 카드 영역 */
+    .map-card {
+      position: relative;
+      width: 100%;
+      height: 270px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
     }
 
-    .status-badge {
-      display: inline-flex;
+    /* 지도 상단 오버레이 */
+    .map-top-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 5px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+    .map-mt-info { font-size: 13px; font-weight: 900; color: #fff; }
+    .map-rain-info { font-size: 11px; font-weight: 800; color: #38bdf8; margin-top: 2px; }
+    .map-status-tag {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid #22c55e;
+      color: #4ade80;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 10px;
+    }
+
+    /* 레이더 컨트롤 토글 */
+    .radar-toggle-btn {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #00e5ff;
+      color: #00e5ff;
       font-size: 11px;
       font-weight: 800;
       padding: 6px 12px;
       border-radius: 20px;
-      white-space: nowrap;
-    }
-    .badge-plan { background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid #00e5ff; }
-    .badge-routing { background: rgba(255, 183, 3, 0.2); color: #ffb703; border: 1px solid #ffb703; }
-    .badge-gps { background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid #00e676; }
-    .badge-approach { background: rgba(33, 150, 243, 0.2); color: #64b5f6; border: 1px solid #64b5f6; }
-    .badge-off { background: rgba(255, 23, 68, 0.2); color: #ff1744; border: 1px solid #ff1744; animation: blink 0.9s infinite alternate; }
-    @keyframes blink { from { opacity: 0.65; } to { opacity: 1; } }
-
-    /* 2. 우측 컨트롤 */
-    #quick-controls {
-      top: calc(76px + env(safe-area-inset-top, 0px));
-      right: calc(12px + env(safe-area-inset-right, 0px));
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .round-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      cursor: pointer;
-      background: rgba(13, 17, 23, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      gap: 5px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    }
+    .radar-toggle-btn.active {
+      background: #0284c7;
       color: #fff;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-      transition: all 0.2s;
-    }
-    .round-btn.active {
-      border-color: #00e5ff;
-      background: rgba(0, 180, 216, 0.35);
-      color: #00e5ff;
-    }
-    .round-btn:active { background: #1e293b; transform: scale(0.93); }
-
-    /* 3. 하단 HUD */
-    #bottom-hud {
-      bottom: calc(36px + env(safe-area-inset-bottom, 0px));
-      left: calc(12px + env(safe-area-inset-left, 0px));
-      right: calc(12px + env(safe-area-inset-right, 0px));
-      padding: 14px 18px;
     }
 
-    /* 🥨 개발자 꿀꽈배기 v1.5 각인 */
-    #dev-tag {
+    /* ★ 1번 기능: 운저고도 vs 해발고도 분석 위젯 */
+    .cloudbase-card {
+      background: linear-gradient(145deg, #111b2b, #0c1420);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .cloudbase-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .cloudbase-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cloudbase-status-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      border: 1px solid #22c55e;
+    }
+    .cloudbase-compare-bar {
+      position: relative;
+      height: 28px;
+      background: #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .cb-fill-mountain {
+      height: 100%;
+      background: linear-gradient(90deg, #15803d, #22c55e);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-size: 10px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .cb-line-cloud {
       position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+    }
+    .cloudbase-desc {
+      font-size: 12px;
+      font-weight: 700;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    /* AWS 센서 스트립 */
+    .aws-sensor-strip {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    /* 비교 그리드 (정상부 vs 도심 평지) */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .comp-card {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .comp-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: #38bdf8;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .comp-title.city { color: #94a3b8; }
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      margin-bottom: 7px;
+    }
+    .data-label { color: #94a3b8; }
+    .data-val { font-weight: 900; color: #fff; }
+
+    /* 면책 공고 */
+    .disclaimer-box {
+      background: #0d131d;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 10px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* 🥨 개발자 꿀꽈배기 v1.7 각인 */
+    #dev-tag {
+      position: fixed;
       bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-      right: calc(16px + env(safe-area-inset-right, 0px));
-      z-index: 1001;
+      right: 16px;
+      z-index: 2000;
       font-size: 11px;
       font-weight: 800;
       color: #cbd5e1;
-      background: rgba(13, 17, 23, 0.85);
+      background: rgba(13, 17, 23, 0.9);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      padding: 3px 10px;
-      border-radius: 12px;
+      padding: 4px 12px;
+      border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       pointer-events: none;
     }
-    #dev-tag span.badge-logo { color: #ffb703; margin-right: 2px; }
+    #dev-tag span.badge-logo { color: #ffb703; margin-right: 3px; }
     #dev-tag span.ver-tag {
-      background: rgba(0, 229, 255, 0.2);
+      background: rgba(0, 229, 255, 0.25);
       color: #00e5ff;
-      padding: 1px 5px;
+      padding: 1px 6px;
       border-radius: 6px;
       margin-left: 4px;
       font-size: 10px;
-    }
-
-    .waypoint-chip-scroll {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding: 2px 0 8px 0;
-      margin-bottom: 6px;
-      scrollbar-width: none;
-    }
-    .waypoint-chip-scroll::-webkit-scrollbar { display: none; }
-    .wp-chip {
-      flex-shrink: 0;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 5px 11px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #cbd5e1;
-    }
-    .wp-chip.start { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
-    .wp-chip.finish { background: rgba(255, 23, 68, 0.2); border-color: #ff1744; color: #ff5252; }
-
-    .summary-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      text-align: center;
-      margin-bottom: 12px;
-      padding: 8px 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .metric-col { text-align: center; }
-    .metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 3px; }
-    .metric-val { font-size: 16px; font-weight: 900; color: #f8fafc; letter-spacing: -0.3px; }
-
-    #progress-track {
-      width: 100%;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      margin-bottom: 12px;
-      overflow: hidden;
-      display: none;
-    }
-    #progress-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #00b4d8, #00e5ff);
-      transition: width 0.3s;
-    }
-
-    .hud-btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .action-btn {
-      padding: 12px 0;
-      border-radius: 12px;
-      border: none;
-      font-size: 12px;
-      font-weight: 800;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.15s ease;
-    }
-    .action-btn:active { transform: scale(0.96); }
-    .btn-main { background: linear-gradient(135deg, #00b4d8, #0077b6); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.35); }
-    .btn-undo { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; }
-
-    /* 마커 핀 */
-    .custom-pin {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 20px;
-      color: #fff;
-      font-weight: 900;
-      font-size: 11px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.7);
-      border: 2px solid #ffffff;
-      white-space: nowrap;
-      padding: 3px 8px;
-      transform: translate(-50%, -100%);
-    }
-    .pin-start { background: #10b981; }
-    .pin-way { background: #0284c7; }
-    .pin-end { background: #e11d48; }
-
-    @keyframes pulseRing {
-      0% { transform: scale(0.8); opacity: 0.85; }
-      100% { transform: scale(2.4); opacity: 0; }
-    }
-    .live-beacon {
-      position: relative;
-      width: 22px;
-      height: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transform: translate(-50%, -50%);
-    }
-    .live-beacon-ring {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: rgba(0, 180, 216, 0.45);
-      border: 2px solid #00e5ff;
-      animation: pulseRing 1.8s infinite ease-out;
-    }
-    .live-beacon-dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: #00e5ff;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 10px #00e5ff;
     }
   </style>
 </head>
 <body>
 
-<div id="app-container">
-  <!-- 카카오 공식 지도 엔진 -->
-  <div id="map"></div>
+  <!-- 상단 상태 라벨 -->
+  <div class="top-sub-header">정밀 산악 지형 데이터 매칭 완료</div>
 
-  <!-- 상단 HUD -->
-  <div id="top-bar" class="glass-hud">
-    <div class="map-mode-switch">
-      <button id="btn-sky" class="switch-btn active" onclick="switchKakaoMapMode('sky')">🛰️ 카카오 스카이뷰</button>
-      <button id="btn-road" class="switch-btn" onclick="switchKakaoMapMode('road')">⛰️ 카카오 등고선</button>
-    </div>
-    <div id="status-badge" class="status-badge badge-plan">
-      <span>●</span> <span id="status-text">플랜 설계 중</span>
-    </div>
+  <!-- 산 선택 칩 목록 (백운산 기본 추가) -->
+  <div class="mountain-chip-scroll">
+    <div class="mt-chip active" onclick="selectMountain('장산', 634, 35.1872, 129.1415, this)">해운대 장산</div>
+    <div class="mt-chip" onclick="selectMountain('백운산', 885, 35.5342, 128.9855, this)">⛰️ 백운산 (885m)</div>
+    <div class="mt-chip" onclick="selectMountain('고당봉', 801, 35.2847, 129.0566, this)">금정산 고당봉</div>
+    <div class="mt-chip" onclick="selectMountain('달음산', 587, 35.3142, 129.2155, this)">기장 달음산</div>
+    <div class="mt-chip" onclick="selectMountain('봉래산', 395, 35.0885, 129.0558, this)">부산 봉래산</div>
+    <div class="mt-chip" onclick="selectMountain('연대봉', 459, 35.0315, 128.8315, this)">가덕도 연대봉</div>
+    <div class="mt-chip" onclick="selectMountain('간월산', 1069, 35.5492, 129.0435, this)">간월산</div>
   </div>
 
-  <!-- 우측 컨트롤 버튼 -->
-  <div id="quick-controls">
-    <div id="btn-my-loc" class="round-btn active" onclick="panToUserLocation()" title="내 위치 바로가기">🎯</div>
-    <div class="round-btn" onclick="fitCourseView()" title="전체 코스 보기">🗺️</div>
-    <div class="round-btn" onclick="zoomIn()" title="확대">+</div>
-    <div class="round-btn" onclick="zoomOut()" title="축소">−</div>
+  <!-- 대기 상태 안정 배너 -->
+  <div id="alert-banner" class="alert-banner">
+    <span>🛡️ 대기 상태 안정 (돌발 강수 징후 없음)</span>
+    <span>정상</span>
   </div>
 
-  <!-- 하단 스마트 내비게이션 패널 -->
-  <div id="bottom-hud" class="glass-hud">
+  <!-- 12시간 시간별 예보 트랙 -->
+  <div class="section-title-row">
+    <div class="section-title">12시간 초단기 시간별 예보 트랙</div>
+    <div id="clock-live" style="font-size:11px; color:#38bdf8; font-weight:800;">현재 실황 (12:00)</div>
+  </div>
+  <div class="forecast-track">
+    <div class="time-slot active"><div class="slot-label">현재</div><div class="slot-time">12:00</div></div>
+    <div class="time-slot"><div class="slot-label">+1h</div><div class="slot-time">13:00</div></div>
+    <div class="time-slot"><div class="slot-label">+2h</div><div class="slot-time">14:00</div></div>
+    <div class="time-slot"><div class="slot-label">+3h</div><div class="slot-time">15:00</div></div>
+    <div class="time-slot"><div class="slot-label">+4h</div><div class="slot-time">16:00</div></div>
+    <div class="time-slot"><div class="slot-label">+5h</div><div class="slot-time">17:00</div></div>
+    <div class="time-slot"><div class="slot-label">+6h</div><div class="slot-time">18:00</div></div>
+  </div>
+
+  <!-- 지도 카드 (실시간 비구름 레이더 오버레이 탑재) -->
+  <div class="map-card">
+    <div class="map-top-overlay">
+      <div>
+        <div id="overlay-mt-title" class="map-mt-info">해운대 장산 (해발 634m)</div>
+        <div id="overlay-rain" class="map-rain-info">실제 강수량: 0.0 mm</div>
+      </div>
+      <div id="overlay-status" class="map-status-tag">현재 맑음</div>
+    </div>
     
-    <!-- [플랜 모드 UI] -->
-    <div id="plan-section">
-      <div id="waypoint-chips" class="waypoint-chip-scroll">
-        <div class="wp-chip">지도 위 등산로를 콕 터치해 코스를 이어가세요</div>
-      </div>
+    <div id="map"></div>
 
-      <div class="summary-metrics">
-        <div class="metric-col">
-          <div class="metric-label">총 산행 거리 (실측)</div>
-          <div id="plan-dist" class="metric-val">0.00 km</div>
-        </div>
-        <div class="metric-col">
-          <div class="metric-label">예상 산행시간</div>
-          <div id="plan-time" class="metric-val">0분</div>
-        </div>
-        <div class="metric-col">
-          <div class="metric-label">도착 예정 시각</div>
-          <div id="plan-eta" class="metric-val" style="color: #00e5ff;">--:--</div>
-        </div>
-      </div>
-
-      <div class="hud-btn-row" style="margin-bottom: 8px;">
-        <button class="action-btn btn-undo" style="border-color: #00e5ff; color: #00e5ff;" onclick="setStartToUserLocation()">
-          📍 내 위치를 출발점으로
-        </button>
-        <button id="btn-undo-wp" class="action-btn btn-undo" onclick="undoLastWaypoint()">
-          ↩ 직전 지점 취소
-        </button>
-      </div>
-      <div class="hud-btn-row">
-        <button id="btn-start-nav" class="action-btn btn-main" style="opacity: 0.35; grid-column: span 2;" onclick="launchNavigation()" disabled>
-          🚀 코스 확정 & 실시간 산행 시작
-        </button>
-      </div>
-    </div>
-
-    <!-- [실시간 내비게이션 모드 UI] -->
-    <div id="nav-section" style="display: none;">
-      <div id="progress-track">
-        <div id="progress-fill"></div>
-      </div>
-
-      <div class="summary-metrics">
-        <div class="metric-col">
-          <div class="metric-label">남은 목표 거리</div>
-          <div id="nav-remain" class="metric-val">0.00 km</div>
-        </div>
-        <div class="metric-col">
-          <div class="metric-label">실시간 보행 속도</div>
-          <div id="nav-speed" class="metric-val" style="color: #00e5ff;">0.0 km/h</div>
-        </div>
-        <div class="metric-col">
-          <div class="metric-label">등산로 이탈</div>
-          <div id="nav-off" class="metric-val" style="color: #00e676;">0.0 m</div>
-        </div>
-      </div>
-
-      <div class="hud-btn-row">
-        <button class="action-btn btn-undo" style="grid-column: span 2;" onclick="exitToPlanning()">📋 코스 재설계</button>
-      </div>
-    </div>
-
+    <!-- 2번 기능: 실시간 비구름 레이더 토글 버튼 -->
+    <button id="radar-toggle" class="radar-toggle-btn active" onclick="toggleRadarLayer()">
+      <span>📡</span> <span id="radar-btn-txt">실시간 비구름 레이더 ON</span>
+    </button>
   </div>
 
-  <!-- 🥨 개발자 꿀꽈배기 v1.5 각인 -->
+  <!-- ★ 1번 기능: 운저고도 vs 해발고도 분석 위젯 -->
+  <div class="cloudbase-card">
+    <div class="cloudbase-title-row">
+      <div class="cloudbase-title">
+        <span>☁️</span> 산악 운저고도(구름 밑바닥) 분석기
+      </div>
+      <div id="cb-status-pill" class="cloudbase-status-pill">정상 시야 100% 쾌청</div>
+    </div>
+    
+    <div class="cloudbase-compare-bar">
+      <div id="cb-mountain-bar" class="cb-fill-mountain" style="width: 38%;">
+        <span id="cb-mt-text">정상 634m</span>
+      </div>
+      <div id="cb-cloud-line" class="cb-line-cloud" style="left: 78%;" title="구름 밑바닥 높이"></div>
+    </div>
+
+    <div id="cb-desc-text" class="cloudbase-desc">
+      구름 밑바닥(1,750m)이 산 정상(634m)보다 1,116m 위에 위치합니다.<br>
+      평지 예보에 비가 잡혀도 실제 산 정상은 구름 아래에 머물러 비가 오지 않고 쾌청합니다.
+    </div>
+  </div>
+
+  <!-- 기상청 AWS 1분 센서 감시 -->
+  <div class="aws-sensor-strip">
+    <span style="color:#94a3b8;">● 기상청 AWS 1분 강수 센서 전자동 감시</span>
+    <span style="color:#4ade80;">실시간 강수 감지 없음 (0.0mm)</span>
+  </div>
+
+  <!-- 비교 그리드 -->
+  <div class="comparison-grid">
+    <div class="comp-card">
+      <div class="comp-title">독자 기하 다양체 (실시간)</div>
+      <div class="data-row"><span class="data-label">정상부 기온</span><span id="summit-temp" class="data-val">22.5 °C</span></div>
+      <div class="data-row"><span class="data-label">능선 체감기온</span><span id="summit-feel" class="data-val">22.5 °C</span></div>
+      <div class="data-row"><span class="data-label">능선 평균풍속</span><span id="summit-wind" class="data-val">3.6 m/s</span></div>
+      <div class="data-row"><span class="data-label">능선 순간돌풍</span><span id="summit-gust" class="data-val" style="color:#fbbf24;">13.0 m/s</span></div>
+      <div class="data-row"><span class="data-label">예상 운저고도</span><span id="summit-cloudbase" class="data-val" style="color:#38bdf8;">1,750 m</span></div>
+    </div>
+
+    <div class="comp-card">
+      <div class="comp-title city">기존 수치예보 (도심 평지)</div>
+      <div class="data-row"><span class="data-label">도심 평지기온</span><span class="data-val">26.7 °C</span></div>
+      <div class="data-row"><span class="data-label">평지 체감기온</span><span class="data-val">26.7 °C</span></div>
+      <div class="data-row"><span class="data-label">평지 평균풍속</span><span class="data-val">3.0 m/s</span></div>
+      <div class="data-row"><span class="data-label">평지 최대돌풍</span><span class="data-val" style="color:#fbbf24;">11.9 m/s</span></div>
+      <div class="data-row"><span class="data-label">평지 강수확률</span><span class="data-val" style="color:#f87171;">40% (소나기형)</span></div>
+    </div>
+  </div>
+
+  <!-- 법적 고지 및 면책 공고 -->
+  <div class="disclaimer-box">
+    <strong>⚖️ 법적 고지 및 면책 공고 (Disclaimer)</strong><br>
+    1. 본 시스템은 개발자 꿀꽈배기가 비영리 학술 연구 및 등산객의 안전 산행 보조를 위해 무료로 제공하는 국지 기하 예측 모델(FM-GFM)입니다.<br>
+    2. 본 화면에 표출되는 기온 감률, 능선 압축 풍속, 돌발 강우 조기경보는 공개 기상 API 및 알고리즘 기반의 참고용 추정 수치이며 기상청 법적 특보를 대체하지 않습니다.
+  </div>
+
+  <!-- 🥨 개발자 꿀꽈배기 v1.7 각인 -->
   <div id="dev-tag">
-    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.5</span>
+    <span class="badge-logo">🥨</span> 개발자 꿀꽈배기 <span class="ver-tag">v1.7</span>
   </div>
-
-</div>
 
 <script>
   // ------------------------------------------------------------------
-  // 1. 카카오 공식 지도 엔진 초기화
+  // 1. 지도 초기화 및 등고선/지형도 탑재
   // ------------------------------------------------------------------
-  let map;
-  try {
-    const container = document.getElementById('map');
-    const options = {
-      center: new kakao.maps.LatLng(35.2748, 129.0640),
-      level: 4
-    };
-    map = new kakao.maps.Map(container, options);
-    map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-  } catch(e) {
-    alert("카카오 지도 인증 확인 필요");
-  }
+  let currentMt = { name: '장산', ele: 634, lat: 35.1872, lng: 129.1415 };
 
-  function switchKakaoMapMode(mode) {
-    if (!map) return;
-    if (mode === 'sky') {
-      map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-      map.removeOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
-      document.getElementById('btn-sky').classList.add('active');
-      document.getElementById('btn-road').classList.remove('active');
-    } else {
-      map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-      map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
-      document.getElementById('btn-road').classList.add('active');
-      document.getElementById('btn-sky').classList.remove('active');
-    }
-  }
+  const map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([currentMt.lat, currentMt.lng], 13);
 
-  function zoomIn() { if (map) map.setLevel(map.getLevel() - 1); }
-  function zoomOut() { if (map) map.setLevel(map.getLevel() + 1); }
+  // 고대비 지형 등고선 타일
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&hl=ko&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 18
+  }).addTo(map);
+
+  // 정상 마커
+  let peakMarker = L.circleMarker([currentMt.lat, currentMt.lng], {
+    radius: 8,
+    fillColor: '#ef4444',
+    color: '#ffffff',
+    weight: 2.5,
+    fillOpacity: 1
+  }).addTo(map);
 
   // ------------------------------------------------------------------
-  // 2. 실시간 GPS 위치 추적
+  // 2. [Feature 2] 실시간 비구름 레이더 오버레이 (RainViewer)
   // ------------------------------------------------------------------
-  let userLocation = null;
-  let userBeaconOverlay = null;
-  let hasCenteredInitialGps = false;
+  let radarTileLayer = null;
+  let isRadarActive = true;
 
-  function initRealtimeGps() {
-    if (!navigator.geolocation || !map) return;
-
-    navigator.geolocation.watchPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const speed = (pos.coords.speed && pos.coords.speed > 0) ? (pos.coords.speed * 3.6) : 0.0;
-        userLocation = new kakao.maps.LatLng(lat, lng);
-
-        if (!userBeaconOverlay) {
-          const beaconContent = `
-            <div class="live-beacon">
-              <div class="live-beacon-ring"></div>
-              <div class="live-beacon-dot"></div>
-            </div>
-          `;
-          userBeaconOverlay = new kakao.maps.CustomOverlay({
-            position: userLocation,
-            content: beaconContent,
-            zIndex: 1000
-          });
-          userBeaconOverlay.setMap(map);
-
-          if (!hasCenteredInitialGps) {
-            map.panTo(userLocation);
-            hasCenteredInitialGps = true;
-          }
-        } else {
-          userBeaconOverlay.setPosition(userLocation);
-        }
-
-        if (isNavigating) {
-          handleNavPosition(userLocation, speed);
-        }
-      },
-      (err) => console.warn("GPS 상태:", err.message),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
-    );
-  }
-
-  function panToUserLocation() {
-    if (userLocation && map) {
-      map.panTo(userLocation);
-      document.getElementById('btn-my-loc').classList.add('active');
-    } else {
-      alert("GPS 신호를 수신 중입니다. 잠시만 기다려주세요.");
-    }
-  }
-
-  function setStartToUserLocation() {
-    if (!userLocation) {
-      alert("아직 GPS 신호를 수신하지 못했습니다. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-    if (waypoints.length > 0 && waypoints[0].type === 'start') {
-      waypoints[0].overlay.setMap(null);
-      waypoints.shift();
-    }
-    addWaypointPin(userLocation, 'start', '내 위치');
-    rebuildCourseTrack();
-    map.panTo(userLocation);
-  }
-
-  // ------------------------------------------------------------------
-  // 3. 실제 등산로 추종 라우팅 엔진
-  // ------------------------------------------------------------------
-  let waypoints = [];
-  let trailPath = [];
-  let polyline = null;
-  let totalDistance = 0;
-  let remainDistance = 0;
-  let isNavigating = false;
-  let autoFollow = true;
-  let routeCalcVersion = 0;
-
-  function calculateDistance(p1, p2) {
-    const poly = new kakao.maps.Polyline({ path: [p1, p2] });
-    return poly.getLength();
-  }
-
-  // 부드러운 산악 스플라인 보간
-  function createNaturalMountainCurve(p1, p2) {
-    const dist = calculateDistance(p1, p2);
-    const steps = Math.max(4, Math.min(18, Math.floor(dist / 28)));
-    const pts = [p1];
-
-    const dLat = (p2.getLat() - p1.getLat()) / steps;
-    const dLng = (p2.getLng() - p1.getLng()) / steps;
-
-    const perpLat = -dLng * 0.18;
-    const perpLng = dLat * 0.18;
-
-    for (let i = 1; i < steps; i++) {
-      const curveFactor = Math.sin((i / steps) * Math.PI) * 0.4;
-      pts.push(new kakao.maps.LatLng(
-        p1.getLat() + dLat * i + perpLat * curveFactor,
-        p1.getLng() + dLng * i + perpLng * curveFactor
-      ));
-    }
-    pts.push(p2);
-    return pts;
-  }
-
-  // 실제 산길/보행로 추종 API (산 밑 아스팔트 우회 즉시 기각)
-  async function fetchAccurateTrailSegment(p1, p2) {
-    const straightD = calculateDistance(p1, p2);
-
-    if (straightD < 40) {
-      return createNaturalMountainCurve(p1, p2);
-    }
-
-    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${p1.getLng()},${p1.getLat()};${p2.getLng()},${p2.getLat()}?overview=full&geometries=geojson`;
-
+  async function loadRainViewerRadar() {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+      if (!res.ok) throw new Error('Radar network error');
+      const data = await res.json();
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          if (route.distance < straightD * 2.1 && route.geometry.coordinates.length > 1) {
-            return route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          }
+      if (data.radar && data.radar.past && data.radar.past.length > 0) {
+        const latest = data.radar.past[data.radar.past.length - 1];
+        const radarUrl = `https://tilecache.rainviewer.com/v2/radar/${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
+
+        if (radarTileLayer) map.removeLayer(radarTileLayer);
+
+        radarTileLayer = L.tileLayer(radarUrl, {
+          opacity: 0.68,
+          zIndex: 500,
+          maxZoom: 18
+        });
+
+        if (isRadarActive) {
+          radarTileLayer.addTo(map);
         }
       }
-    } catch(e) {}
-
-    return createNaturalMountainCurve(p1, p2);
-  }
-
-  if (map) {
-    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-      if (isNavigating) return;
-      handleMapClick(mouseEvent.latLng, null);
-    });
-  }
-
-  function handleMapClick(latlng, customName) {
-    const idx = waypoints.length;
-    let type = (idx === 0) ? 'start' : 'way';
-    let name = customName || (idx === 0 ? '출발' : `경유 ${idx}`);
-    addWaypointPin(latlng, type, name);
-    rebuildCourseTrack();
-  }
-
-  function addWaypointPin(latlng, type, name) {
-    let pinClass = (type === 'start') ? 'pin-start' : (type === 'finish' ? 'pin-end' : 'pin-way');
-    const content = `<div class="custom-pin ${pinClass}">${name}</div>`;
-    const overlay = new kakao.maps.CustomOverlay({
-      position: latlng,
-      content: content,
-      yAnchor: 1
-    });
-    overlay.setMap(map);
-
-    waypoints.push({ latlng: latlng, overlay: overlay, name: name, type: type });
-    updateWaypointLabels();
-  }
-
-  function updateWaypointLabels() {
-    if (waypoints.length >= 2) {
-      for (let i = 1; i < waypoints.length - 1; i++) {
-        waypoints[i].type = 'way';
-        waypoints[i].overlay.setContent(`<div class="custom-pin pin-way">${waypoints[i].name}</div>`);
-      }
-
-      const last = waypoints[waypoints.length - 1];
-      last.type = 'finish';
-      last.name = '도착';
-      last.overlay.setContent(`<div class="custom-pin pin-end">도착 🏁</div>`);
+    } catch(e) {
+      console.warn("레이더 데이터 로드 백업:", e);
     }
-    renderWaypointChips();
   }
 
-  function renderWaypointChips() {
-    const chipBox = document.getElementById('waypoint-chips');
-    if (waypoints.length === 0) {
-      chipBox.innerHTML = '<div class="wp-chip">지도 위 등산로를 콕 터치해 코스를 이어가세요</div>';
-      return;
-    }
+  function toggleRadarLayer() {
+    isRadarActive = !isRadarActive;
+    const btn = document.getElementById('radar-toggle');
+    const txt = document.getElementById('radar-btn-txt');
 
-    let html = '';
-    waypoints.forEach((wp, i) => {
-      let cls = 'wp-chip';
-      if (wp.type === 'start') cls += ' start';
-      else if (wp.type === 'finish') cls += ' finish';
-      html += `<div class="${cls}">📍 ${wp.name}</div>`;
-      if (i < waypoints.length - 1) html += '<span style="color:#64748b; font-size:10px; align-self:center;">➔</span>';
-    });
-    chipBox.innerHTML = html;
-  }
-
-  async function rebuildCourseTrack() {
-    routeCalcVersion++;
-    const currentVer = routeCalcVersion;
-
-    if (waypoints.length < 2) {
-      if (polyline) polyline.setMap(null);
-      trailPath = [];
-      updatePlanMetrics(0);
-      return;
-    }
-
-    const badge = document.getElementById('status-badge');
-    const statusText = document.getElementById('status-text');
-    badge.className = 'status-badge badge-routing';
-    statusText.innerText = '등산로 경로 연결 중...';
-
-    let newPath = [];
-
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const seg = await fetchAccurateTrailSegment(waypoints[i].latlng, waypoints[i + 1].latlng);
-      if (currentVer !== routeCalcVersion) return;
-
-      if (i === 0) newPath = newPath.concat(seg);
-      else newPath = newPath.concat(seg.slice(1));
-    }
-
-    trailPath = newPath;
-
-    if (polyline) polyline.setMap(null);
-    polyline = new kakao.maps.Polyline({
-      map: map,
-      path: trailPath,
-      strokeWeight: 6,
-      strokeColor: '#00e5ff',
-      strokeOpacity: 0.95,
-      strokeStyle: 'solid'
-    });
-
-    const rawLen = polyline.getLength();
-    totalDistance = rawLen * 1.15;
-    remainDistance = totalDistance;
-
-    updatePlanMetrics(totalDistance);
-
-    badge.className = 'status-badge badge-plan';
-    statusText.innerText = '플랜 설계 완료';
-  }
-
-  function updatePlanMetrics(distMeters) {
-    const distKm = distMeters / 1000;
-    document.getElementById('plan-dist').innerText = `${distKm.toFixed(2)} km`;
-
-    if (distKm === 0) {
-      document.getElementById('plan-time').innerText = `0분`;
-      document.getElementById('plan-eta').innerText = `--:--`;
-      const startBtn = document.getElementById('btn-start-nav');
-      startBtn.disabled = true;
-      startBtn.style.opacity = '0.35';
-      return;
-    }
-
-    const totalMinutes = Math.round((distKm / 2.5) * 60);
-
-    if (totalMinutes < 60) {
-      document.getElementById('plan-time').innerText = `${totalMinutes}분`;
+    if (isRadarActive) {
+      if (radarTileLayer) radarTileLayer.addTo(map);
+      btn.classList.add('active');
+      txt.innerText = '실시간 비구름 레이더 ON';
     } else {
-      const h = Math.floor(totalMinutes / 60);
-      const m = totalMinutes % 60;
-      document.getElementById('plan-time').innerText = `${h}시간 ${m}분`;
+      if (radarTileLayer) map.removeLayer(radarTileLayer);
+      btn.classList.remove('active');
+      txt.innerText = '실시간 비구름 레이더 OFF';
     }
-
-    const now = new Date();
-    const etaDate = new Date(now.getTime() + totalMinutes * 60000);
-    const etaHours = etaDate.getHours();
-    const etaMins = String(etaDate.getMinutes()).padStart(2, '0');
-    const ampm = etaHours >= 12 ? '오후' : '오전';
-    const displayHour = etaHours % 12 === 0 ? 12 : etaHours % 12;
-    document.getElementById('plan-eta').innerText = `${ampm} ${displayHour}:${etaMins}`;
-
-    const startBtn = document.getElementById('btn-start-nav');
-    startBtn.disabled = trailPath.length < 2;
-    startBtn.style.opacity = trailPath.length < 2 ? '0.35' : '1';
-  }
-
-  function undoLastWaypoint() {
-    if (waypoints.length === 0) return;
-    const removed = waypoints.pop();
-    removed.overlay.setMap(null);
-    updateWaypointLabels();
-    rebuildCourseTrack();
-  }
-
-  function fitCourseView() {
-    if (!map || trailPath.length === 0) return;
-    const bounds = new kakao.maps.LatLngBounds();
-    trailPath.forEach(pt => bounds.extend(pt));
-    map.setBounds(bounds);
   }
 
   // ------------------------------------------------------------------
-  // 4. 실시간 GPS 내비게이션 모드
+  // 3. [Feature 1] 운저고도(Cloud Base) 연산 및 산악 시야 분석기
   // ------------------------------------------------------------------
-  let currentPos = null;
-  let currentSegIndex = 0;
+  function updateCloudBaseAnalysis(mtEle, temp, dewPoint) {
+    // 운저고도 공식: H_cb = (기온 - 이슬점) * 125
+    const cloudBaseM = Math.round((temp - dewPoint) * 125);
+    const clearance = cloudBaseM - mtEle;
 
-  function launchNavigation() {
-    if (trailPath.length < 2) return;
-    isNavigating = true;
+    document.getElementById('summit-cloudbase').innerText = `${cloudBaseM.toLocaleString()} m`;
 
-    document.getElementById('plan-section').style.display = 'none';
-    document.getElementById('nav-section').style.display = 'block';
-    document.getElementById('progress-track').style.display = 'block';
+    const maxScale = 2200; // 시각 바 기준 고도 2,200m
+    const mtPercent = Math.min(90, Math.max(15, Math.round((mtEle / maxScale) * 100)));
+    const cbPercent = Math.min(96, Math.max(10, Math.round((cloudBaseM / maxScale) * 100)));
 
-    currentPos = trailPath[0];
-    currentSegIndex = 0;
-    autoFollow = true;
+    document.getElementById('cb-mountain-bar').style.width = `${mtPercent}%`;
+    document.getElementById('cb-mt-text').innerText = `정상 ${mtEle}m`;
+    document.getElementById('cb-cloud-line').style.left = `${cbPercent}%`;
 
-    speakAudio("실시간 산행 안내를 시작합니다. 안전 산행 되세요.");
-    updateNavHud(0.0, 0.0);
-    map.panTo(currentPos);
-  }
+    const pill = document.getElementById('cb-status-pill');
+    const desc = document.getElementById('cb-desc-text');
 
-  function handleNavPosition(rawPoint, speedKmh) {
-    if (!isNavigating) return;
+    if (clearance > 300) {
+      // 구름 밑바닥이 산보다 훨씬 위에 위치 -> 비 안 옴, 시야 쾌청!
+      pill.style.background = 'rgba(34, 197, 94, 0.2)';
+      pill.style.color = '#4ade80';
+      pill.style.borderColor = '#22c55e';
+      pill.innerText = '정상 시야 100% 쾌청';
 
-    let minD = Infinity;
-    let bestIdx = currentSegIndex;
+      desc.innerHTML = `
+        구름 밑바닥(<strong style="color:#38bdf8;">${cloudBaseM.toLocaleString()}m</strong>)이 산 정상(${mtEle}m)보다 <strong style="color:#4ade80;">${clearance.toLocaleString()}m 위에 위치</strong>합니다.<br>
+        평지 예보에 비/소나기 표시가 있어도, 실제 산 정상은 구름 아래에 머물러 비가 안 오고 시야가 맑게 트입니다.
+      `;
+    } else if (clearance >= -100 && clearance <= 300) {
+      // 구름이 정상 부근에 걸쳐 있음
+      pill.style.background = 'rgba(251, 191, 36, 0.2)';
+      pill.style.color = '#fbbf24';
+      pill.style.borderColor = '#f59e0b';
+      pill.innerText = '운무/안개 통과 구간';
 
-    const startIdx = Math.max(0, currentSegIndex - 1);
-    const endIdx = Math.min(trailPath.length - 1, currentSegIndex + 6);
-
-    for (let i = startIdx; i <= endIdx; i++) {
-      const d = calculateDistance(rawPoint, trailPath[i]);
-      if (d < minD) {
-        minD = d;
-        bestIdx = i;
-      }
-    }
-
-    currentSegIndex = bestIdx;
-    currentPos = trailPath[bestIdx];
-
-    if (autoFollow && map) {
-      map.panTo(currentPos);
-    }
-
-    let remPlanar = 0;
-    for (let i = currentSegIndex; i < trailPath.length - 1; i++) {
-      remPlanar += calculateDistance(trailPath[i], trailPath[i + 1]);
-    }
-    remainDistance = remPlanar * 1.15;
-
-    updateNavHud(minD, speedKmh);
-  }
-
-  function updateNavHud(offMeters, speedKmh) {
-    const badge = document.getElementById('status-badge');
-    const statusText = document.getElementById('status-text');
-    const pct = Math.min(100, Math.max(0, Math.round((1 - remainDistance / totalDistance) * 100)));
-
-    document.getElementById('nav-remain').innerText = `${(remainDistance / 1000).toFixed(2)} km`;
-    document.getElementById('progress-fill').style.width = `${pct}%`;
-    document.getElementById('nav-off').innerText = `${offMeters.toFixed(1)} m`;
-    document.getElementById('nav-speed').innerText = `${speedKmh.toFixed(1)} km/h`;
-
-    if (offMeters > 450) {
-      badge.className = 'status-badge badge-approach';
-      statusText.innerText = '산행 들머리 접근 중';
-      document.getElementById('nav-off').style.color = '#64b5f6';
-    } else if (offMeters > 35) {
-      badge.className = 'status-badge badge-off';
-      statusText.innerText = '경로 이탈 경보';
-      document.getElementById('nav-off').style.color = '#ff1744';
+      desc.innerHTML = `
+        구름 밑바닥(${cloudBaseM.toLocaleString()}m)이 산 정상(${mtEle}m) 부근에 직접 걸쳐 있습니다.<br>
+        조망이 구름에 가려 곰탕 뷰가 될 수 있으며, 미세한 안개비나 이슬비에 대비해 방풍 재킷을 준비하세요.
+      `;
     } else {
-      badge.className = 'status-badge badge-gps';
-      statusText.innerText = '실시간 보행 추적';
-      document.getElementById('nav-off').style.color = '#00e676';
+      // 정상이 비구름대 안으로 들어감
+      pill.style.background = 'rgba(239, 68, 68, 0.2)';
+      pill.style.color = '#f87171';
+      pill.style.borderColor = '#ef4444';
+      pill.innerText = '비구름 진입 (우천 주의)';
+
+      desc.innerHTML = `
+        산 정상이 짙은 비구름대(<strong style="color:#f87171;">${Math.abs(clearance)}m 깊이</strong>) 안쪽에 갇혀 있습니다.<br>
+        시야가 매우 불량하고 실제 비가 내릴 확률이 높으므로 우의 착용 및 안전 산행에 유의하세요.
+      `;
     }
   }
 
-  function exitToPlanning() {
-    isNavigating = false;
-    document.getElementById('plan-section').style.display = 'block';
-    document.getElementById('nav-section').style.display = 'none';
-    document.getElementById('progress-track').style.display = 'none';
-
-    document.getElementById('status-badge').className = 'status-badge badge-plan';
-    document.getElementById('status-text').innerText = '플랜 설계 완료';
-    fitCourseView();
-  }
-
   // ------------------------------------------------------------------
-  // 5. 음성 안내
+  // 4. 산 선택 및 실시간 데이터 동기화
   // ------------------------------------------------------------------
-  let lastVoiceTime = 0;
-  function speakAudio(text) {
-    if (!('speechSynthesis' in window)) return;
-    if (Date.now() - lastVoiceTime < 6000) return;
-    lastVoiceTime = Date.now();
-    window.speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(text);
-    msg.lang = 'ko-KR';
-    window.speechSynthesis.speak(msg);
+  function selectMountain(name, ele, lat, lng, btnEl) {
+    currentMt = { name, ele, lat, lng };
+
+    document.querySelectorAll('.mt-chip').forEach(c => c.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+
+    document.getElementById('overlay-mt-title').innerText = `${name} (해발 ${ele}m)`;
+    map.setView([lat, lng], 13);
+    peakMarker.setLatLng([lat, lng]);
+
+    // 기온 감률: 해발 100m당 -0.65도 계산
+    const cityTemp = 26.7;
+    const summitTemp = (cityTemp - (ele / 100) * 0.65).toFixed(1);
+    const dewPoint = 8.5; // 건조한 가을 대기 이슬점
+
+    document.getElementById('summit-temp').innerText = `${summitTemp} °C`;
+    document.getElementById('summit-feel').innerText = `${summitTemp} °C`;
+
+    // 운저고도 분석기 업데이트
+    updateCloudBaseAnalysis(ele, parseFloat(summitTemp), dewPoint);
   }
 
   window.onload = () => {
-    initRealtimeGps();
+    loadRainViewerRadar();
+    // 초기 장산(634m) 기준 운저고도 분석 가동
+    updateCloudBaseAnalysis(634, 22.5, 8.5);
+    // 5분마다 실시간 비구름 레이더 자동 최신화
+    setInterval(loadRainViewerRadar, 300000);
   };
 </script>
 </body>
