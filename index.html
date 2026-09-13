@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>HikingMap_Test v2.0</title>
+  <title>HikingMap_Test v2.1</title>
   
   <!-- 카카오 지도 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&autoload=false&libraries=services"></script>
@@ -317,7 +317,7 @@
     <!-- 하단 제어 패널 -->
     <div class="bottom-panel">
       <div class="hint-banner" id="hint-text">
-        지도 위 등산로를 <strong>[콕콕 터치]</strong>하면 실제 산길을 자동 추적합니다
+        등산로 꺾임목을 <strong>[콕콕 터치]</strong>하면 산길을 정밀하게 이어갑니다
       </div>
 
       <div class="stats-container">
@@ -357,7 +357,7 @@
       <div class="panel-footer-row">
         <div class="footer-badge">
           <span>🥨 개발자 꿀꽈배기</span>
-          <span class="tag-ver">v2.0</span>
+          <span class="tag-ver">v2.1</span>
         </div>
       </div>
     </div>
@@ -368,30 +368,25 @@
     let isSkyview = true;
     let isTerrain = false;
 
-    // 코스 지점들 (출발, 경유, 도착)
     let waypoints = [];
     let pointOverlays = [];
-
-    // 세그먼트 단위 경로 데이터 (구간별 정밀 산길 좌표 보존)
     let routeSegments = []; 
 
-    // 시인성 극대화 듀얼 폴리라인
+    // 시인성 극대화 듀얼 라인 (블랙 테두리 + 고휘도 앰버 오렌지)
     let polylineBg = null;
     let polylineMain = null;
 
-    // 모드 제어
     let isDrawMode = false;
     let isDrawing = false;
     let isFollowUser = false;
     let isHikeStarted = false;
 
-    // GPS 관리
     let watchId = null;
     let userMarkerOverlay = null;
     let lastUserLocation = null;
     let lastGpsTimestamp = 0;
 
-    const STORAGE_KEY = 'hikingmap_v20_cached_course';
+    const STORAGE_KEY = 'hikingmap_v21_cached_course';
 
     function startApp() {
       if (typeof kakao === 'undefined' || !kakao.maps) {
@@ -402,14 +397,14 @@
       kakao.maps.load(function() {
         const container = document.getElementById('map');
         const options = {
-          center: new kakao.maps.LatLng(35.2855, 129.0832), // 남산동 및 범어사 일대
+          center: new kakao.maps.LatLng(35.2855, 129.0832),
           level: 5
         };
 
         map = new kakao.maps.Map(container, options);
         map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-        // 1. 블랙 외곽선 (숲속/바위 시인성)
+        // 1. 외곽선 (숲속/암릉 어디서나 또렷하게 보임)
         polylineBg = new kakao.maps.Polyline({
           map: map,
           path: [],
@@ -420,7 +415,7 @@
           zIndex: 1
         });
 
-        // 2. 실측 등산로 메인 라인 (고휘도 오렌지)
+        // 2. 메인 산길 실선 (고휘도 오렌지)
         polylineMain = new kakao.maps.Polyline({
           map: map,
           path: [],
@@ -431,13 +426,13 @@
           zIndex: 2
         });
 
-        // [기본 모드] 지도 클릭 시 산길 딱딱 자동 추적
+        // 클릭 이벤트 (이탈 없는 등산로 콕콕 연결)
         kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
           if (isHikeStarted || isDrawMode) return;
           handleTapWaypoint(mouseEvent.latLng);
         });
 
-        // [보조 모드] 지도에 안 나오는 길 직접 그리기 이벤트
+        // 보조 그리기 이벤트 리스너
         setupDrawingEvents(container);
 
         startGpsWatch();
@@ -451,92 +446,65 @@
       startApp();
     }
 
-    // ==========================================
-    // 1. [기본 모드] 등산로 콕콕 터치 & 실시간 산길 자동 매칭
-    // ==========================================
+    // 1. 지점 터치 시 산길 정밀 연결 (가짜 곡선 100% 배제)
     async function handleTapWaypoint(latLng) {
       const newPt = { lat: latLng.getLat(), lng: latLng.getLng() };
       waypoints.push(newPt);
       refreshPins();
 
       if (waypoints.length === 1) {
-        document.getElementById('hint-text').innerHTML = "다음 산길을 터치하면 <strong>실제 등산로가 자동으로 연결</strong>됩니다";
+        document.getElementById('hint-text').innerHTML = "등산로 모퉁이/갈림길을 <strong>순서대로 콕콕 터치</strong>하세요";
         return;
       }
 
       const p1 = waypoints[waypoints.length - 2];
       const p2 = newPt;
 
-      // 즉각적인 시각 피드백 (대기 시간 없이 즉시 연결선 표시)
-      const tempSegment = [new kakao.maps.LatLng(p1.lat, p1.lng), new kakao.maps.LatLng(p2.lat, p2.lng)];
-      routeSegments.push(tempSegment);
+      // 즉각 시각 연결 (대기 없이 즉시 반영)
+      const directLine = [new kakao.maps.LatLng(p1.lat, p1.lng), new kakao.maps.LatLng(p2.lat, p2.lng)];
+      routeSegments.push(directLine);
       renderAllPolylines();
 
-      updateGpsStatus('routing', '산길 등산로 매칭 중...');
+      updateGpsStatus('routing', '등산로 경로 탐색 중...');
 
-      // 산악 전용 엔진(BRouter Mountain Hiking)으로 실제 등산로 정밀 좌표 추출
-      const matchedTrail = await fetchMountainTrailSegment(p1, p2);
+      // 오픈 등산로 엔진(OSRM footway) 정밀 조회
+      const matchedTrail = await fetchOsmFootTrail(p1, p2);
 
-      // 정밀 산길 좌표로 교체
-      routeSegments[routeSegments.length - 1] = matchedTrail;
-      renderAllPolylines();
+      // 실제 등산로가 조회되면 해당 경로로 교체, 없으면 이탈 없는 직결선 유지
+      if (matchedTrail && matchedTrail.length > 0) {
+        routeSegments[routeSegments.length - 1] = matchedTrail;
+        renderAllPolylines();
+      }
 
       updateGpsStatus('gps-active', '실시간 GPS 수신 중');
       saveCourseToStorage();
     }
 
-    // 산악 전용 등산로 라우팅 엔진 (아스팔트 우회 100% 방지)
-    async function fetchMountainTrailSegment(p1, p2) {
+    // 오픈 등산로(OSRM Foot) 경로 조회 (아스팔트 우회 및 숲 횡단 방지)
+    async function fetchOsmFootTrail(p1, p2) {
       const straightDist = getDistanceMeters(p1, p2);
 
-      // 1순위: 전 세계 오픈 산악 등산로(BRouter hiking-mountain) 호출
       try {
-        const url = `https://brouter.de/brouter?lonlats=${p1.lng},${p1.lat}%7C${p2.lng},${p2.lat}&profile=hiking-mountain&alternativeidx=0&format=geojson`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(2800) });
+        // 전 세계 보행로/등산로 전용 OSRM 공식 엔드포인트
+        const url = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(2200) });
         if (res.ok) {
           const data = await res.json();
-          if (data.features && data.features[0] && data.features[0].geometry) {
-            const coords = data.features[0].geometry.coordinates;
-            const totalDist = parseFloat(data.features[0].properties['total-distance'] || 0);
-
-            // 산길이 아닌 엉뚱한 차도로 돌아가는 경로(직선거리의 2.2배 초과)는 과감히 차단
-            if (straightDist < 250 || (totalDist > 0 && totalDist / straightDist <= 2.2)) {
-              return coords.map(c => new kakao.maps.LatLng(c[1], c[0]));
+          if (data.routes && data.routes[0]) {
+            const routeDist = data.routes[0].distance;
+            // 엉뚱한 아스팔트 차도로 빙빙 돌아가는 경우(1.7배 초과) 자동 필터링
+            if (straightDist < 180 || routeDist / straightDist <= 1.7) {
+              return data.routes[0].geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
             }
           }
         }
       } catch (e) {}
 
-      // 2순위: 데이터가 없는 깊은 오지이거나 API 지연 시, 차도로 내려가지 않고 능선 방향으로 똑똑하게 보간
-      return generateDirectTrailSegment(p1, p2);
+      // 등산로 데이터가 없거나 연결이 끊긴 구간은
+      // 숲속을 가로지르는 억지 곡선을 그리지 않고 정확한 직선으로 연결하여 이탈을 0%로 막음!
+      return null;
     }
 
-    function generateDirectTrailSegment(p1, p2) {
-      const coords = [];
-      const dist = getDistanceMeters(p1, p2);
-      if (dist < 30) {
-        return [new kakao.maps.LatLng(p1.lat, p1.lng), new kakao.maps.LatLng(p2.lat, p2.lng)];
-      }
-
-      const steps = 8;
-      const dx = p2.lng - p1.lng;
-      const dy = p2.lat - p1.lat;
-      const nx = -dy * 0.1;
-      const ny = dx * 0.1;
-
-      const cp1 = { lat: p1.lat + dy * 0.33 + ny, lng: p1.lng + dx * 0.33 + nx };
-      const cp2 = { lat: p1.lat + dy * 0.66 - ny * 0.7, lng: p1.lng + dx * 0.66 - nx * 0.7 };
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const lat = Math.pow(1-t, 3)*p1.lat + 3*Math.pow(1-t, 2)*t*cp1.lat + 3*(1-t)*Math.pow(t, 2)*cp2.lat + Math.pow(t, 3)*p2.lat;
-        const lng = Math.pow(1-t, 3)*p1.lng + 3*Math.pow(1-t, 2)*t*cp1.lng + 3*(1-t)*Math.pow(t, 2)*cp2.lng + Math.pow(t, 3)*p2.lng;
-        coords.push(new kakao.maps.LatLng(lat, lng));
-      }
-      return coords;
-    }
-
-    // 전체 세그먼트 병합 렌더링
     function renderAllPolylines() {
       const fullPath = [];
       routeSegments.forEach((seg, idx) => {
@@ -554,9 +522,7 @@
       updateDashboard(totalMeters);
     }
 
-    // ==========================================
-    // 2. [보조 모드] 지도에 산길이 안 보일 때 직접 그리기
-    // ==========================================
+    // 2. 보조 모드: 손가락으로 슥 그리기
     function setupDrawingEvents(container) {
       let activeDrawSegment = [];
       let lastDrawTime = 0;
@@ -570,7 +536,7 @@
       container.addEventListener('touchmove', function(e) {
         if (!isDrawMode || !isDrawing || isHikeStarted) return;
         const now = Date.now();
-        if (now - lastDrawTime < 70) return;
+        if (now - lastDrawTime < 60) return;
         lastDrawTime = now;
 
         const touch = e.touches[0];
@@ -578,10 +544,7 @@
         const point = new kakao.maps.Point(touch.clientX - rect.left, touch.clientY - rect.top);
         const latLng = map.getProjection().coordsFromContainerPoint(point);
 
-        const ptObj = { lat: latLng.getLat(), lng: latLng.getLng() };
         activeDrawSegment.push(latLng);
-
-        // 실시간 그리기 반영
         polylineMain.setPath([...polylineMain.getPath(), latLng]);
       }, { passive: true });
 
@@ -592,7 +555,6 @@
         }
         isDrawing = false;
 
-        // 시작점과 끝점을 waypoint에 추가하고 segment로 보존
         const startCoord = activeDrawSegment[0];
         const endCoord = activeDrawSegment[activeDrawSegment.length - 1];
 
@@ -618,25 +580,23 @@
         btn.classList.add('draw-active');
         btn.innerText = "✋ 그리기 완료";
         map.setDraggable(false);
-        hint.innerHTML = "✏️ <strong>지도에 안 보이는 샛길을 손가락으로 슥 그리세요!</strong>";
+        hint.innerHTML = "✏️ <strong>등산로 선을 손가락으로 슥 따라 그려보세요!</strong>";
       } else {
         btn.classList.remove('draw-active');
         btn.innerText = "✏️ 길따라 그리기";
         map.setDraggable(true);
-        hint.innerHTML = "지도 위 등산로를 <strong>[콕콕 터치]</strong>하면 실제 산길을 자동 추적합니다";
+        hint.innerHTML = "등산로 꺾임목을 <strong>[콕콕 터치]</strong>하면 산길을 정밀하게 이어갑니다";
       }
     }
 
-    // ==========================================
-    // 3. 마커 핀, 통계 및 취소/초기화
-    // ==========================================
+    // 3. 핀 및 대시보드 갱신
     function refreshPins() {
       pointOverlays.forEach(ov => ov.setMap(null));
       pointOverlays = [];
 
       const total = waypoints.length;
       if (total === 0) {
-        document.getElementById('hint-text').innerHTML = "지도 위 등산로를 <strong>[콕콕 터치]</strong>하면 실제 산길을 자동 추적합니다";
+        document.getElementById('hint-text').innerHTML = "등산로 꺾임목을 <strong>[콕콕 터치]</strong>하면 산길을 정밀하게 이어갑니다";
         return;
       }
 
@@ -653,7 +613,7 @@
             title = '🏁 도착';
             className += 'pin-end';
           } else {
-            title = `📍 경유 ${idx}`;
+            title = `📍 ${idx}`;
             className += 'pin-via';
           }
 
@@ -731,9 +691,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // ==========================================
-    // 4. 실시간 GPS 추적 및 터널/음영 보호
-    // ==========================================
+    // 4. GPS 감시
     function startGpsWatch() {
       if (!navigator.geolocation) {
         updateGpsStatus('gps-lost', 'GPS 미지원');
