@@ -233,7 +233,7 @@
   /* 제어 툴바 */
   .rt-tools-row {
     display: grid;
-    grid-template-columns: 1fr 1.2fr 0.8fr 0.8fr;
+    grid-template-columns: 1fr 1.3fr 0.8fr 0.8fr;
     gap: 6px;
     margin-bottom: 8px;
   }
@@ -251,18 +251,14 @@
     align-items: center;
     gap: 4px;
     white-space: nowrap;
+    transition: all 0.2s;
   }
   .rt-tool-btn:active { background: #334155; }
   .rt-tool-btn.drawing {
     background: #0284c7;
     border-color: #38bdf8;
     color: #fff;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-    animation: alertPulse 1.4s infinite;
-  }
-  @keyframes alertPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
   }
 
   /* 주 실행 버튼 */
@@ -412,7 +408,7 @@
     </button>
 
     <div class="rt-footer-badge">
-      <div class="rt-guide-hint">※ 더블클릭: 실제 산길 자동연결 | 길따라 그리기: 터치로 직접 선긋기</div>
+      <div class="rt-guide-hint">※ 더블클릭: 실제 산길 자동연결 | 그리기모드: 지도 고정 후 선긋기</div>
       <div class="rt-dev-pill">
         <span>🥨 꿀꽈배기</span>
         <span class="rt-ver-tag">v2.7</span>
@@ -493,17 +489,18 @@
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
     map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
 
-    // 클릭 이벤트 (그리기 모드 vs 스마트 더블탭)
+    // [핵심 클릭 이벤트]
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       var latlng = mouseEvent.latLng;
       var now = Date.now();
 
       if (isDrawing) {
+        // [그리기 모드]: 지도가 고정된 상태에서 터치한 점을 정확히 연결
         addManualDrawPoint(latlng);
         return;
       }
 
-      // 모바일 스마트 더블탭 감지 (350ms 내 두 번 터치)
+      // 모바일 스마트 더블탭 감지 (350ms 내 연속 터치)
       if (now - lastTapTime < 350) {
         handleAutoWaypoint(latlng);
         lastTapTime = 0;
@@ -523,19 +520,26 @@
   }
 
   // ============================================================
-  // [기능 1] 길따라 그리기 모드 (수동 터치로 선 잇기)
+  // [기능 1] 길따라 그리기 모드 (지도 완전 고정 & 복원 로직)
   // ============================================================
   function toggleDrawMode() {
     isDrawing = !isDrawing;
     var btn = document.getElementById('btn-draw');
+
     if (isDrawing) {
+      // 1. 그리기 켜짐: 지도의 드래그(이동)를 완전히 잠금!
+      if (map) map.setDraggable(false);
       btn.classList.add('drawing');
-      document.getElementById('txt-hike-status').textContent = '✏️ 그리기 활성: 지도를 콕콕 터치하여 등산로를 그리세요';
-      speak('그리기 모드가 켜졌습니다. 등산로를 따라 지도를 터치하세요.');
+      btn.innerHTML = '🔒 그리기중 (지도고정)';
+      document.getElementById('txt-hike-status').textContent = '✏️ 지도 고정 완료! 화면을 터치해 원하는 등산로를 그리세요';
+      speak('그리기 모드가 켜져 지도가 고정되었습니다. 산길을 따라 터치하세요.');
     } else {
+      // 2. 그리기 꺼짐: 지도의 드래그(이동)를 다시 허용!
+      if (map) map.setDraggable(true);
       btn.classList.remove('drawing');
-      document.getElementById('txt-hike-status').textContent = '그리기 모드 종료 (경로 확정)';
-      speak('그리기 모드가 종료되었습니다.');
+      btn.innerHTML = '✏️ 길따라 그리기';
+      document.getElementById('txt-hike-status').textContent = '그리기 모드 종료 (지도 이동 가능)';
+      speak('그리기 모드가 종료되어 지도 이동이 가능합니다.');
     }
   }
 
@@ -558,7 +562,6 @@
 
   // ============================================================
   // [기능 2] 더블클릭 자동 등산로(산길) 추종 엔진
-  // (임도길을 배제하고 실제 산악 등산로를 우선 탐색)
   // ============================================================
   function handleAutoWaypoint(latlng) {
     waypointCoords.push(latlng);
@@ -583,7 +586,6 @@
     }
   }
 
-  // [핵심] 임도(track)를 배제하고 산길(path/hiking)을 우선하는 다중 라우터 엔진
   function calculateTrailBetweenWaypoints() {
     if (waypointCoords.length < 2) return;
 
@@ -593,7 +595,7 @@
 
     document.getElementById('txt-hike-status').textContent = '실제 등산로(산길) 직등 경로 연결 중...';
 
-    // 1차: BRouter 산악 등산로 전용 프로파일 (hiking-mountain: 임도길 페널티 극대화, 실제 산길 우선)
+    // 1차: BRouter 산악 전용 프로파일 (hiking-mountain: 임도길 배제, 산길 직등 우선)
     var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(brouterLonlats) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
 
     fetch(brouterUrl)
@@ -604,7 +606,7 @@
       .then(function(data) {
         if (data && data.features && data.features.length > 0) {
           var feat = data.features[0];
-          var coords = feat.geometry.coordinates; // [[lng, lat, ele], ...]
+          var coords = feat.geometry.coordinates;
           rawPathPoints = coords.map(function(c) {
             return new kakao.maps.LatLng(c[1], c[0]);
           });
@@ -622,7 +624,6 @@
       });
   }
 
-  // 2차: 일반 하이킹 프로파일 백업
   function fallbackToSecondaryHiking(brouterLonlats) {
     var brouterHikingUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(brouterLonlats) + '&profile=hiking&alternativeidx=0&format=geojson';
     fetch(brouterHikingUrl)
@@ -651,7 +652,6 @@
       });
   }
 
-  // 3차: OSRM 보행 백업
   function fallbackToOSRM() {
     var coordsStr = waypointCoords.map(function(pt) {
       return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
@@ -676,7 +676,6 @@
       .catch(generateSmoothMountainCurve);
   }
 
-  // 4차: 통신 두절 시 능선 스플라인 곡선 연결 (무조건 선이 그려지도록 보장)
   function generateSmoothMountainCurve() {
     rawPathPoints = [];
     for (var i = 0; i < waypointCoords.length - 1; i++) {
@@ -701,7 +700,6 @@
     speak('산길 경로가 생성되었습니다.');
   }
 
-  // 폴리라인 그리기
   function drawPolyline(points) {
     if (activePolyline) {
       activePolyline.setMap(null);
@@ -710,14 +708,13 @@
     activePolyline = new kakao.maps.Polyline({
       path: points,
       strokeWeight: 6,
-      strokeColor: '#f59e0b', // 주황색 굵은 산행 선
+      strokeColor: '#f59e0b',
       strokeOpacity: 0.95,
       strokeStyle: 'solid'
     });
     activePolyline.setMap(map);
   }
 
-  // 핀 렌더링
   function renderWaypointPins() {
     waypointOverlays.forEach(function(ov) { ov.setMap(null); });
     waypointOverlays = [];
@@ -744,7 +741,6 @@
     }
   }
 
-  // 수치 업데이트 (산악 시속 2.5km/h 기준)
   function updateMetrics(distKm) {
     document.getElementById('val-distance').textContent = distKm.toFixed(2) + ' km';
     document.getElementById('mini-dist').textContent = distKm.toFixed(2) + ' km';
@@ -786,7 +782,6 @@
     }
   }
 
-  // 산행 시작/종료 토글
   function toggleHiking() {
     isHiking = !isHiking;
     var btn = document.getElementById('btn-hike-toggle');
@@ -800,15 +795,15 @@
         isHiking = false;
         return;
       }
-      isDrawing = false;
-      document.getElementById('btn-draw').classList.remove('drawing');
+      // 산행 시작 시 그리기 모드 끄고 지도 이동 정상화
+      if (isDrawing) toggleDrawMode();
+
       btn.className = 'rt-action-btn btn-active';
       label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
       statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
       miniStatus.textContent = '🔴 산행 진행 중';
       speak('안전 산행을 시작합니다. 산길 경로를 안내합니다.');
 
-      // 운동 시작 시 0.6초 뒤 화면을 넓게 쓰도록 자동 접기
       setTimeout(function() {
         if (!isPanelCollapsed) togglePanelCollapse();
       }, 600);
