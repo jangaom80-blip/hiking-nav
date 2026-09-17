@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>실시간 음성 산행 네비게이션 v2.3</title>
-<!-- 카카오 지도 API (본인 Javascript 키 입력 필요) -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_JAVASCRIPT_KEY&libraries=services"></script>
+<!-- [카카오 지도 API 키 연동 완료] -->
+<script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0f17; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   
-  #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+  #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #0b0f17; }
 
   /* 상단 플로팅 컨트롤 바 */
   .rt-top-bar {
@@ -204,7 +204,7 @@
   }
   .rt-ver-tag { background: #0284c7; color: #fff; border-radius: 4px; padding: 1px 4px; font-size: 9px; }
 
-  /* 핀 마커 배지 스타일 */
+  /* 핀 마커 배지 */
   .rt-pin-badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -233,7 +233,7 @@
 
 <div id="map"></div>
 
-<!-- 상단 플로팅 바 -->
+<!-- 상단 컨트롤 바 -->
 <div class="rt-top-bar">
   <div class="rt-map-toggle-group">
     <button class="rt-toggle-btn active" id="btn-skyview" onclick="toggleSkyview()">🦅 스카이뷰</button>
@@ -305,7 +305,6 @@
   var currentDistKm = 0;
   var currentUserPos = null;
 
-  // 음성 TTS 함수
   function speak(msg) {
     if (!isVoiceOn || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -315,20 +314,19 @@
     window.speechSynthesis.speak(ut);
   }
 
-  // 카카오맵 초기화 (기본 금정산/장군봉 좌표)
   function initKakaoMap() {
     var container = document.getElementById('map');
     var options = {
-      center: new kakao.maps.LatLng(35.2818, 129.0494),
+      center: new kakao.maps.LatLng(35.2818, 129.0494), // 금정산 장군봉 기준
       level: 4
     };
     map = new kakao.maps.Map(container, options);
 
-    // 스카이뷰 및 등고선 초기 적용
+    // 스카이뷰 및 등고선 기본 활성화
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
     map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
 
-    // 지도 클릭 시 경로 그리기 이벤트
+    // 지도 클릭 시 경로 그리기
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (!isDrawing) return;
       var latlng = mouseEvent.latLng;
@@ -338,7 +336,6 @@
     startGpsTracking();
   }
 
-  // 스카이뷰 토글
   function toggleSkyview() {
     isSkyview = !isSkyview;
     var btn = document.getElementById('btn-skyview');
@@ -352,7 +349,6 @@
     if (isTerrain) map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
   }
 
-  // 등고선 토글
   function toggleTerrain() {
     isTerrain = !isTerrain;
     var btn = document.getElementById('btn-terrain');
@@ -365,7 +361,6 @@
     }
   }
 
-  // 음성 안내 토글
   function toggleVoice() {
     isVoiceOn = !isVoiceOn;
     var btn = document.getElementById('btn-voice');
@@ -380,7 +375,6 @@
     }
   }
 
-  // 그리기 모드 토글
   function toggleDrawMode() {
     isDrawing = !isDrawing;
     var btn = document.getElementById('btn-draw');
@@ -392,13 +386,11 @@
     }
   }
 
-  // 경로 포인트 추가
   function addRoutePoint(latlng) {
     pathCoords.push(latlng);
     renderPath();
   }
 
-  // 한 단계 취소
   function undoLastPoint() {
     if (pathCoords.length > 0) {
       pathCoords.pop();
@@ -406,7 +398,6 @@
     }
   }
 
-  // 경로 전체 초기화
   function resetRoute() {
     if (isHiking) {
       alert('산행 진행 중에는 초기화할 수 없습니다. 산행을 먼저 종료해주세요.');
@@ -422,7 +413,6 @@
     speak('경로가 초기화되었습니다.');
   }
 
-  // 경로 및 지표 다시 그리기
   function renderPath() {
     if (activePolyline) activePolyline.setMap(null);
     if (startOverlay) startOverlay.setMap(null);
@@ -433,7 +423,6 @@
       return;
     }
 
-    // 주황색 산행 경로선 그리기 (스크린샷 규격)
     activePolyline = new kakao.maps.Polyline({
       path: pathCoords,
       strokeWeight: 6,
@@ -443,14 +432,12 @@
     });
     activePolyline.setMap(map);
 
-    // 출발 핀
     if (pathCoords.length >= 1) {
       var sContent = '<div class="rt-pin-badge badge-start">🚩 출발</div>';
       startOverlay = new kakao.maps.CustomOverlay({ position: pathCoords[0], content: sContent, yAnchor: 1.3 });
       startOverlay.setMap(map);
     }
 
-    // 도착 핀
     if (pathCoords.length >= 2) {
       var dContent = '<div class="rt-pin-badge badge-dest">🏁 도착</div>';
       destOverlay = new kakao.maps.CustomOverlay({ position: pathCoords[pathCoords.length - 1], content: dContent, yAnchor: 1.3 });
@@ -462,7 +449,6 @@
     updateMetrics(currentDistKm);
   }
 
-  // 거리/시간/도착예정시간 연산 (산행 표준 시속 2.5km/h 기준)
   function updateMetrics(distKm) {
     document.getElementById('val-distance').textContent = distKm.toFixed(2) + ' km';
     if (distKm <= 0.01) {
@@ -480,7 +466,6 @@
     document.getElementById('val-eta').textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
-  // 산행 시작 및 종료 토글
   function toggleHiking() {
     isHiking = !isHiking;
     var btn = document.getElementById('btn-hike-toggle');
@@ -502,7 +487,6 @@
     }
   }
 
-  // GPS 실시간 추적
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
@@ -533,7 +517,6 @@
     });
   }
 
-  // 내 위치 중심 이동
   function panToUserLocation() {
     if (currentUserPos) {
       map.panTo(currentUserPos);
@@ -543,7 +526,14 @@
     }
   }
 
-  window.onload = initKakaoMap;
+  // SDK 안전 로드
+  window.onload = function() {
+    if (typeof kakao !== 'undefined' && kakao.maps) {
+      kakao.maps.load(initKakaoMap);
+    } else {
+      console.error('카카오맵 스크립트를 불러오지 못했습니다.');
+    }
+  };
 </script>
 </body>
 </html>
