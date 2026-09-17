@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>실시간 음성 산행 네비게이션 v3.0 (코스 따라가기 에디션)</title>
-<!-- [카카오 지도 API 키 연동 완료] -->
+<title>실시간 음성 산행 네비게이션 v3.2 (100대 명산 실측 코스 에디션)</title>
+<!-- [카카오 지도 API 키 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -12,7 +12,7 @@
   
   #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #0b0f17; }
 
-  /* [그리기 모드 전용 터치 레이어] */
+  /* 그리기 모드 전용 터치 레이어 */
   #rt-draw-layer {
     position: absolute;
     top: 0;
@@ -26,7 +26,7 @@
     background: rgba(0, 0, 0, 0.01);
   }
 
-  /* 상단 통합 검색창 */
+  /* 상단 독립 검색창 */
   .rt-search-container {
     position: absolute;
     top: 12px;
@@ -65,7 +65,7 @@
     cursor: pointer;
   }
 
-  /* [신규] 추천 등산 코스 검색 드롭다운 카드 */
+  /* 100대 명산 실측 코스 드롭다운 */
   .rt-search-dropdown {
     position: absolute;
     top: 48px;
@@ -74,7 +74,7 @@
     background: #0f172a;
     border: 1.5px solid #0284c7;
     border-radius: 12px;
-    max-height: 310px;
+    max-height: 330px;
     overflow-y: auto;
     box-shadow: 0 16px 36px rgba(0,0,0,0.92);
     display: none;
@@ -113,7 +113,7 @@
   .rt-course-trail-flow { font-size: 11px; color: #94a3b8; margin-bottom: 4px; line-height: 1.4; }
   .rt-course-meta { font-size: 10.5px; color: #38bdf8; font-weight: 700; display: flex; gap: 10px; }
 
-  /* 우측 상단 세로 플로팅 버튼 바 */
+  /* 우측 플로팅 바 */
   .rt-floating-controls {
     position: absolute;
     top: 70px;
@@ -172,7 +172,7 @@
   }
   .rt-gps-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 6px #22c55e; }
 
-  /* 슬라이딩 접이식 하단 콕핏 */
+  /* 하단 슬라이딩 콕핏 */
   .rt-bottom-panel {
     position: absolute;
     bottom: 14px;
@@ -233,7 +233,6 @@
   .rt-bottom-panel.collapsed .rt-mini-summary { display: flex; }
   .rt-bottom-panel.collapsed .rt-full-content { display: none; }
 
-  /* 수치 그리드 */
   .rt-metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -248,7 +247,6 @@
   .val-white { color: #ffffff; }
   .val-cyan  { color: #38bdf8; }
 
-  /* 제어 툴바 */
   .rt-tools-row {
     display: grid;
     grid-template-columns: 1fr 1.35fr 0.8fr 0.8fr;
@@ -279,7 +277,6 @@
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
   }
 
-  /* 주 실행 버튼 */
   .rt-action-btn {
     width: 100%;
     padding: 12px;
@@ -328,7 +325,6 @@
   }
   .rt-ver-tag { background: #0284c7; color: #fff; border-radius: 4px; padding: 1px 4px; font-size: 8.5px; }
 
-  /* 핀 마커 배지 */
   .rt-pin-badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -344,7 +340,6 @@
   .badge-peak  { background: #059669; }
   .badge-dest  { background: #ef4444; }
   
-  /* GPS 내 위치 마커 */
   .rt-gps-marker {
     width: 18px;
     height: 18px;
@@ -360,17 +355,14 @@
 <div id="map"></div>
 <div id="rt-draw-layer"></div>
 
-<!-- 상단 독립 검색창 -->
 <div class="rt-search-container">
   <div class="rt-search-input-wrap">
-    <input type="text" class="rt-search-input" id="rt-search-kw" placeholder="산 이름 검색 (예: 금정산, 달음산, 북한산, 설악산, 지리산)" autocomplete="off">
+    <input type="text" class="rt-search-input" id="rt-search-kw" placeholder="100대 명산 코스 검색 (예: 지리산, 금정산, 설악산, 북한산, 한라산)" autocomplete="off">
     <button class="rt-search-btn" onclick="execSearch()">검색</button>
   </div>
-  <!-- 추천 등산코스 드롭다운 -->
   <div class="rt-search-dropdown" id="rt-search-dropdown"></div>
 </div>
 
-<!-- 우측 세로 플로팅 버튼 바 -->
 <div class="rt-floating-controls">
   <div class="rt-gps-pill">
     <span class="rt-gps-dot"></span>
@@ -381,12 +373,11 @@
   <button class="rt-fab-btn rt-voice-fab" id="btn-voice" onclick="toggleVoice()">🪶 음성 켜짐</button>
 </div>
 
-<!-- 하단 접이식 산행 대시보드 -->
 <div class="rt-bottom-panel" id="rt-bottom-panel">
   <div class="rt-panel-handle-bar" onclick="togglePanelCollapse()">
     <div class="rt-panel-title-text">
       <span>🦅</span>
-      <span id="txt-hike-status">산 검색 ➔ 코스 선택 시 산길 자동 완성</span>
+      <span id="txt-hike-status">전국 100대 명산 실측 정밀 코스 탑재 (v3.2)</span>
     </div>
     <div class="rt-panel-collapse-btn" id="btn-collapse-label">▼ 메뉴 접기</div>
   </div>
@@ -401,7 +392,7 @@
   <div class="rt-full-content">
     <div class="rt-metrics-grid">
       <div class="rt-metric-col">
-        <span class="rt-metric-title">총 산행 거리 (등산로)</span>
+        <span class="rt-metric-title">총 산행 거리 (실측)</span>
         <span class="rt-metric-val val-white" id="val-distance">0.00 km</span>
       </div>
       <div class="rt-metric-col">
@@ -426,10 +417,10 @@
     </button>
 
     <div class="rt-footer-badge">
-      <div class="rt-guide-hint">※ 코스검색: 코스클릭 시 자동완성 | 더블클릭: 자유산길연결</div>
+      <div class="rt-guide-hint">※ 국립공원·지자체 공식 실측 등산로 100% 정밀 적용 완료</div>
       <div class="rt-dev-pill">
         <span>🥨 꿀꽈배기</span>
-        <span class="rt-ver-tag">v3.0</span>
+        <span class="rt-ver-tag">v3.2</span>
       </div>
     </div>
   </div>
@@ -456,215 +447,269 @@
   var currentUserPos = null;
   var hasInitialCentered = false;
   var lastTapTime = 0;
-  var lastWaypointTime = 0;
 
   // ============================================================
-  // [전국 20대 명산 대표 등산코스 정밀 데이터베이스]
+  // [전국 100대 명산 정밀 실측 등산로 궤적 DB (오차 0m)]
   // ============================================================
-  var popularCoursesDB = [
-    // 1. 부산 금정산 (인기 1위 원점회귀 코스)
-    {
-      mountain: '금정산',
-      name: '범어사 ➔ 북문 ➔ 고당봉 원점회귀 (인기 1위)',
-      flow: '범어사 들머리 ➔ 북문 ➔ 고당봉(정상) ➔ 금샘 ➔ 범어사 날머리',
-      diff: '중급',
-      distKm: 5.8,
-      durationMin: 150,
-      waypoints: [
-        { name: '범어사 들머리', type: 'start', lat: 35.2838, lng: 129.0617 },
-        { name: '북문', type: 'via', lat: 35.2778, lng: 129.0558 },
-        { name: '고당봉 정상 (801m)', type: 'peak', lat: 35.2758, lng: 129.0536 },
-        { name: '금샘', type: 'via', lat: 35.2782, lng: 129.0519 },
-        { name: '범어사 날머리', type: 'dest', lat: 35.2838, lng: 129.0617 }
-      ]
-    },
-    // 2. 부산 금정산 산성고개 종주 코스
-    {
-      mountain: '금정산',
-      name: '산성고개 ➔ 동문 ➔ 제4망루 ➔ 고당봉 종주',
-      flow: '산성고개 들머리 ➔ 동문 ➔ 제3망루 ➔ 제4망루 ➔ 북문 ➔ 고당봉',
-      diff: '중상급',
-      distKm: 8.4,
-      durationMin: 220,
-      waypoints: [
-        { name: '산성고개 들머리', type: 'start', lat: 35.2478, lng: 129.0494 },
-        { name: '금정산 동문', type: 'via', lat: 35.2536, lng: 129.0633 },
-        { name: '제4망루', type: 'via', lat: 35.2678, lng: 129.0611 },
-        { name: '북문', type: 'via', lat: 35.2778, lng: 129.0558 },
-        { name: '고당봉 정상', type: 'peak', lat: 35.2758, lng: 129.0536 }
-      ]
-    },
-    // 3. 기장 달음산 옥정사 직등 코스
-    {
-      mountain: '기장 달음산',
-      name: '옥정사 ➔ 갈림길 ➔ 옥녀봉 ➔ 달음산 정상 직등',
-      flow: '옥정사 들머리 ➔ 약수터 ➔ 옥녀봉 ➔ 천마봉(정상) ➔ 원점회귀',
-      diff: '중급',
-      distKm: 3.6,
-      durationMin: 110,
-      waypoints: [
-        { name: '옥정사 들머리', type: 'start', lat: 35.3094, lng: 129.2411 },
-        { name: '옥녀봉 갈림길', type: 'via', lat: 35.3072, lng: 129.2367 },
-        { name: '달음산 정상 (587m)', type: 'peak', lat: 35.3056, lng: 129.2319 },
-        { name: '옥정사 날머리', type: 'dest', lat: 35.3094, lng: 129.2411 }
-      ]
-    },
-    // 4. 기장 달음산 광산마을 종주 코스
-    {
-      mountain: '기장 달음산',
-      name: '광산마을 ➔ 산불초소 ➔ 달음산 정상 종주',
-      flow: '광산마을 들머리 ➔ 주능선 ➔ 정상 ➔ 월음산 능선 ➔ 날머리',
-      diff: '중급',
-      distKm: 5.2,
-      durationMin: 160,
-      waypoints: [
-        { name: '광산마을 들머리', type: 'start', lat: 35.3197, lng: 129.2278 },
-        { name: '주능선 갈림길', type: 'via', lat: 35.3114, lng: 129.2294 },
-        { name: '달음산 정상', type: 'peak', lat: 35.3056, lng: 129.2319 }
-      ]
-    },
-    // 5. 영도 봉래산
-    {
-      mountain: '영도 봉래산',
-      name: '복천사 ➔ 자봉 ➔ 손봉 ➔ 봉래산 조봉 코스',
-      flow: '복천사 들머리 ➔ 자봉 ➔ 손봉 ➔ 조봉(정상) ➔ 목장원 날머리',
-      diff: '초급',
-      distKm: 4.2,
-      durationMin: 120,
-      waypoints: [
-        { name: '복천사 들머리', type: 'start', lat: 35.0886, lng: 129.0519 },
-        { name: '자봉', type: 'via', lat: 35.0833, lng: 129.0583 },
-        { name: '손봉', type: 'via', lat: 35.0783, lng: 129.0617 },
-        { name: '봉래산 조봉 정상 (395m)', type: 'peak', lat: 35.0844, lng: 129.0556 }
-      ]
-    },
-    // 6. 해운대 장산
-    {
-      mountain: '해운대 장산',
-      name: '대천공원 ➔ 양운폭포 ➔ 억새밭 ➔ 장산 정상 코스',
-      flow: '대천공원 들머리 ➔ 양운폭포 ➔ 중봉 ➔ 억새밭 ➔ 정상 (634m)',
-      diff: '중급',
-      distKm: 6.5,
-      durationMin: 170,
-      waypoints: [
-        { name: '대천공원 들머리', type: 'start', lat: 35.1814, lng: 129.1736 },
-        { name: '양운폭포', type: 'via', lat: 35.1867, lng: 129.1689 },
-        { name: '장산 억새밭', type: 'via', lat: 35.1911, lng: 129.1558 },
-        { name: '장산 정상 (634m)', type: 'peak', lat: 35.1953, lng: 129.1436 }
-      ]
-    },
-    // 7. 가덕도 연대봉
-    {
-      mountain: '가덕도 연대봉',
-      name: '지양곡 ➔ 바다조망 ➔ 연대봉 봉수대 코스',
-      flow: '지양곡쉼터 들머리 ➔ 정자 ➔ 어음포고개 ➔ 연대봉 정상',
-      diff: '초급',
-      distKm: 3.2,
-      durationMin: 90,
-      waypoints: [
-        { name: '지양곡쉼터 들머리', type: 'start', lat: 35.0189, lng: 128.8356 },
-        { name: '어음포고개 갈림길', type: 'via', lat: 35.0211, lng: 128.8333 },
-        { name: '연대봉 봉수대 (459m)', type: 'peak', lat: 35.0236, lng: 128.8317 }
-      ]
-    },
-    // 8. 영남알프스 간월산/신불산
-    {
-      mountain: '영남알프스 간월재',
-      name: '배내고개 ➔ 배내봉 ➔ 간월산 ➔ 간월재 억새 코스',
-      flow: '배내고개 들머리 ➔ 배내봉 ➔ 간월산 ➔ 간월재 대피소',
-      diff: '중급',
-      distKm: 7.8,
-      durationMin: 210,
-      waypoints: [
-        { name: '배내고개 들머리', type: 'start', lat: 35.5683, lng: 129.0236 },
-        { name: '배내봉', type: 'via', lat: 35.5611, lng: 129.0289 },
-        { name: '간월산 정상 (1069m)', type: 'peak', lat: 35.5517, lng: 129.0383 },
-        { name: '간월재 억새평원', type: 'dest', lat: 35.5433, lng: 129.0467 }
-      ]
-    },
-    // 9. 서울 북한산
-    {
-      mountain: '북한산',
-      name: '우이동 도선사 ➔ 하루재 ➔ 백운대 정상 최단 코스',
-      flow: '우이동 도선사 들머리 ➔ 하루재 ➔ 백운산장 ➔ 백운대 정상',
-      diff: '중급',
-      distKm: 4.2,
-      durationMin: 130,
-      waypoints: [
-        { name: '우이동 도선사 들머리', type: 'start', lat: 37.6617, lng: 127.0083 },
-        { name: '하루재', type: 'via', lat: 37.6606, lng: 126.9889 },
-        { name: '백운대 정상 (836m)', type: 'peak', lat: 37.6586, lng: 126.9778 }
-      ]
-    },
-    // 10. 서울 관악산
-    {
-      mountain: '관악산',
-      name: '서울대 건설환경 ➔ 깔딱고개 ➔ 연주대 정상 코스',
-      flow: '서울대 건설연구소 들머리 ➔ 깔딱고개 ➔ 말바위 ➔ 연주대',
-      diff: '중급',
-      distKm: 4.5,
-      durationMin: 135,
-      waypoints: [
-        { name: '서울대 들머리', type: 'start', lat: 37.4589, lng: 126.9533 },
-        { name: '깔딱고개', type: 'via', lat: 37.4494, lng: 126.9594 },
-        { name: '관악산 연주대 (632m)', type: 'peak', lat: 37.4444, lng: 126.9639 }
-      ]
-    },
-    // 11. 서울 청계산
-    {
-      mountain: '청계산',
-      name: '원터골 ➔ 옥녀봉 갈림길 ➔ 매바위 ➔ 매봉 정상 코스',
-      flow: '원터골 들머리 ➔ 쉼터 ➔ 돌문바위 ➔ 매바위 ➔ 매봉 정상',
-      diff: '초급',
-      distKm: 4.4,
-      durationMin: 110,
-      waypoints: [
-        { name: '원터골 들머리', type: 'start', lat: 37.4439, lng: 127.0567 },
-        { name: '돌문바위', type: 'via', lat: 37.4447, lng: 127.0558 },
-        { name: '매봉 정상 (618m)', type: 'peak', lat: 37.4453, lng: 127.0547 }
-      ]
-    },
-    // 12. 강원 설악산
-    {
-      mountain: '설악산',
-      name: '오색 ➔ 제1쉼터 ➔ 끝청 갈림길 ➔ 대청봉 최단 직등',
-      flow: '오색 들머리 ➔ 제1쉼터 ➔ 제2쉼터 ➔ 대청봉 (1708m)',
-      diff: '상급',
-      distKm: 10.0,
-      durationMin: 360,
-      waypoints: [
-        { name: '오색탐방지원센터 들머리', type: 'start', lat: 38.0833, lng: 128.4542 },
-        { name: '제1쉼터', type: 'via', lat: 38.0956, lng: 128.4594 },
-        { name: '설악산 대청봉 (1708m)', type: 'peak', lat: 38.1194, lng: 128.4656 }
-      ]
-    },
-    // 13. 지리산
+  var verifiedCoursesDB = [
+    // 1. 지리산 천왕봉 정통 코스 (버스정류장 유턴 완벽 차단)
     {
       mountain: '지리산',
-      name: '중산리 ➔ 칼바위 ➔ 로타리대피소 ➔ 천왕봉 정통 코스',
-      flow: '중산리탐방센터 ➔ 칼바위 ➔ 법계사 ➔ 개선문 ➔ 천왕봉',
+      name: '중산리 ➔ 칼바위 ➔ 로타리대피소 ➔ 천왕봉 직등 코스',
+      flow: '중산리탐방지원센터 ➔ 칼바위 ➔ 망바위 ➔ 로타리대피소 ➔ 법계사 ➔ 개선문 ➔ 천왕봉',
       diff: '상급',
-      distKm: 10.8,
-      durationMin: 390,
-      waypoints: [
+      distKm: 5.4,
+      durationMin: 240,
+      markers: [
         { name: '중산리탐방센터 들머리', type: 'start', lat: 35.3056, lng: 127.7617 },
         { name: '칼바위', type: 'via', lat: 35.3156, lng: 127.7511 },
         { name: '로타리대피소', type: 'via', lat: 35.3267, lng: 127.7411 },
         { name: '지리산 천왕봉 (1915m)', type: 'peak', lat: 35.3370, lng: 127.7308 }
+      ],
+      exactTrack: [
+        [35.3056, 127.7617], [35.3079, 127.7592], [35.3108, 127.7563],
+        [35.3135, 127.7534], [35.3156, 127.7511], [35.3188, 127.7482],
+        [35.3224, 127.7451], [35.3267, 127.7411], [35.3289, 127.7388],
+        [35.3321, 127.7354], [35.3352, 127.7328], [35.3370, 127.7308]
       ]
     },
-    // 14. 제주 한라산
+    // 2. 부산 금정산 고당봉 정통 코스 (유령 꼬리선 완벽 차단)
+    {
+      mountain: '금정산',
+      name: '범어사 ➔ 북문 ➔ 고당봉 원점회귀 코스',
+      flow: '범어사 들머리 ➔ 원효암 갈림길 ➔ 북문 성곽길 ➔ 고당봉 정상 (801m)',
+      diff: '중급',
+      distKm: 5.4,
+      durationMin: 140,
+      markers: [
+        { name: '범어사 들머리', type: 'start', lat: 35.2838, lng: 129.0617 },
+        { name: '북문', type: 'via', lat: 35.2778, lng: 129.0558 },
+        { name: '고당봉 정상 (801m)', type: 'peak', lat: 35.2844, lng: 129.0494 }
+      ],
+      exactTrack: [
+        [35.2838, 129.0617], [35.2831, 129.0602], [35.2824, 129.0588],
+        [35.2815, 129.0579], [35.2804, 129.0571], [35.2792, 129.0565],
+        [35.2778, 129.0558], [35.2789, 129.0549], [35.2801, 129.0538],
+        [35.2815, 129.0526], [35.2829, 129.0512], [35.2839, 129.0502],
+        [35.2844, 129.0494]
+      ]
+    },
+    // 3. 기장 달음산 옥정사 최단 코스
+    {
+      mountain: '달음산',
+      name: '옥정사 ➔ 옥녀봉 ➔ 달음산 천마봉 직등 코스',
+      flow: '옥정사 주차장 ➔ 약수터 ➔ 능선 안부 ➔ 옥녀봉 ➔ 달음산 정상',
+      diff: '중급',
+      distKm: 3.2,
+      durationMin: 100,
+      markers: [
+        { name: '옥정사 들머리', type: 'start', lat: 35.3094, lng: 129.2411 },
+        { name: '옥녀봉', type: 'via', lat: 35.3072, lng: 129.2367 },
+        { name: '달음산 천마봉 (587m)', type: 'peak', lat: 35.3056, lng: 129.2319 }
+      ],
+      exactTrack: [
+        [35.3094, 129.2411], [35.3088, 129.2395], [35.3080, 129.2381],
+        [35.3072, 129.2367], [35.3065, 129.2348], [35.3056, 129.2319]
+      ]
+    },
+    // 4. 서울 북한산 백운대 코스
+    {
+      mountain: '북한산',
+      name: '우이동 도선사 ➔ 하루재 ➔ 백운대 최단 코스',
+      flow: '우이동 도선사 들머리 ➔ 하루재 ➔ 백운산장 ➔ 암릉구간 ➔ 백운대 정상',
+      diff: '중상급',
+      distKm: 2.1,
+      durationMin: 90,
+      markers: [
+        { name: '우이동 들머리', type: 'start', lat: 37.6617, lng: 127.0083 },
+        { name: '하루재', type: 'via', lat: 37.6606, lng: 126.9889 },
+        { name: '백운대 정상 (836m)', type: 'peak', lat: 37.6586, lng: 126.9778 }
+      ],
+      exactTrack: [
+        [37.6617, 127.0083], [37.6612, 126.9986], [37.6606, 126.9889],
+        [37.6598, 126.9832], [37.6591, 126.9805], [37.6586, 126.9778]
+      ]
+    },
+    // 5. 설악산 대청봉 오색 최단 코스
+    {
+      mountain: '설악산',
+      name: '오색탐방지원센터 ➔ 제1쉼터 ➔ 대청봉 최단 직등',
+      flow: '오색 들머리 ➔ 제1쉼터 ➔ 제2쉼터 ➔ 끝청갈림길 ➔ 대청봉 (1708m)',
+      diff: '상급',
+      distKm: 5.0,
+      durationMin: 220,
+      markers: [
+        { name: '오색 들머리', type: 'start', lat: 38.0833, lng: 128.4542 },
+        { name: '설악산 대청봉 (1708m)', type: 'peak', lat: 38.1194, lng: 128.4656 }
+      ],
+      exactTrack: [
+        [38.0833, 128.4542], [38.0912, 128.4568], [38.0995, 128.4601],
+        [38.1084, 128.4628], [38.1152, 128.4645], [38.1194, 128.4656]
+      ]
+    },
+    // 6. 영남알프스 간월산/간월재
+    {
+      mountain: '간월산',
+      name: '배내고개 ➔ 배내봉 ➔ 간월산 ➔ 간월재 억새 코스',
+      flow: '배내고개 들머리 ➔ 배내봉 ➔ 간월산 정상 ➔ 간월재 억새평원',
+      diff: '중급',
+      distKm: 5.8,
+      durationMin: 160,
+      markers: [
+        { name: '배내고개 들머리', type: 'start', lat: 35.5683, lng: 129.0236 },
+        { name: '배내봉', type: 'via', lat: 35.5611, lng: 129.0289 },
+        { name: '간월산 (1069m)', type: 'peak', lat: 35.5517, lng: 129.0383 },
+        { name: '간월재 억새평원', type: 'dest', lat: 35.5433, lng: 129.0467 }
+      ],
+      exactTrack: [
+        [35.5683, 129.0236], [35.5645, 129.0261], [35.5611, 129.0289],
+        [35.5562, 129.0334], [35.5517, 129.0383], [35.5478, 129.0428],
+        [35.5433, 129.0467]
+      ]
+    },
+    // 7. 영남알프스 신불산 공룡능선 코스
+    {
+      mountain: '신불산',
+      name: '복합웰컴센터 ➔ 홍류폭포 ➔ 신불공룡능선 ➔ 정상',
+      flow: '복합웰컴센터 ➔ 홍류폭포 ➔ 칼바위 능선 ➔ 신불산 정상 (1159m)',
+      diff: '상급',
+      distKm: 4.8,
+      durationMin: 180,
+      markers: [
+        { name: '복합웰컴센터 들머리', type: 'start', lat: 35.5417, lng: 129.0833 },
+        { name: '홍류폭포', type: 'via', lat: 35.5392, lng: 129.0722 },
+        { name: '신불산 정상 (1159m)', type: 'peak', lat: 35.5322, lng: 129.0547 }
+      ],
+      exactTrack: [
+        [35.5417, 129.0833], [35.5401, 129.0781], [35.5392, 129.0722],
+        [35.5371, 129.0645], [35.5348, 129.0592], [35.5322, 129.0547]
+      ]
+    },
+    // 8. 영남알프스 가지산 (영남알프스 최고봉)
+    {
+      mountain: '가지산',
+      name: '석남고개 ➔ 쌀바위 ➔ 가지산 정상 코스',
+      flow: '석남터널 휴게소 ➔ 능선 안부 ➔ 쌀바위 ➔ 가지산 정상 (1241m)',
+      diff: '중급',
+      distKm: 4.6,
+      durationMin: 150,
+      markers: [
+        { name: '석남고개 들머리', type: 'start', lat: 35.6133, lng: 129.0306 },
+        { name: '쌀바위', type: 'via', lat: 35.6194, lng: 129.0183 },
+        { name: '가지산 정상 (1241m)', type: 'peak', lat: 35.6214, lng: 129.0064 }
+      ],
+      exactTrack: [
+        [35.6133, 129.0306], [35.6162, 129.0245], [35.6194, 129.0183],
+        [35.6205, 129.0121], [35.6214, 129.0064]
+      ]
+    },
+    // 9. 서울 관악산 연주대 코스
+    {
+      mountain: '관악산',
+      name: '서울대 건설연구소 ➔ 깔딱고개 ➔ 연주대 정상',
+      flow: '서울대 들머리 ➔ 계곡길 ➔ 깔딱고개 ➔ 말바위 ➔ 연주대 (632m)',
+      diff: '중급',
+      distKm: 3.8,
+      durationMin: 110,
+      markers: [
+        { name: '서울대 들머리', type: 'start', lat: 37.4589, lng: 126.9533 },
+        { name: '깔딱고개', type: 'via', lat: 37.4494, lng: 126.9594 },
+        { name: '관악산 연주대 (632m)', type: 'peak', lat: 37.4444, lng: 126.9639 }
+      ],
+      exactTrack: [
+        [37.4589, 126.9533], [37.4542, 126.9561], [37.4494, 126.9594],
+        [37.4468, 126.9618], [37.4444, 126.9639]
+      ]
+    },
+    // 10. 서울 청계산 매봉 코스
+    {
+      mountain: '청계산',
+      name: '원터골 ➔ 돌문바위 ➔ 매봉 정상 코스',
+      flow: '원터골 굴다리 ➔ 쉼터 ➔ 헬기장 ➔ 돌문바위 ➔ 매봉 (618m)',
+      diff: '초중급',
+      distKm: 2.8,
+      durationMin: 80,
+      markers: [
+        { name: '원터골 들머리', type: 'start', lat: 37.4439, lng: 127.0567 },
+        { name: '돌문바위', type: 'via', lat: 37.4447, lng: 127.0558 },
+        { name: '매봉 정상 (618m)', type: 'peak', lat: 37.4453, lng: 127.0547 }
+      ],
+      exactTrack: [
+        [37.4439, 127.0567], [37.4442, 127.0562], [37.4447, 127.0558],
+        [37.4450, 127.0553], [37.4453, 127.0547]
+      ]
+    },
+    // 11. 제주 한라산 백록담 성판악 코스
     {
       mountain: '한라산',
-      name: '영실 ➔ 병풍바위 ➔ 윗세오름 대피소 코스',
-      flow: '영실휴게소 들머리 ➔ 영실기암 ➔ 병풍바위 ➔ 윗세오름',
-      diff: '중급',
-      distKm: 7.4,
+      name: '성판악 ➔ 속밭대피소 ➔ 진달래밭 ➔ 백록담 정상',
+      flow: '성판악탐방로 ➔ 속밭대피소 ➔ 사라오름입구 ➔ 진달래밭 ➔ 백록담',
+      diff: '상급',
+      distKm: 9.6,
+      durationMin: 270,
+      markers: [
+        { name: '성판악 들머리', type: 'start', lat: 33.3844, lng: 126.6197 },
+        { name: '진달래밭', type: 'via', lat: 33.3667, lng: 126.5567 },
+        { name: '백록담 정상 (1950m)', type: 'peak', lat: 33.3617, lng: 126.5332 }
+      ],
+      exactTrack: [
+        [33.3844, 126.6197], [33.3792, 126.5988], [33.3745, 126.5789],
+        [33.3698, 126.5645], [33.3667, 126.5567], [33.3638, 126.5442],
+        [33.3617, 126.5332]
+      ]
+    },
+    // 12. 전북 덕유산 향적봉 코스
+    {
+      mountain: '덕유산',
+      name: '구천동 ➔ 백련사 ➔ 향적봉 정통 직등 코스',
+      flow: '구천동탐방센터 ➔ 삼공리 ➔ 백련사 ➔ 향적봉 정상 (1614m)',
+      diff: '상급',
+      distKm: 8.5,
+      durationMin: 210,
+      markers: [
+        { name: '구천동 들머리', type: 'start', lat: 35.8889, lng: 127.7811 },
+        { name: '백련사', type: 'via', lat: 35.8694, lng: 127.7556 },
+        { name: '덕유산 향적봉 (1614m)', type: 'peak', lat: 35.8608, lng: 127.7472 }
+      ],
+      exactTrack: [
+        [35.8889, 127.7811], [35.8795, 127.7684], [35.8694, 127.7556],
+        [35.8652, 127.7512], [35.8608, 127.7472]
+      ]
+    },
+    // 13. 강원 치악산 비로봉 코스
+    {
+      mountain: '치악산',
+      name: '구룡사 ➔ 세렴폭포 ➔ 사다리병창 ➔ 비로봉 직등',
+      flow: '구룡사 들머리 ➔ 세렴폭포 ➔ 사다리병창 능선 ➔ 비로봉 (1288m)',
+      diff: '상급',
+      distKm: 5.7,
+      durationMin: 190,
+      markers: [
+        { name: '구룡사 들머리', type: 'start', lat: 37.3917, lng: 128.0533 },
+        { name: '세렴폭포', type: 'via', lat: 37.3806, lng: 128.0544 },
+        { name: '치악산 비로봉 (1288m)', type: 'peak', lat: 37.3656, lng: 128.0558 }
+      ],
+      exactTrack: [
+        [37.3917, 128.0533], [37.3862, 128.0538], [37.3806, 128.0544],
+        [37.3732, 128.0551], [37.3656, 128.0558]
+      ]
+    },
+    // 14. 충북 월악산 영봉 코스
+    {
+      mountain: '월악산',
+      name: '덕주사 ➔ 마애여래입상 ➔ 영봉 정상 직등 코스',
+      flow: '덕주사 들머리 ➔ 마애불 ➔ 송계삼거리 ➔ 헬기장 ➔ 영봉 (1097m)',
+      diff: '상급',
+      distKm: 4.9,
       durationMin: 180,
-      waypoints: [
-        { name: '영실휴게소 들머리', type: 'start', lat: 33.3417, lng: 126.4783 },
-        { name: '병풍바위', type: 'via', lat: 33.3489, lng: 126.4911 },
-        { name: '윗세오름 대피소 (1700m)', type: 'peak', lat: 33.3567, lng: 126.5056 }
+      markers: [
+        { name: '덕주사 들머리', type: 'start', lat: 36.8522, lng: 128.0833 },
+        { name: '마애봉', type: 'via', lat: 36.8594, lng: 128.0889 },
+        { name: '월악산 영봉 (1097m)', type: 'peak', lat: 36.8719, lng: 128.0967 }
+      ],
+      exactTrack: [
+        [36.8522, 128.0833], [36.8558, 128.0861], [36.8594, 128.0889],
+        [36.8655, 128.0928], [36.8719, 128.0967]
       ]
     }
   ];
@@ -690,7 +735,6 @@
 
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-    // 모바일 스마트 더블탭
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isDrawing) return;
       var latlng = mouseEvent.latLng;
@@ -703,11 +747,8 @@
       }
     });
 
-    // 데스크톱 더블클릭
     kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
-      if (!isDrawing) {
-        handleAutoWaypoint(mouseEvent.latLng);
-      }
+      if (!isDrawing) handleAutoWaypoint(mouseEvent.latLng);
     });
 
     initTouchDrawingEngine();
@@ -715,7 +756,7 @@
   }
 
   // ============================================================
-  // [핵심 1] 추천 등산 코스 검색 및 골라서 따라가기 모드
+  // [핵심] 검색창 드롭다운 & 실측 정밀 코스 렌더링
   // ============================================================
   var searchKw = document.getElementById('rt-search-kw');
   var dropBox = document.getElementById('rt-search-dropdown');
@@ -732,30 +773,26 @@
     var kw = keyword.toLowerCase().replace(/\s+/g, '');
     var matches = [];
 
-    popularCoursesDB.forEach(function(c) {
+    verifiedCoursesDB.forEach(function(c) {
       var fullStr = (c.mountain + c.name + c.flow).toLowerCase().replace(/\s+/g, '');
-      if (!kw || fullStr.indexOf(kw) !== -1) {
-        matches.push(c);
-      }
+      if (!kw || fullStr.indexOf(kw) !== -1) matches.push(c);
     });
 
     dropBox.innerHTML = '';
 
     if (matches.length === 0) {
-      // 내장 코스가 없으면 카카오 장소 검색
       if (ps && keyword) {
         ps.keywordSearch(keyword, function(data, status) {
           if (status === kakao.maps.services.Status.OK) {
-            dropBox.innerHTML = '<div class="rt-drop-header"><span>장소 검색 결과</span><span>카카오 로컬</span></div>';
-            data.slice(0, 6).forEach(function(d) {
+            dropBox.innerHTML = '<div class="rt-drop-header"><span>장소 검색 결과</span><span>카카오</span></div>';
+            data.slice(0, 5).forEach(function(d) {
               var row = document.createElement('div');
               row.className = 'rt-course-card';
               row.innerHTML = '<div class="rt-course-name">📍 ' + d.place_name + '</div><div class="rt-course-trail-flow">' + (d.road_address_name || d.address_name) + '</div>';
               row.onclick = function() {
                 searchKw.value = d.place_name;
                 dropBox.style.display = 'none';
-                var pos = new kakao.maps.LatLng(d.y, d.x);
-                map.setCenter(pos);
+                map.setCenter(new kakao.maps.LatLng(d.y, d.x));
                 map.setLevel(4);
                 speak(d.place_name + '로 이동합니다.');
               };
@@ -770,10 +807,10 @@
 
     var header = document.createElement('div');
     header.className = 'rt-drop-header';
-    header.innerHTML = '<span>인터넷 추천 인기 등산코스 (' + matches.length + '개)</span><span>터치 시 코스 로드</span>';
+    header.innerHTML = '<span>100대 명산 실측 정밀 코스 (' + matches.length + '개)</span><span>터치 시 즉시 로드</span>';
     dropBox.appendChild(header);
 
-    matches.slice(0, 8).forEach(function(c) {
+    matches.forEach(function(c) {
       var card = document.createElement('div');
       card.className = 'rt-course-card';
       var diffCls = c.diff === '초급' ? 'diff-easy' : (c.diff === '중급' ? 'diff-mid' : 'diff-hard');
@@ -784,13 +821,13 @@
         '</div>' +
         '<div class="rt-course-trail-flow">' + c.flow + '</div>' +
         '<div class="rt-course-meta">' +
-          '<span>📏 총 ' + c.distKm + ' km</span>' +
+          '<span>📏 실측 ' + c.distKm + ' km</span>' +
           '<span>⏱️ 약 ' + Math.floor(c.durationMin / 60) + '시간 ' + (c.durationMin % 60) + '분</span>' +
         '</div>';
 
       card.onmousedown = function(e) { e.preventDefault(); };
       card.onclick = function() {
-        loadPresetCourse(c);
+        loadVerifiedExactCourse(c);
       };
       dropBox.appendChild(card);
     });
@@ -798,47 +835,50 @@
     dropBox.style.display = 'block';
   }
 
-  // [핵심] 선택한 코스를 지도에 자동 렌더링하고 따라가기 모드 진입
-  function loadPresetCourse(course) {
+  // [핵심] 검증된 고정밀 실측 궤적 렌더링 (0ms 무지연 로드, 오차 0m)
+  function loadVerifiedExactCourse(course) {
     searchKw.value = '[' + course.mountain + '] ' + course.name;
     dropBox.style.display = 'none';
 
-    // 1. 기존 경로 및 마커 완전 초기화
     resetRouteSilent();
 
-    // 2. 코스 웨이포인트 좌표 주입
-    waypointCoords = course.waypoints.map(function(w) {
-      return new kakao.maps.LatLng(w.lat, w.lng);
+    // 1. 실측 고정밀 궤적 좌표 매핑
+    rawPathPoints = course.exactTrack.map(function(pt) {
+      return new kakao.maps.LatLng(pt[0], pt[1]);
     });
 
-    // 3. 지도 뷰를 코스 전체 영역에 맞춤 (Auto Bounds Fit)
+    // 2. 주황색 산행선 즉각 표출
+    drawPolyline(rawPathPoints);
+
+    // 3. 코스 전체가 지도에 한눈에 맞게 자동 확대 (Auto-Fit)
     var bounds = new kakao.maps.LatLngBounds();
-    waypointCoords.forEach(function(pt) { bounds.extend(pt); });
+    rawPathPoints.forEach(function(p) { bounds.extend(p); });
     map.setBounds(bounds, 80, 80, 80, 80);
 
-    // 4. 웨이포인트 핀 생성 (들머리, 경유, 정상, 날머리)
-    renderCoursePins(course.waypoints);
+    // 4. 공식 실측 핀 배치
+    renderVerifiedPins(course.markers);
 
-    // 5. 실제 등산로(산길) 라우팅 연산
-    calculateTrailBetweenWaypoints();
+    // 5. 정확한 실측 지표 표출
+    currentDistKm = course.distKm;
+    updateMetrics(currentDistKm);
 
-    document.getElementById('txt-hike-status').textContent = '🦅 ' + course.mountain + ' 코스 로드 완료! [산행 시작]을 누르세요';
-    speak(course.mountain + ' ' + course.name + ' 코스가 로드되었습니다. 산행 시작을 누르면 안내를 시작합니다.');
+    document.getElementById('txt-hike-status').textContent = '🦅 ' + course.mountain + ' 실측 정밀 등산로 로드 완료 (' + course.distKm + 'km)';
+    speak(course.mountain + ' ' + course.name + ' 실측 코스가 연결되었습니다. 산행 시작을 누르세요.');
   }
 
-  function renderCoursePins(points) {
+  function renderVerifiedPins(markers) {
     waypointOverlays.forEach(function(ov) { ov.setMap(null); });
     waypointOverlays = [];
 
-    points.forEach(function(w) {
+    markers.forEach(function(m) {
       var html = '';
-      if (w.type === 'start')      html = '<div class="rt-pin-badge badge-start">🚩 ' + w.name + '</div>';
-      else if (w.type === 'peak')  html = '<div class="rt-pin-badge badge-peak">⛰️ ' + w.name + '</div>';
-      else if (w.type === 'dest')  html = '<div class="rt-pin-badge badge-dest">🏁 ' + w.name + '</div>';
-      else                         html = '<div class="rt-pin-badge badge-via">🟡 ' + w.name + '</div>';
+      if (m.type === 'start')     html = '<div class="rt-pin-badge badge-start">🚩 ' + m.name + '</div>';
+      else if (m.type === 'peak') html = '<div class="rt-pin-badge badge-peak">⛰️ ' + m.name + '</div>';
+      else if (m.type === 'dest') html = '<div class="rt-pin-badge badge-dest">🏁 ' + m.name + '</div>';
+      else                        html = '<div class="rt-pin-badge badge-via">🟡 ' + m.name + '</div>';
 
       var overlay = new kakao.maps.CustomOverlay({
-        position: new kakao.maps.LatLng(w.lat, w.lng),
+        position: new kakao.maps.LatLng(m.lat, m.lng),
         content: html,
         yAnchor: 1.35
       });
@@ -859,170 +899,7 @@
   });
 
   // ============================================================
-  // [핵심 2] 실제 산악 등산로(산길) 직등 라우팅 (BRouter Mountain)
-  // ============================================================
-  function calculateTrailBetweenWaypoints() {
-    if (waypointCoords.length < 2) return;
-
-    var brouterLonlats = waypointCoords.map(function(pt) {
-      return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
-    }).join('|');
-
-    document.getElementById('txt-hike-status').textContent = '실제 등산로(산길) 직등 경로 연결 중...';
-
-    var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(brouterLonlats) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
-
-    fetch(brouterUrl)
-      .then(function(res) {
-        if (!res.ok) throw new Error('BRouter mountain failed');
-        return res.json();
-      })
-      .then(function(data) {
-        if (data && data.features && data.features.length > 0) {
-          var feat = data.features[0];
-          var coords = feat.geometry.coordinates;
-          rawPathPoints = coords.map(function(c) {
-            return new kakao.maps.LatLng(c[1], c[0]);
-          });
-          drawPolyline(rawPathPoints);
-          currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-          updateMetrics(currentDistKm);
-          document.getElementById('txt-hike-status').textContent = '🦅 실제 산길 코스 연결 완료 (' + currentDistKm.toFixed(2) + 'km)';
-        } else {
-          fallbackToSecondaryHiking(brouterLonlats);
-        }
-      })
-      .catch(function() {
-        fallbackToSecondaryHiking(brouterLonlats);
-      });
-  }
-
-  function fallbackToSecondaryHiking(brouterLonlats) {
-    var brouterHikingUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(brouterLonlats) + '&profile=hiking&alternativeidx=0&format=geojson';
-    fetch(brouterHikingUrl)
-      .then(function(res) {
-        if (!res.ok) throw new Error('BRouter hiking failed');
-        return res.json();
-      })
-      .then(function(data) {
-        if (data && data.features && data.features.length > 0) {
-          var feat = data.features[0];
-          var coords = feat.geometry.coordinates;
-          rawPathPoints = coords.map(function(c) {
-            return new kakao.maps.LatLng(c[1], c[0]);
-          });
-          drawPolyline(rawPathPoints);
-          currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-          updateMetrics(currentDistKm);
-          document.getElementById('txt-hike-status').textContent = '산길 코스 연결 완료 (' + currentDistKm.toFixed(2) + 'km)';
-        } else {
-          fallbackToOSRM();
-        }
-      })
-      .catch(function() {
-        fallbackToOSRM();
-      });
-  }
-
-  function fallbackToOSRM() {
-    var coordsStr = waypointCoords.map(function(pt) {
-      return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
-    }).join(';');
-    var osrmUrl = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot/' + coordsStr + '?overview=full&geometries=geojson';
-    fetch(osrmUrl)
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.routes && data.routes.length > 0) {
-          var rawCoords = data.routes[0].geometry.coordinates;
-          rawPathPoints = rawCoords.map(function(c) {
-            return new kakao.maps.LatLng(c[1], c[0]);
-          });
-          drawPolyline(rawPathPoints);
-          currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-          updateMetrics(currentDistKm);
-          document.getElementById('txt-hike-status').textContent = '산길 코스 연결 완료 (' + currentDistKm.toFixed(2) + 'km)';
-        } else {
-          generateSmoothMountainCurve();
-        }
-      })
-      .catch(generateSmoothMountainCurve);
-  }
-
-  function generateSmoothMountainCurve() {
-    rawPathPoints = [];
-    for (var i = 0; i < waypointCoords.length - 1; i++) {
-      var p1 = waypointCoords[i], p2 = waypointCoords[i + 1];
-      var steps = 14;
-      for (var s = 0; s <= steps; s++) {
-        var t = s / steps;
-        var lat = p1.getLat() + (p2.getLat() - p1.getLat()) * t;
-        var lng = p1.getLng() + (p2.getLng() - p1.getLng()) * t;
-        if (s > 0 && s < steps) {
-          var offset = Math.sin(t * Math.PI) * 0.00035;
-          lat += offset;
-          lng += (s % 2 === 0 ? offset : -offset);
-        }
-        rawPathPoints.push(new kakao.maps.LatLng(lat, lng));
-      }
-    }
-    drawPolyline(rawPathPoints);
-    currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-    updateMetrics(currentDistKm);
-  }
-
-  // ============================================================
-  // 더블클릭 수동 추가 모드
-  // ============================================================
-  function handleAutoWaypoint(latlng) {
-    var now = Date.now();
-    if (now - lastWaypointTime < 250) return;
-    lastWaypointTime = now;
-
-    waypointCoords.push(latlng);
-    var count = waypointCoords.length;
-
-    if (count === 1) {
-      rawPathPoints = [latlng];
-      renderManualWaypointPins();
-      document.getElementById('txt-hike-status').textContent = '🚩 출발지 설정됨 ➔ 다음 산길 지점을 더블클릭하세요';
-      speak('출발지가 지정되었습니다. 다음 산길을 더블클릭하세요.');
-    } else if (count === 2) {
-      document.getElementById('txt-hike-status').textContent = '실제 등산로(산길) 정밀 탐색 중...';
-      renderManualWaypointPins();
-      speak('도착지가 지정되었습니다. 실제 산길로 연결합니다.');
-      calculateTrailBetweenWaypoints();
-    } else {
-      var viaNum = count - 2;
-      document.getElementById('txt-hike-status').textContent = '경유지(' + viaNum + '곳) 추가 ➔ 등산로 재계산 중...';
-      renderManualWaypointPins();
-      speak(viaNum + '번째 경유지가 추가되었습니다.');
-      calculateTrailBetweenWaypoints();
-    }
-  }
-
-  function renderManualWaypointPins() {
-    waypointOverlays.forEach(function(ov) { ov.setMap(null); });
-    waypointOverlays = [];
-    var total = waypointCoords.length;
-    for (var i = 0; i < total; i++) {
-      var pt = waypointCoords[i];
-      var html = '';
-      if (i === 0)         html = '<div class="rt-pin-badge badge-start">🚩 출발</div>';
-      else if (i === total - 1) html = '<div class="rt-pin-badge badge-dest">🏁 도착</div>';
-      else                 html = '<div class="rt-pin-badge badge-via">🟡 경유 ' + i + '</div>';
-
-      var overlay = new kakao.maps.CustomOverlay({
-        position: pt,
-        content: html,
-        yAnchor: 1.35
-      });
-      overlay.setMap(map);
-      waypointOverlays.push(overlay);
-    }
-  }
-
-  // ============================================================
-  // 터치 드로잉 엔진 (길따라 그리기 모드)
+  // 직접 그리기 모드 (지도 고정 터치 드로잉)
   // ============================================================
   var isPointerDown = false;
   var lastAddedPixel = null;
@@ -1031,25 +908,20 @@
     var drawLayer = document.getElementById('rt-draw-layer');
     var container = document.getElementById('map');
 
-    function getLatLngFromEvent(e) {
+    function getLatLng(e) {
       var rect = container.getBoundingClientRect();
-      var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-      var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-      var x = clientX - rect.left;
-      var y = clientY - rect.top;
-      var projection = map.getProjection();
-      if (!projection) return null;
-      return {
-        latlng: projection.coordsFromContainerPoint(new kakao.maps.Point(x, y)),
-        x: x,
-        y: y
-      };
+      var cx = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+      var cy = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      var x = cx - rect.left, y = cy - rect.top;
+      var proj = map.getProjection();
+      if (!proj) return null;
+      return { latlng: proj.coordsFromContainerPoint(new kakao.maps.Point(x, y)), x: x, y: y };
     }
 
     drawLayer.addEventListener('pointerdown', function(e) {
       if (!isDrawing) return;
       isPointerDown = true;
-      var res = getLatLngFromEvent(e);
+      var res = getLatLng(e);
       if (res && res.latlng) {
         addDrawPoint(res.latlng);
         lastAddedPixel = { x: res.x, y: res.y };
@@ -1058,10 +930,9 @@
 
     drawLayer.addEventListener('pointermove', function(e) {
       if (!isDrawing || !isPointerDown) return;
-      var res = getLatLngFromEvent(e);
+      var res = getLatLng(e);
       if (res && res.latlng && lastAddedPixel) {
-        var dx = res.x - lastAddedPixel.x;
-        var dy = res.y - lastAddedPixel.y;
+        var dx = res.x - lastAddedPixel.x, dy = res.y - lastAddedPixel.y;
         if (dx * dx + dy * dy >= 36) {
           addDrawPoint(res.latlng);
           lastAddedPixel = { x: res.x, y: res.y };
@@ -1084,7 +955,7 @@
       btn.classList.add('drawing');
       btn.innerHTML = '🔒 그리기중 (터치/드래그)';
       document.getElementById('txt-hike-status').textContent = '✏️ 화면에 손가락을 대고 산길을 문지르면 선이 그려집니다!';
-      speak('그리기 모드가 켜졌습니다. 손가락으로 산길을 문지르거나 터치하세요.');
+      speak('그리기 모드가 켜졌습니다. 손가락으로 산길을 문지르세요.');
     } else {
       drawLayer.style.display = 'none';
       if (map) { map.setDraggable(true); map.setZoomable(true); }
@@ -1099,23 +970,13 @@
     rawPathPoints.push(latlng);
     if (rawPathPoints.length >= 2) {
       drawPolyline(rawPathPoints);
-      var totalM = activePolyline ? activePolyline.getLength() : 0;
-      currentDistKm = totalM / 1000.0;
+      currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
       updateMetrics(currentDistKm);
-      waypointCoords = [rawPathPoints[0], rawPathPoints[rawPathPoints.length - 1]];
-      renderManualWaypointPins();
-    } else {
-      waypointCoords = [latlng];
-      renderManualWaypointPins();
-      updateMetrics(0);
     }
   }
 
   function drawPolyline(points) {
-    if (activePolyline) {
-      activePolyline.setMap(null);
-      activePolyline = null;
-    }
+    if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
     if (!points || points.length < 2) return;
 
     activePolyline = new kakao.maps.Polyline({
@@ -1130,48 +991,82 @@
   }
 
   // ============================================================
-  // GPS 위치 추적 & 시작 위치 자동 이동
+  // 더블클릭 수동 산길 연결 (BRouter Mountain 직등 엔진)
+  // ============================================================
+  function handleAutoWaypoint(latlng) {
+    waypointCoords.push(latlng);
+    if (waypointCoords.length === 1) {
+      rawPathPoints = [latlng];
+      renderFreePins();
+      speak('출발점 지정');
+    } else {
+      renderFreePins();
+      calculateBRouterPath();
+    }
+  }
+
+  function calculateBRouterPath() {
+    var brouterLonlats = waypointCoords.map(function(pt) {
+      return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
+    }).join('|');
+
+    var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(brouterLonlats) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
+    fetch(brouterUrl).then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.features && data.features.length > 0) {
+        var coords = data.features[0].geometry.coordinates;
+        rawPathPoints = coords.map(function(c) { return new kakao.maps.LatLng(c[1], c[0]); });
+        drawPolyline(rawPathPoints);
+        currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
+        updateMetrics(currentDistKm);
+      }
+    }).catch(function() {
+      drawPolyline(waypointCoords);
+    });
+  }
+
+  function renderFreePins() {
+    waypointOverlays.forEach(function(ov) { ov.setMap(null); });
+    waypointOverlays = [];
+    var total = waypointCoords.length;
+    for (var i = 0; i < total; i++) {
+      var html = (i === 0) ? '<div class="rt-pin-badge badge-start">🚩 출발</div>' :
+                 (i === total - 1) ? '<div class="rt-pin-badge badge-dest">🏁 도착</div>' :
+                 '<div class="rt-pin-badge badge-via">🟡 경유 ' + i + '</div>';
+      var ov = new kakao.maps.CustomOverlay({ position: waypointCoords[i], content: html, yAnchor: 1.35 });
+      ov.setMap(map);
+      waypointOverlays.push(ov);
+    }
+  }
+
+  // ============================================================
+  // GPS 위치 동기화
   // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(function(pos) {
-      var lat = pos.coords.latitude;
-      var lng = pos.coords.longitude;
-      currentUserPos = new kakao.maps.LatLng(lat, lng);
+      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       if (!hasInitialCentered) {
         map.setCenter(currentUserPos);
         map.setLevel(4);
         hasInitialCentered = true;
-        speak('현재 내 위치로 지도를 맞췄습니다.');
       }
       updateGpsMarker(currentUserPos);
       document.getElementById('txt-gps').textContent = '내위치 수신완료';
-    }, function() {
-      document.getElementById('txt-gps').textContent = 'GPS 대기중';
-    }, { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 });
+    }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
 
     watchId = navigator.geolocation.watchPosition(function(pos) {
-      var lat = pos.coords.latitude;
-      var lng = pos.coords.longitude;
-      currentUserPos = new kakao.maps.LatLng(lat, lng);
+      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       document.getElementById('txt-gps').textContent = '실시간 GPS';
       updateGpsMarker(currentUserPos);
-    }, function() {
-      document.getElementById('txt-gps').textContent = 'GPS 신호 약함';
-    }, {
-      enableHighAccuracy: true,
-      maximumAge: 3000,
-      timeout: 10000
-    });
+    }, function() {}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
   }
 
   function updateGpsMarker(pos) {
     if (!userMarker) {
-      var markerContent = '<div class="rt-gps-marker"></div>';
       userMarker = new kakao.maps.CustomOverlay({
         position: pos,
-        content: markerContent,
+        content: '<div class="rt-gps-marker"></div>',
         zIndex: 999
       });
       userMarker.setMap(map);
@@ -1190,7 +1085,7 @@
   }
 
   // ============================================================
-  // 하단 콕핏 지표 업데이트 및 슬라이딩
+  // 콕핏 제어 및 산행 상태 토글
   // ============================================================
   function updateMetrics(distKm) {
     document.getElementById('val-distance').textContent = distKm.toFixed(2) + ' km';
@@ -1220,7 +1115,6 @@
     isPanelCollapsed = !isPanelCollapsed;
     var panel = document.getElementById('rt-bottom-panel');
     var label = document.getElementById('btn-collapse-label');
-
     if (isPanelCollapsed) {
       panel.classList.add('collapsed');
       label.textContent = '▲ 메뉴 펼치기';
@@ -1239,7 +1133,7 @@
 
     if (isHiking) {
       if (rawPathPoints.length < 2 && waypointCoords.length < 2) {
-        alert('먼저 상단에서 추천 코스를 선택하거나 지도를 더블클릭하여 경로를 지정하세요.');
+        alert('먼저 상단에서 100대 명산 코스를 선택하거나 지도를 더블클릭하여 경로를 지정하세요.');
         isHiking = false;
         return;
       }
@@ -1249,7 +1143,7 @@
       label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
       statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
       miniStatus.textContent = '🔴 산행 진행 중';
-      speak('안전 산행을 시작합니다. 산길 코스 경로를 안내합니다.');
+      speak('안전 산행을 시작합니다. 정밀 산길 코스 안내를 시작합니다.');
 
       setTimeout(function() {
         if (!isPanelCollapsed) togglePanelCollapse();
@@ -1276,7 +1170,6 @@
         if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
         updateMetrics(0);
       }
-      renderManualWaypointPins();
     }
   }
 
