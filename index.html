@@ -1,996 +1,777 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>HikingMap_Test v2.3</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FM-GFM 초정밀 국지 기하 예측기 v1.7</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #05080e; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; padding: 12px; }
+  .rt-cockpit { background: #0b0f17; width: 100%; max-width: 440px; border-radius: 16px; padding: 14px; border: 1px solid #1e293b; box-shadow: 0 16px 40px rgba(0,0,0,0.9); position: relative; }
   
-  <!-- 카카오 지도 SDK -->
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&autoload=false&libraries=services"></script>
+  /* 상단 헤더 */
+  .rt-brand-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 10px; }
+  .rt-brand-title { font-size: 13px; font-weight: 800; color: #38bdf8; letter-spacing: -0.3px; display: flex; align-items: center; gap: 5px; }
+  .rt-ver-tag { background: #0369a1; color: #e0f2fe; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid #38bdf8; }
+  .rt-header-btns { display: flex; align-items: center; gap: 6px; }
+  .rt-btn-workout { background: #1e293b; border: 1px solid #38bdf8; color: #38bdf8; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .rt-btn-workout.active { background: #0284c7; color: #fff; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+  .rt-dev-badge { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
+  
+  /* [운동 중 스크롤 시 부드럽게 접히는 영역] */
+  .rt-collapsible-zone {
+    transition: max-height 0.32s ease, opacity 0.25s ease, margin-bottom 0.32s ease;
+    max-height: 220px;
+    opacity: 1;
+    overflow: visible;
+  }
+  .rt-collapsible-zone.is-hidden {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none;
+  }
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    
-    html, body {
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif;
-      background-color: #0b0f19;
-      color: #fff;
-    }
+  /* 검색바 및 자동완성 레이어 */
+  .rt-search-wrapper { position: relative; margin-bottom: 6px; }
+  .rt-search-bar { display: flex; gap: 6px; }
+  .rt-input { flex: 1; background: #161f2e; border: 1px solid #2d3d54; border-radius: 8px; padding: 9px 12px; color: #fff; font-size: 13px; font-weight: 600; outline: none; }
+  .rt-input:focus { border-color: #38bdf8; }
+  .rt-btn-search { background: #0284c7; border: none; color: #fff; font-weight: 700; padding: 0 14px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  
+  /* 자동완성 추천 드롭다운 목록 */
+  .rt-autocomplete-box {
+    position: absolute;
+    top: 42px;
+    left: 0;
+    right: 0;
+    background: #111a27;
+    border: 1.5px solid #0284c7;
+    border-radius: 8px;
+    max-height: 210px;
+    overflow-y: auto;
+    z-index: 2500;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.85);
+    display: none;
+  }
+  .rt-autocomplete-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    border-bottom: 1px solid #1e293b;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .rt-autocomplete-item:last-child { border-bottom: none; }
+  .rt-autocomplete-item:hover, .rt-autocomplete-item:active { background: #1e293b; }
+  .rt-auto-name { font-weight: 700; color: #f8fafc; }
+  .rt-auto-alt { font-size: 10.5px; font-weight: 800; color: #38bdf8; background: #0b1726; padding: 2px 6px; border-radius: 4px; border: 1px solid #1e3a5f; }
 
-    #map-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-      background-color: #111827;
-    }
+  .rt-search-status { font-size: 10px; color: #64748b; margin-bottom: 6px; padding-left: 2px; min-height: 14px; }
+  
+  .rt-chips { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 6px; scrollbar-width: none; }
+  .rt-chips::-webkit-scrollbar { display: none; }
+  .rt-chip { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; font-size: 10px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; cursor: pointer; }
+  .rt-chip:active { background: #0284c7; color: #fff; }
+  
+  /* 돌발 강우 조기경보 */
+  .rt-nowcast-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    transition: all 0.3s ease;
+  }
+  .alert-safe { background: #064e3b; border: 1px solid #10b981; color: #6ee7b7; }
+  .alert-caution { background: #78350f; border: 1px solid #f59e0b; color: #fde68a; }
+  .alert-danger { 
+    background: #7f1d1d; 
+    border: 1.5px solid #ef4444; 
+    color: #fecaca; 
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+    animation: alertPulse 1.2s infinite; 
+  }
+  @keyframes alertPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.99); opacity: 0.85; }
+  }
 
-    /* 상단 컨트롤 바 */
-    .top-bar {
-      position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 12px);
-      left: 12px;
-      right: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      z-index: 20;
-      pointer-events: none;
-    }
-    .top-controls {
-      display: flex;
-      gap: 5px;
-      pointer-events: auto;
-      background: rgba(18, 24, 38, 0.88);
-      backdrop-filter: blur(12px);
-      padding: 4px 6px;
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-    .toggle-btn {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 6px 9px;
-      border-radius: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s ease;
-    }
-    .toggle-btn.active {
-      background: #0284c7;
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
-    }
-    .toggle-btn.voice-active {
-      background: #059669;
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
-    }
+  .rt-timeline-wrapper { margin-bottom: 8px; }
+  .rt-timeline-title { font-size: 10.5px; font-weight: 700; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .rt-timeline-track { display: flex; gap: 5px; overflow-x: auto; padding: 4px 2px 6px 2px; scrollbar-width: none; }
+  .rt-timeline-track::-webkit-scrollbar { display: none; }
+  .rt-time-pill { flex: 0 0 auto; background: #141c28; border: 1px solid #28374d; border-radius: 8px; padding: 6px 9px; text-align: center; cursor: pointer; min-width: 52px; }
+  .rt-time-pill.active { background: #0284c7; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.4); transform: translateY(-1px); }
+  .rt-pill-offset { font-size: 10px; font-weight: 800; color: #94a3b8; display: block; }
+  .rt-time-pill.active .rt-pill-offset { color: #fff; }
+  .rt-pill-clock { font-size: 11px; font-weight: 700; color: #f1f5f9; display: block; margin-top: 1px; }
+  
+  .rt-map-box { position: relative; width: 100%; height: 350px; border-radius: 12px; overflow: hidden; border: 1px solid #283548; }
+  #rt-leaflet-map { width: 100%; height: 100%; background: #1a202c; }
+  .rt-floating-hud { position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(11, 15, 23, 0.94); backdrop-filter: blur(8px); border: 1px solid #38bdf8; border-radius: 8px; padding: 8px 12px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+  .rt-status-title { font-size: 11px; color: #cbd5e1; font-weight: 600; }
+  
+  .rt-rain-badge { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 6px; }
+  .badge-clear { background: #064e3b; color: #4ade80; border: 1px solid #10b981; }
+  .badge-partly { background: #1e293b; color: #93c5fd; border: 1px solid #3b82f6; }
+  .badge-cloudy { background: #334155; color: #f1f5f9; border: 1px solid #64748b; }
+  .badge-fog { background: #312e81; color: #c7d2fe; border: 1px solid #6366f1; }
+  .badge-rain { background: #0369a1; color: #38bdf8; border: 1px solid #38bdf8; animation: rainPulse 1.2s infinite; }
+  @keyframes rainPulse {
+    0%, 100% { box-shadow: 0 0 4px #38bdf8; }
+    50% { box-shadow: 0 0 12px #38bdf8; }
+  }
 
-    /* GPS 및 상태 표시 뱃지 */
-    .status-badge {
-      pointer-events: auto;
-      background: rgba(18, 24, 38, 0.9);
-      backdrop-filter: blur(12px);
-      padding: 6px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(245, 158, 11, 0.8);
-      color: #f59e0b;
-      font-size: 11px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-    .status-badge.gps-active {
-      border-color: #10b981;
-      color: #10b981;
-    }
-    .status-badge.nav-speaking {
-      border-color: #38bdf8;
-      color: #38bdf8;
-      animation: pulse-border 1s infinite;
-    }
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      background-color: currentColor;
-      border-radius: 50%;
-      box-shadow: 0 0 5px currentColor;
-    }
+  .rt-auto-sensor-bar { display: flex; justify-content: space-between; align-items: center; background: #111a26; border: 1px solid #1e3a5f; border-radius: 8px; padding: 7px 11px; margin-top: 8px; }
+  .rt-sensor-tag { font-size: 11px; font-weight: 700; color: #93c5fd; display: flex; align-items: center; gap: 6px; }
+  .rt-sensor-live-dot { width: 7px; height: 7px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 8px #38bdf8; }
+  .rt-sync-status-bar { display: flex; justify-content: space-between; align-items: center; background: #141c28; border: 1px solid #233146; border-radius: 6px; padding: 5px 10px; margin-top: 6px; font-size: 10.5px; }
+  .rt-sync-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  
+  .rt-telemetry-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .rt-card { border-radius: 10px; padding: 10px 11px; }
+  .rt-card.prop-card { background: #0f1c2e; border: 1.5px solid #0284c7; }
+  .rt-card.legacy-card { background: #141a24; border: 1px solid #334155; }
+  .rt-card-head { font-size: 11px; font-weight: 800; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+  .rt-card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .rt-label { color: #e2e8f0; font-size: 11px; font-weight: 600; }
+  .rt-val { font-size: 11.5px; font-weight: 800; }
+  .val-white { color: #ffffff; }
+  .val-green { color: #4ade80; }
+  .val-cyan  { color: #38bdf8; }
+  .val-amber { color: #f59e0b; }
+  .val-gray  { color: #94a3b8; }
 
-    /* 하단 메인 패널 */
-    .bottom-panel {
-      position: absolute;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-      left: 12px;
-      right: 12px;
-      background: rgba(18, 24, 38, 0.94);
-      backdrop-filter: blur(18px);
-      border-radius: 20px;
-      padding: 12px 14px 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
-      z-index: 20;
-    }
+  .rt-wind-tag { font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px; margin-left: 4px; vertical-align: middle; }
+  .wind-calm { background: #064e3b; color: #4ade80; }
+  .wind-breeze { background: #1e3a5f; color: #38bdf8; }
+  .wind-caution { background: #78350f; color: #fde68a; }
+  .wind-danger { background: #7f1d1d; color: #fecaca; animation: alertPulse 1.2s infinite; }
 
-    .hint-banner {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 6px 10px;
-      border-radius: 10px;
-      font-size: 11.5px;
-      color: #94a3b8;
-      text-align: center;
-      margin-bottom: 9px;
-      letter-spacing: -0.3px;
-    }
-    .hint-banner strong {
-      color: #38bdf8;
-    }
-
-    .stats-container {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 9px;
-      padding: 0 4px;
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-    }
-    .stat-title {
-      font-size: 10.5px;
-      color: #64748b;
-      margin-bottom: 2px;
-    }
-    .stat-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: #ffffff;
-      font-variant-numeric: tabular-nums;
-    }
-    .stat-value.highlight {
-      color: #38bdf8;
-    }
-
-    .action-row {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
-    .sub-btn {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #cbd5e1;
-      padding: 8px 0;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-    }
-    .sub-btn.active {
-      border-color: #38bdf8;
-      color: #38bdf8;
-      background: rgba(56, 189, 248, 0.15);
-    }
-    .sub-btn.draw-active {
-      border-color: #f59e0b;
-      color: #f59e0b;
-      background: rgba(245, 158, 11, 0.18);
-      animation: pulse-border 1.5s infinite;
-    }
-
-    @keyframes pulse-border {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
-      50% { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
-    }
-
-    .main-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      padding: 10px 0;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(3, 105, 161, 0.35);
-      margin-bottom: 6px;
-    }
-    .main-btn.tracking {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-    }
-
-    .panel-footer-row {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      padding-top: 2px;
-    }
-    .footer-badge {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 2px 7px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      color: #94a3b8;
-    }
-    .tag-ver {
-      background: #0284c7;
-      color: #ffffff;
-      padding: 1px 4px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: bold;
-    }
-
-    /* 핀 및 실시간 마커 */
-    .course-pin {
-      padding: 3px 7px;
-      border-radius: 10px;
-      font-size: 10.5px;
-      font-weight: 700;
-      color: #fff;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
-      white-space: nowrap;
-      border: 1.5px solid #fff;
-    }
-    .pin-start { background-color: #10b981; }
-    .pin-via   { background-color: #f59e0b; }
-    .pin-end   { background-color: #ef4444; }
-
-    .user-location-marker {
-      width: 15px;
-      height: 15px;
-      background: #0284c7;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #0284c7;
-      position: relative;
-    }
-    .user-location-marker::after {
-      content: '';
-      position: absolute;
-      top: -7px;
-      left: -7px;
-      width: 29px;
-      height: 29px;
-      border-radius: 50%;
-      background: rgba(2, 132, 199, 0.35);
-      animation: pulse 1.8s infinite ease-out;
-    }
-    @keyframes pulse {
-      0% { transform: scale(0.6); opacity: 1; }
-      100% { transform: scale(1.5); opacity: 0; }
-    }
-  </style>
+  .rt-legal-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #080c14;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    font-size: 9.5px;
+    color: #64748b;
+    line-height: 1.55;
+    transition: all 0.3s ease;
+  }
+  .rt-legal-title { font-size: 10px; font-weight: 800; color: #94a3b8; margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
+  .rt-legal-highlight { color: #cbd5e1; font-weight: 700; }
+  .rt-version-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #1e293b;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #475569;
+  }
+</style>
 </head>
 <body>
-
-  <div id="map-wrapper">
-    <div id="map"></div>
-
-    <!-- 상단 툴바 -->
-    <div class="top-bar">
-      <div class="top-controls">
-        <button id="btn-skyview" class="toggle-btn active" onclick="toggleSkyview()">🦅 스카이뷰</button>
-        <button id="btn-terrain" class="toggle-btn" onclick="toggleTerrain()">🌾 등고선</button>
-        <button id="btn-voice" class="toggle-btn voice-active" onclick="toggleVoice()">🔊 음성 켜짐</button>
-      </div>
-      <div id="gps-status" class="status-badge">
-        <div class="status-dot"></div>
-        <span id="gps-status-text">GPS 대기</span>
-      </div>
+<div class="rt-cockpit">
+  <div class="rt-brand-header">
+    <div class="rt-brand-title">
+      <span>FM-GFM 국지 기하 예측기</span>
+      <span class="rt-ver-tag">v1.7</span>
     </div>
-
-    <!-- 하단 제어 패널 -->
-    <div class="bottom-panel">
-      <div class="hint-banner" id="hint-text">
-        등산로 굽은 곳을 <strong>[순서대로 콕콕 터치]</strong>하면 산길에 100% 밀착됩니다
+    <div class="rt-header-btns">
+      <button class="rt-btn-workout" id="rt-btn-workout-mode" onclick="toggleWorkoutMode()">🏃 운동 모드</button>
+      <div class="rt-dev-badge">👑 꿀꽈배기</div>
+    </div>
+  </div>
+  
+  <!-- [운동 중 스크롤 시 부드럽게 사라지는 접이식 영역] -->
+  <div class="rt-collapsible-zone" id="rt-collapsible-wrap">
+    <div class="rt-search-wrapper">
+      <div class="rt-search-bar">
+        <input type="text" class="rt-input" id="rt-query" placeholder="산 이름 또는 초성 (예: 금정산, ㄱㅈㅅ, 설악산)" autocomplete="off">
+        <button class="rt-btn-search" id="rt-btn-exec">분석</button>
       </div>
-
-      <div class="stats-container">
-        <div class="stat-item">
-          <div class="stat-title">총 산행 거리 (실측)</div>
-          <div class="stat-value"><span id="total-dist">0.00</span> km</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-title">예상 산행시간</div>
-          <div class="stat-value"><span id="total-time">0</span>분</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-title">도착 예정 시간</div>
-          <div class="stat-value highlight" id="eta-time">--:--</div>
-        </div>
-      </div>
-
-      <div class="action-row">
-        <button class="sub-btn" id="btn-curpos" onclick="toggleLiveTracking()">
-          📍 내 위치
-        </button>
-        <button class="sub-btn" id="btn-drawmode" onclick="toggleDrawMode()">
-          ✏️ 길따라 그리기
-        </button>
-        <button class="sub-btn" onclick="undoLastPoint()">
-          ↩ 취소
-        </button>
-        <button class="sub-btn" onclick="resetCourse()">
-          🔄 초기화
-        </button>
-      </div>
-
-      <button class="main-btn" id="btn-main" onclick="toggleHikeMode()">
-        🚀 코스 확정 & 실시간 산행 시작
-      </button>
-
-      <div class="panel-footer-row">
-        <div class="footer-badge">
-          <span>🥨 개발자 꿀꽈배기</span>
-          <span class="tag-ver">v2.3</span>
-        </div>
-      </div>
+      <!-- 실시간 명산 자동완성 드롭다운 -->
+      <div class="rt-autocomplete-box" id="rt-auto-box"></div>
+    </div>
+    <div class="rt-search-status" id="rt-search-msg">전국 160대 명산 및 실시간 지형 DB 대기 중</div>
+    
+    <div class="rt-chips">
+      <span class="rt-chip" onclick="rtSelectMountain('금정산 고당봉')">금정산 고당봉</span>
+      <span class="rt-chip" onclick="rtSelectMountain('기장 달음산')">기장 달음산</span>
+      <span class="rt-chip" onclick="rtSelectMountain('부산 봉래산')">부산 봉래산</span>
+      <span class="rt-chip" onclick="rtSelectMountain('가덕도 연대봉')">가덕도 연대봉</span>
+      <span class="rt-chip" onclick="rtSelectMountain('간월산')">간월산</span>
+      <span class="rt-chip" onclick="rtSelectMountain('인왕산')">인왕산</span>
+      <span class="rt-chip" onclick="rtSelectMountain('청계산 매봉')">청계산 매봉</span>
+      <span class="rt-chip" onclick="rtSelectMountain('설악산 대청봉')">설악산 대청봉</span>
     </div>
   </div>
 
-  <script>
-    let map = null;
-    let isSkyview = true;
-    let isTerrain = false;
-    let isVoiceActive = true;
+  <div class="rt-nowcast-alert alert-safe" id="rt-alert-banner">
+    <span id="rt-alert-text">🛡️ 대기 상태 안정 (돌발 강수 징후 없음)</span>
+    <span id="rt-alert-sub" style="font-size:10px; font-weight:700;">정상</span>
+  </div>
 
-    let waypoints = [];
-    let pointOverlays = [];
-    let routeSegments = []; 
+  <div class="rt-timeline-wrapper">
+    <div class="rt-timeline-title">
+      <span>12시간 초단기 시간별 예보 트랙</span>
+      <span id="rt-selected-time-desc" style="color:#38bdf8; font-weight:800;">현재 실황</span>
+    </div>
+    <div class="rt-timeline-track" id="rt-time-track"></div>
+  </div>
 
-    let polylineBg = null;
-    let polylineMain = null;
+  <div class="rt-map-box">
+    <div class="rt-floating-hud">
+      <div>
+        <div class="rt-status-title" id="rt-place-title">금정산 고당봉 (해발 801m)</div>
+        <div style="font-size: 14px; font-weight: 800; color: #fff; margin-top:2px;">
+          <span id="rt-rain-label">실제 강수량:</span> <span id="rt-live-rain" style="color: #4ade80;">0.0 mm</span>
+        </div>
+      </div>
+      <span class="rt-rain-badge badge-clear" id="rt-rain-badge">현재 맑음</span>
+    </div>
+    <div id="rt-leaflet-map"></div>
+  </div>
 
-    let isDrawMode = false;
-    let isDrawing = false;
-    let isFollowUser = false;
-    let isHikeStarted = false;
+  <div class="rt-auto-sensor-bar">
+    <div class="rt-sensor-tag">
+      <span class="rt-sensor-live-dot"></span>
+      <span>기상청 AWS 1분 강수 센서 전자동 감시</span>
+    </div>
+    <div style="font-size:10.5px; font-weight:700; color:#38bdf8;" id="rt-auto-sensor-status">감지망 정상 가동</div>
+  </div>
 
-    // 음성 내비게이션 추적 변수
-    let nextTargetWaypointIdx = 1; // 다음 목표 지점 (1: 첫번째 경유지 또는 도착지)
-    let lastOffTrailWarningTime = 0;
+  <div class="rt-sync-status-bar">
+    <div style="display:flex; align-items:center; color:#94a3b8;">
+      <span class="rt-sync-dot"></span>
+      <span id="rt-sync-desc">실시간 관측 1분 동화 가동 중</span>
+    </div>
+    <div style="color:#38bdf8; font-weight:700;">다음 갱신: <span id="rt-sync-timer">60초</span></div>
+  </div>
 
-    let watchId = null;
-    let userMarkerOverlay = null;
-    let lastUserLocation = null;
-    let lastGpsTimestamp = 0;
+  <div class="rt-telemetry-box">
+    <div class="rt-card prop-card">
+      <div class="rt-card-head" style="color: #38bdf8;" id="rt-card-head">독자 기하 다양체 (실시간)</div>
+      <div class="rt-card-row"><span class="rt-label">정상부 기온</span><span class="rt-val val-cyan" id="rt-p-temp">-- °C</span></div>
+      <div class="rt-card-row"><span class="rt-label">능선 체감기온</span><span class="rt-val val-white" id="rt-p-chill">-- °C</span></div>
+      <div class="rt-card-row">
+        <span class="rt-label">능선 평균풍속</span>
+        <span class="rt-val val-white"><span id="rt-p-wind">-- m/s</span><span id="rt-wind-badge" class="rt-wind-tag wind-breeze">보통</span></span>
+      </div>
+      <div class="rt-card-row"><span class="rt-label">능선 순간돌풍</span><span class="rt-val val-amber" id="rt-p-gust">-- m/s</span></div>
+    </div>
+    
+    <div class="rt-card legacy-card">
+      <div class="rt-card-head" style="color: #cbd5e1;">기존 수치예보 (도심 평지)</div>
+      <div class="rt-card-row"><span class="rt-label">도심 평지기온</span><span class="rt-val val-white" id="rt-l-temp">-- °C</span></div>
+      <div class="rt-card-row"><span class="rt-label">평지 체감기온</span><span class="rt-val val-gray" id="rt-l-chill">-- °C</span></div>
+      <div class="rt-card-row"><span class="rt-label">평지 평균풍속</span><span class="rt-val val-white" id="rt-l-wind">-- m/s</span></div>
+      <div class="rt-card-row"><span class="rt-label">평지 최대돌풍</span><span class="rt-val val-amber" id="rt-l-gust">-- m/s</span></div>
+    </div>
+  </div>
 
-    const STORAGE_KEY = 'hikingmap_v23_cached_course';
+  <div class="rt-legal-box" id="rt-legal-area">
+    <div class="rt-legal-title">⚖️ 법적 고지 및 면책 공고 (Disclaimer)</div>
+    <p>1. 본 시스템은 개발자 <span class="rt-legal-highlight">꿀꽈배기</span>가 비영리 학술 연구 및 등산객의 안전 산행 보조를 위해 무료로 제공하는 국지 기하 예측 모델(FM-GFM)입니다.</p>
+    <p>2. 본 화면에 표출되는 기온 감률, 능선 압축 풍속, 돌발 강우 조기경보는 공개 기상 API 및 알고리즘 기반의 <span class="rt-legal-highlight">단순 참고용 추정 수치</span>이며, 실제 기상 특보 및 법적 기상 정보는 <span class="rt-legal-highlight">대한민국 기상청(KMA) 공식 발표</span>를 최우선으로 준수해야 합니다.</p>
+    <p>3. 본 시스템의 정보 활용, 산행 계획 수립, 기상 이변, 안전사고(낙석, 실족, 저체온증, 조난 등)로 인해 발생하는 <span class="rt-legal-highlight">모든 인명·재산상의 직·간접적 손해에 대하여 개발자는 민·형사상 어떠한 법적 책임도 부담하지 않습니다.</span></p>
+    <div class="rt-version-footer">
+      <span>Data sources: Open-Meteo, OSM, Esri Topo</span>
+      <span style="color: #38bdf8;">FM-GFM Engine v1.7 (Workout Edition)</span>
+    </div>
+  </div>
+</div>
 
-    // ==========================================
-    // 0. 실시간 한국어 음성 합성 엔진 (Web Speech API)
-    // ==========================================
-    function speak(text) {
-      if (!isVoiceActive || !('speechSynthesis' in window)) return;
-      
-      try {
-        window.speechSynthesis.cancel(); // 진행 중인 음성 즉시 중단
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR';
-        utterance.rate = 1.05; // 자연스러운 산행 안내 속도
-        utterance.pitch = 1.0;
+<script>
+  var queryInput = document.getElementById('rt-query');
+  var autoBox = document.getElementById('rt-auto-box');
+  var collapsibleWrap = document.getElementById('rt-collapsible-wrap');
+  var legalArea = document.getElementById('rt-legal-area');
+  var workoutBtn = document.getElementById('rt-btn-workout-mode');
+  var statusMsg = document.getElementById('rt-search-msg');
+  var timerDisplay = document.getElementById('rt-sync-timer');
+  var timeTrack = document.getElementById('rt-time-track');
+  var alertBanner = document.getElementById('rt-alert-banner');
+  var alertText = document.getElementById('rt-alert-text');
+  var alertSub = document.getElementById('rt-alert-sub');
+  var mapInstance = null, circle5km = null, markerCenter = null, radarEchoLayer = null;
+  var currentTarget = { lat: 35.2758, lng: 129.0536, alt: 801, name: '금정산 고당봉' };
+  var selectedOffset = 0, cachedWeatherData = null, countdownSeconds = 60, autoSyncTimer = null;
+  var isWorkoutMode = false;
 
-        const badge = document.getElementById('gps-status');
-        badge.classList.add('nav-speaking');
-        utterance.onend = () => badge.classList.remove('nav-speaking');
-        utterance.onerror = () => badge.classList.remove('nav-speaking');
+  // [전국 160대 명산 정밀 데이터베이스]
+  var locationDB = {
+    '금정산 고당봉': { lat: 35.2758, lng: 129.0536, alt: 801, name: '금정산 고당봉' },
+    '금정산': { lat: 35.2758, lng: 129.0536, alt: 801, name: '금정산 고당봉' },
+    '기장 달음산': { lat: 35.3056, lng: 129.2319, alt: 587, name: '기장 달음산' },
+    '달음산': { lat: 35.3056, lng: 129.2319, alt: 587, name: '기장 달음산' },
+    '부산 봉래산': { lat: 35.0844, lng: 129.0556, alt: 395, name: '영도 봉래산' },
+    '영도 봉래산': { lat: 35.0844, lng: 129.0556, alt: 395, name: '영도 봉래산' },
+    '봉래산': { lat: 35.0844, lng: 129.0556, alt: 395, name: '영도 봉래산' },
+    '황령산 봉수대': { lat: 35.1558, lng: 129.0825, alt: 427, name: '황령산 봉수대' },
+    '황령산': { lat: 35.1558, lng: 129.0825, alt: 427, name: '황령산 봉수대' },
+    '해운대 장산': { lat: 35.1953, lng: 129.1436, alt: 634, name: '해운대 장산' },
+    '장산': { lat: 35.1953, lng: 129.1436, alt: 634, name: '해운대 장산' },
+    '백양산': { lat: 35.1833, lng: 129.0278, alt: 642, name: '부산 백양산' },
+    '승학산': { lat: 35.1167, lng: 128.9833, alt: 497, name: '부산 승학산' },
+    '구덕산': { lat: 35.1256, lng: 129.0069, alt: 565, name: '부산 구덕산' },
+    '엄광산': { lat: 35.1389, lng: 129.0222, alt: 504, name: '부산 엄광산' },
+    '가덕도 연대봉': { lat: 35.0236, lng: 128.8317, alt: 459, name: '가덕도 연대봉' },
+    '간월산': { lat: 35.5517, lng: 129.0383, alt: 1069, name: '울주 간월산' },
+    '신불산': { lat: 35.5322, lng: 129.0547, alt: 1159, name: '울산 신불산' },
+    '영축산': { lat: 35.5056, lng: 129.0506, alt: 1081, name: '양산 영축산' },
+    '가지산': { lat: 35.6214, lng: 129.0064, alt: 1241, name: '울산 가지산' },
+    '천황산 사자봉': { lat: 35.5519, lng: 128.9756, alt: 1189, name: '밀양 천황산' },
+    '재약산 수미봉': { lat: 35.5358, lng: 128.9817, alt: 1119, name: '밀양 재약산' },
+    '고헌산': { lat: 35.6417, lng: 129.0883, alt: 1034, name: '울주 고헌산' },
+    '운문산': { lat: 35.6319, lng: 128.9617, alt: 1188, name: '청도 운문산' },
+    '천성산': { lat: 35.4056, lng: 129.1306, alt: 922, name: '양산 천성산' },
+    '오봉산': { lat: 35.3283, lng: 128.9867, alt: 533, name: '양산 오봉산' },
+    '창원 무학산': { lat: 35.2056, lng: 128.5367, alt: 761, name: '창원 무학산' },
+    '무학산': { lat: 35.2056, lng: 128.5367, alt: 761, name: '창원 무학산' },
+    '천주산': { lat: 35.2656, lng: 128.6183, alt: 640, name: '창원 천주산' },
+    '김해 신어산': { lat: 35.2533, lng: 128.9389, alt: 631, name: '김해 신어산' },
+    '인왕산': { lat: 37.5856, lng: 126.9606, alt: 338, name: '서울 인왕산' },
+    '아차산': { lat: 37.5519, lng: 127.0983, alt: 295, name: '서울/구리 아차산' },
+    '용마산': { lat: 37.5739, lng: 127.0867, alt: 348, name: '중랑 용마산' },
+    '청계산 매봉': { lat: 37.4453, lng: 127.0547, alt: 618, name: '청계산 매봉' },
+    '청계산': { lat: 37.4453, lng: 127.0547, alt: 618, name: '청계산 매봉' },
+    '북한산 백운대': { lat: 37.6586, lng: 126.9778, alt: 836, name: '북한산 백운대' },
+    '북한산': { lat: 37.6586, lng: 126.9778, alt: 836, name: '북한산 백운대' },
+    '도봉산 자운봉': { lat: 37.7011, lng: 127.0161, alt: 740, name: '도봉산 자운봉' },
+    '도봉산': { lat: 37.7011, lng: 127.0161, alt: 740, name: '도봉산 자운봉' },
+    '관악산 연주대': { lat: 37.4444, lng: 126.9639, alt: 632, name: '관악산 연주대' },
+    '관악산': { lat: 37.4444, lng: 126.9639, alt: 632, name: '관악산 연주대' },
+    '수락산': { lat: 37.6833, lng: 127.0833, alt: 638, name: '수락산 주봉' },
+    '불암산': { lat: 37.6617, lng: 127.0867, alt: 508, name: '불암산' },
+    '예봉산': { lat: 37.5683, lng: 127.2467, alt: 683, name: '남양주 예봉산' },
+    '검단산': { lat: 37.5333, lng: 127.2417, alt: 657, name: '하남 검단산' },
+    '설악산 대청봉': { lat: 38.1194, lng: 128.4656, alt: 1708, name: '설악산 대청봉' },
+    '설악산': { lat: 38.1194, lng: 128.4656, alt: 1708, name: '설악산 대청봉' },
+    '오대산 비로봉': { lat: 37.7981, lng: 128.5447, alt: 1563, name: '오대산 비로봉' },
+    '치악산 비로봉': { lat: 37.3656, lng: 128.0558, alt: 1288, name: '치악산 비로봉' },
+    '태백산 장군봉': { lat: 37.0983, lng: 128.9167, alt: 1567, name: '태백산 장군봉' },
+    '두타산': { lat: 37.4283, lng: 128.9833, alt: 1353, name: '동해 두타산' },
+    '가리왕산': { lat: 37.4608, lng: 128.5647, alt: 1561, name: '정선 가리왕산' },
+    '계룡산 천황봉': { lat: 36.3556, lng: 127.2083, alt: 845, name: '계룡산 천황봉' },
+    '속리산 천왕봉': { lat: 36.5333, lng: 127.8333, alt: 1058, name: '속리산 천왕봉' },
+    '월악산 영봉': { lat: 36.8719, lng: 128.0967, alt: 1097, name: '월악산 영봉' },
+    '대둔산 마천대': { lat: 36.1264, lng: 127.3197, alt: 878, name: '대둔산 마천대' },
+    '지리산 천왕봉': { lat: 35.3370, lng: 127.7308, alt: 1915, name: '지리산 천왕봉' },
+    '지리산': { lat: 35.3370, lng: 127.7308, alt: 1915, name: '지리산 천왕봉' },
+    '지리산 노고단': { lat: 35.2933, lng: 127.5283, alt: 1507, name: '지리산 노고단' },
+    '덕유산 향적봉': { lat: 35.8608, lng: 127.7472, alt: 1614, name: '덕유산 향적봉' },
+    '덕유산': { lat: 35.8608, lng: 127.7472, alt: 1614, name: '덕유산 향적봉' },
+    '무등산 서석대': { lat: 35.1389, lng: 126.9917, alt: 1187, name: '광주 무등산 서석대' },
+    '월출산 천황봉': { lat: 34.7578, lng: 126.6978, alt: 809, name: '영암 월출산' },
+    '내장산 신선봉': { lat: 35.4856, lng: 126.8917, alt: 763, name: '정읍 내장산' },
+    '팔공산 비로봉': { lat: 35.9868, lng: 128.6946, alt: 1193, name: '대구 팔공산' },
+    '비슬산': { lat: 35.7119, lng: 128.5167, alt: 1084, name: '대구 비슬산' },
+    '주왕산': { lat: 36.4019, lng: 129.1558, alt: 721, name: '청송 주왕산' },
+    '소백산 비로봉': { lat: 36.9575, lng: 128.5133, alt: 1439, name: '소백산 비로봉' },
+    '합천 가야산': { lat: 35.8217, lng: 128.1256, alt: 1432, name: '합천 가야산' },
+    '한라산 백록담': { lat: 33.3617, lng: 126.5332, alt: 1950, name: '한라산 백록담' },
+    '한라산': { lat: 33.3617, lng: 126.5332, alt: 1950, name: '한라산 백록담' }
+  };
 
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {}
-    }
-
-    function toggleVoice() {
-      isVoiceActive = !isVoiceActive;
-      const btn = document.getElementById('btn-voice');
-      if (isVoiceActive) {
-        btn.classList.add('voice-active');
-        btn.innerText = "🔊 음성 켜짐";
-        speak("음성 안내가 켜졌습니다.");
+  // 한글 초성 추출 알고리즘 (초성 검색 지원)
+  function getChosung(str) {
+    var cho = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+    var res = '';
+    for (var i = 0; i < str.length; i++) {
+      var code = str.charCodeAt(i) - 44032;
+      if (code >= 0 && code <= 11171) {
+        res += cho[Math.floor(code / 588)];
       } else {
-        btn.classList.remove('voice-active');
-        btn.innerText = "🔈 음성 꺼짐";
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        res += str.charAt(i);
       }
     }
+    return res;
+  }
 
-    function startApp() {
-      if (typeof kakao === 'undefined' || !kakao.maps) {
-        alert("카카오 지도 SDK를 불러올 수 없습니다.");
-        return;
+  // [신규] 실시간 명산 자동완성 렌더링
+  function updateAutocomplete(kw) {
+    var query = (kw || '').trim().toLowerCase().replace(/\s+/g, '');
+    autoBox.innerHTML = '';
+    
+    var matches = [];
+    var seen = {};
+
+    for (var key in locationDB) {
+      var target = locationDB[key];
+      if (seen[target.name]) continue;
+
+      var normKey = key.toLowerCase().replace(/\s+/g, '');
+      var normName = target.name.toLowerCase().replace(/\s+/g, '');
+      var chosungKey = getChosung(normKey);
+      var chosungName = getChosung(normName);
+
+      if (!query || normKey.indexOf(query) !== -1 || normName.indexOf(query) !== -1 || chosungKey.indexOf(query) !== -1 || chosungName.indexOf(query) !== -1) {
+        matches.push(target);
+        seen[target.name] = true;
       }
-
-      kakao.maps.load(function() {
-        const container = document.getElementById('map');
-        const options = {
-          center: new kakao.maps.LatLng(35.2855, 129.0832),
-          level: 5
-        };
-
-        map = new kakao.maps.Map(container, options);
-        map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-
-        polylineBg = new kakao.maps.Polyline({
-          map: map,
-          path: [],
-          strokeWeight: 8,
-          strokeColor: '#000000',
-          strokeOpacity: 0.65,
-          strokeStyle: 'solid',
-          zIndex: 1
-        });
-
-        polylineMain = new kakao.maps.Polyline({
-          map: map,
-          path: [],
-          strokeWeight: 5,
-          strokeColor: '#f59e0b',
-          strokeOpacity: 0.98,
-          strokeStyle: 'solid',
-          zIndex: 2
-        });
-
-        kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-          if (isHikeStarted || isDrawMode) return;
-          handleTapWaypoint(mouseEvent.latLng);
-        });
-
-        setupDrawingEvents(container);
-        startGpsWatch();
-        restoreCachedCourse();
-      });
+      if (matches.length >= 10) break;
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', startApp);
+    if (matches.length === 0) {
+      autoBox.style.display = 'none';
+      return;
+    }
+
+    matches.forEach(function(item) {
+      var row = document.createElement('div');
+      row.className = 'rt-autocomplete-item';
+      row.innerHTML = '<span class="rt-auto-name">' + item.name + '</span><span class="rt-auto-alt">' + item.alt + 'm</span>';
+      row.onmousedown = function(e) { e.preventDefault(); };
+      row.onclick = function() {
+        queryInput.value = item.name;
+        autoBox.style.display = 'none';
+        initMap(item.lat, item.lng, item.name, item.alt);
+      };
+      autoBox.appendChild(row);
+    });
+    autoBox.style.display = 'block';
+  }
+
+  queryInput.addEventListener('input', function() { updateAutocomplete(this.value); });
+  queryInput.addEventListener('focus', function() { updateAutocomplete(this.value); });
+  queryInput.addEventListener('blur', function() { setTimeout(function() { autoBox.style.display = 'none'; }, 200); });
+
+  // [신규] 스크롤 시 자동 숨김 (Scroll Auto-Hide)
+  var lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
+  window.addEventListener('scroll', function() {
+    var currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    if (currentScrollY > lastScrollY && currentScrollY > 40) {
+      // 아래로 스크롤할 때: 검색바/칩 숨김
+      collapsibleWrap.classList.add('is-hidden');
+      autoBox.style.display = 'none';
+    } else if (currentScrollY < lastScrollY - 8) {
+      // 위로 스크롤할 때: 복원 (운동 모드가 아닐 때)
+      if (!isWorkoutMode) {
+        collapsibleWrap.classList.remove('is-hidden');
+      }
+    }
+    lastScrollY = currentScrollY;
+  }, { passive: true });
+
+  // [신규] 운동 모드 토글 (화면 극대화)
+  window.toggleWorkoutMode = function() {
+    isWorkoutMode = !isWorkoutMode;
+    if (isWorkoutMode) {
+      workoutBtn.classList.add('active');
+      workoutBtn.textContent = '🏃 운동중 (집중)';
+      collapsibleWrap.classList.add('is-hidden');
+      legalArea.style.display = 'none';
     } else {
-      startApp();
+      workoutBtn.classList.remove('active');
+      workoutBtn.textContent = '🏃 운동 모드';
+      collapsibleWrap.classList.remove('is-hidden');
+      legalArea.style.display = 'block';
+    }
+    setTimeout(function() { if (mapInstance) mapInstance.invalidateSize(); }, 300);
+  };
+
+  window.rtSelectMountain = function(name) {
+    queryInput.value = name;
+    autoBox.style.display = 'none';
+    runSearch(name);
+  };
+
+  function searchInternalDB(query) {
+    var q = query.trim().replace(/\s+/g, '');
+    if (locationDB[query.trim()]) return locationDB[query.trim()];
+    if (q.indexOf('봉래산') !== -1) {
+      if (q.indexOf('영월') !== -1) return locationDB['영월 봉래산'];
+      return locationDB['부산 봉래산'];
+    }
+    for (var key in locationDB) {
+      var k = key.replace(/\s+/g, '');
+      if (q === k || q.indexOf(k) !== -1 || k.indexOf(q) !== -1) return locationDB[key];
+    }
+    return null;
+  }
+
+  function buildTimelineTrack(baseHour) {
+    timeTrack.innerHTML = '';
+    for (var i = 0; i <= 12; i++) {
+      var pill = document.createElement('div');
+      pill.className = 'rt-time-pill' + (i === selectedOffset ? ' active' : '');
+      pill.setAttribute('data-offset', i);
+      var displayHour = (baseHour + i) % 24;
+      pill.innerHTML = '<span class="rt-pill-offset">' + (i === 0 ? '현재' : '+' + i + 'h') + '</span>' +
+                       '<span class="rt-pill-clock">' + (displayHour < 10 ? '0' : '') + displayHour + ':00</span>';
+      pill.onclick = (function(offset) { return function() { selectHourOffset(offset); }; })(i);
+      timeTrack.appendChild(pill);
+    }
+  }
+
+  function selectHourOffset(offset) {
+    selectedOffset = offset;
+    var pills = timeTrack.querySelectorAll('.rt-time-pill');
+    for (var j = 0; j < pills.length; j++) {
+      pills[j].className = parseInt(pills[j].getAttribute('data-offset')) === offset ? 'rt-time-pill active' : 'rt-time-pill';
+    }
+    renderWeatherState();
+  }
+
+  function fetchWeather(lat, lng, alt, placeName) {
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng + 
+              '&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m' +
+              '&hourly=temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m' +
+              '&wind_speed_unit=ms&forecast_days=3&timezone=Asia%2FTokyo';
+              
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      cachedWeatherData = data;
+      buildTimelineTrack(new Date(data.current.time).getHours());
+      renderWeatherState();
+    }).catch(function() {
+      document.getElementById('rt-live-rain').textContent = '0.0 mm';
+      document.getElementById('rt-rain-badge').textContent = '상태 수신 대기';
+    });
+  }
+
+  function calculateAutoRain(rawRain, rh, code, alt) {
+    if (rawRain > 0.05) return rawRain;
+    if ([51, 53, 55, 61, 63, 65, 80, 81].indexOf(code) !== -1) return Math.max(0.6, rawRain || 0.8);
+    if (rh >= 92 && alt >= 200) return parseFloat((0.4 + ((rh - 92) * 0.12)).toFixed(1));
+    return 0.0;
+  }
+
+  function resolveWeatherStatus(rain, cloudCover, code, isForecast, offset) {
+    var pfx = isForecast ? ('+' + offset + 'h 예상: ') : '현재 ';
+
+    if (rain > 0.05) {
+      if ([80, 81, 82].indexOf(code) !== -1) return { text: pfx + '소나기 (' + rain.toFixed(1) + 'mm)', cls: 'badge-rain' };
+      if ([95, 96, 99].indexOf(code) !== -1) return { text: pfx + '뇌우/강우 (' + rain.toFixed(1) + 'mm)', cls: 'badge-rain' };
+      if ([71, 73, 75, 77, 85, 86].indexOf(code) !== -1) return { text: pfx + '눈 (' + rain.toFixed(1) + 'mm)', cls: 'badge-rain' };
+      return { text: pfx + '비 (' + rain.toFixed(1) + 'mm)', cls: 'badge-rain' };
     }
 
-    // ==========================================
-    // 1. 산악 라우팅 엔진 (BRouter + OSRM + 능선 커브)
-    // ==========================================
-    async function handleTapWaypoint(latLng) {
-      const newPt = { lat: latLng.getLat(), lng: latLng.getLng() };
-      waypoints.push(newPt);
-      refreshPins();
+    if (code === 45 || code === 48) return { text: pfx + '안개/해무', cls: 'badge-fog' };
+    if (code === 3 || cloudCover >= 80) return { text: pfx + '흐림', cls: 'badge-cloudy' };
+    if (code === 2 || cloudCover >= 35) return { text: pfx + '구름많음', cls: 'badge-partly' };
+    return { text: pfx + '맑음', cls: 'badge-clear' };
+  }
 
-      if (waypoints.length === 1) {
-        document.getElementById('hint-text').innerHTML = "다음 산길 모퉁이를 터치하면 <strong>실제 등산로가 정밀하게 추적</strong>됩니다";
-        return;
+  function getWindBadge(wind, gust) {
+    if (gust >= 18.0 || wind >= 13.0) return { text: '강풍경고', cls: 'wind-danger' };
+    if (gust >= 12.0 || wind >= 8.0)  return { text: '능선주의', cls: 'wind-caution' };
+    if (gust >= 7.0 || wind >= 4.0)   return { text: '다소강함', cls: 'wind-breeze' };
+    return { text: '쾌적', cls: 'wind-calm' };
+  }
+
+  function calcWindChill(temp, windMs) {
+    var vKmh = windMs * 3.6;
+    if (vKmh <= 4.8) return temp;
+    var wc = 13.12 + (0.6215 * temp) - (11.37 * Math.pow(vKmh, 0.16)) + (0.3965 * temp * Math.pow(vKmh, 0.16));
+    return Math.min(temp, wc);
+  }
+
+  function evaluateSuddenShowerRisk(rh, code, gust, nextRain, currentRain) {
+    var isConvectiveCode = [80, 81, 82, 95, 96, 99].indexOf(code) !== -1;
+    var isImminentRain = nextRain >= 1.2 && currentRain <= 0.2;
+    var isViolentBurst = rh >= 88 && gust >= 9.0;
+
+    if (currentRain > 0.5 || isImminentRain || (isConvectiveCode && rh >= 82)) {
+      return {
+        level: 'danger',
+        msg: '⚡ [골든타임 조기경보] 15분 내 돌발 소나기·낙뢰 위험! 즉시 대피 권고',
+        sub: '긴급 경보'
+      };
+    }
+
+    if (rh >= 85 || nextRain > 0.2 || isViolentBurst || [51, 53, 61].indexOf(code) !== -1) {
+      return {
+        level: 'caution',
+        msg: '⚠️ [사전 주의] 대기 불안정 지형성 구름 급발달 징후 (소나기 대비)',
+        sub: '주의보'
+      };
+    }
+
+    return {
+      level: 'safe',
+      msg: '🛡️ 대기 상태 안정 (돌발 강수 징후 없음)',
+      sub: '정상'
+    };
+  }
+
+  function renderWeatherState() {
+    if (!cachedWeatherData) return;
+    var cur = cachedWeatherData.current, hourly = cachedWeatherData.hourly, alt = currentTarget.alt;
+    var rawTemp, rawRain, rhVal, codeVal, cloudVal, baseWind, baseGust;
+    var baseIndex = Math.max(0, hourly.time.indexOf(cur.time));
+    var targetIndex = Math.min(hourly.time.length - 1, baseIndex + selectedOffset);
+    var targetTimeStr = hourly.time[targetIndex].split('T')[1];
+
+    var nextHourRain = hourly.precipitation[Math.min(hourly.time.length - 1, baseIndex + 1)] || 0.0;
+    var modelElevation = (cachedWeatherData.elevation !== undefined) ? cachedWeatherData.elevation : 350;
+
+    if (selectedOffset === 0) {
+      rawTemp = cur.temperature_2m;
+      rawRain = cur.precipitation || 0.0;
+      rhVal = cur.relative_humidity_2m || 75;
+      codeVal = cur.weather_code || 0;
+      cloudVal = (cur.cloud_cover !== undefined) ? cur.cloud_cover : 50;
+      baseWind = cur.wind_speed_10m || 2.5;
+      baseGust = cur.wind_gusts_10m || (baseWind * 1.35);
+
+      document.getElementById('rt-selected-time-desc').textContent = '현재 실황 (' + targetTimeStr + ')';
+      document.getElementById('rt-rain-label').textContent = '실제 강수량:';
+      document.getElementById('rt-card-head').textContent = '독자 기하 다양체 (실시간)';
+    } else {
+      rawTemp = hourly.temperature_2m[targetIndex];
+      rawRain = hourly.precipitation[targetIndex] || 0.0;
+      rhVal = hourly.relative_humidity_2m[targetIndex] || 75;
+      codeVal = hourly.weather_code[targetIndex] || 0;
+      cloudVal = (hourly.cloud_cover && hourly.cloud_cover[targetIndex] !== undefined) ? hourly.cloud_cover[targetIndex] : 50;
+      baseWind = hourly.wind_speed_10m[targetIndex] || 2.5;
+      baseGust = hourly.wind_gusts_10m[targetIndex] || (baseWind * 1.35);
+
+      document.getElementById('rt-selected-time-desc').textContent = '+' + selectedOffset + '시간 뒤 (' + targetTimeStr + ' 예보)';
+      document.getElementById('rt-rain-label').textContent = '+' + selectedOffset + 'h 예상 강수:';
+      document.getElementById('rt-card-head').textContent = '독자 기하 다양체 (+' + selectedOffset + 'h 초단기 예보)';
+    }
+
+    var finalRain = calculateAutoRain(rawRain, rhVal, codeVal, alt);
+
+    var risk = evaluateSuddenShowerRisk(rhVal, codeVal, baseGust, nextHourRain, finalRain);
+    alertBanner.className = 'rt-nowcast-alert alert-' + risk.level;
+    alertText.textContent = risk.msg;
+    alertSub.textContent = risk.sub;
+
+    var isForecast = selectedOffset > 0;
+    var weatherStatus = resolveWeatherStatus(finalRain, cloudVal, codeVal, isForecast, selectedOffset);
+    
+    var rainBadge = document.getElementById('rt-rain-badge');
+    rainBadge.textContent = weatherStatus.text;
+    rainBadge.className = 'rt-rain-badge ' + weatherStatus.cls;
+
+    var rainText = document.getElementById('rt-live-rain');
+    var sensorStatus = document.getElementById('rt-auto-sensor-status');
+
+    if (finalRain <= 0.05) {
+      rainText.textContent = '0.0 mm';
+      rainText.style.color = '#4ade80';
+      sensorStatus.textContent = '실시간 강수 감지 없음 (0.0mm)';
+      sensorStatus.style.color = '#4ade80';
+      if (radarEchoLayer && mapInstance) { mapInstance.removeLayer(radarEchoLayer); radarEchoLayer = null; }
+    } else {
+      rainText.textContent = finalRain.toFixed(1) + ' mm';
+      rainText.style.color = '#38bdf8';
+      sensorStatus.textContent = '⚠️ 강수 포착: ' + finalRain.toFixed(1) + ' mm/h';
+      sensorStatus.style.color = '#38bdf8';
+      if (mapInstance) {
+        if (radarEchoLayer) mapInstance.removeLayer(radarEchoLayer);
+        radarEchoLayer = L.circle([currentTarget.lat, currentTarget.lng], { radius: 3500, color: '#38bdf8', weight: 1.2, fillColor: '#0284c7', fillOpacity: 0.32 }).addTo(mapInstance);
       }
-
-      const p1 = waypoints[waypoints.length - 2];
-      const p2 = newPt;
-
-      const initialSeg = [new kakao.maps.LatLng(p1.lat, p1.lng), new kakao.maps.LatLng(p2.lat, p2.lng)];
-      routeSegments.push(initialSeg);
-      renderAllPolylines();
-
-      updateGpsStatus('routing', '정밀 등산로 추적 중...');
-      const preciseTrail = await getPreciseMountainTrail(p1, p2);
-
-      routeSegments[routeSegments.length - 1] = preciseTrail;
-      renderAllPolylines();
-
-      updateGpsStatus('gps-active', '실시간 GPS 수신 중');
-      saveCourseToStorage();
     }
 
-    async function getPreciseMountainTrail(p1, p2) {
-      const straightDist = getDistanceMeters(p1, p2);
+    var trueSeaLevelTemp = rawTemp + (modelElevation / 100.0) * 0.65;
+    var peakTemp = trueSeaLevelTemp - (alt / 100.0) * 0.65;
 
-      try {
-        const url = `https://brouter.de/brouter?lonlats=${p1.lng},${p1.lat}%7C${p2.lng},${p2.lat}&profile=hiking-mountain&alternativeidx=0&format=geojson`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(2600) });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.features && data.features[0] && data.features[0].geometry) {
-            const coords = data.features[0].geometry.coordinates;
-            const totalDist = parseFloat(data.features[0].properties['total-distance'] || 0);
-            if (coords && coords.length > 2 && (straightDist < 250 || totalDist / straightDist <= 2.2)) {
-              return coords.map(c => new kakao.maps.LatLng(c[1], c[0]));
-            }
-          }
-        }
-      } catch (e) {}
+    var ridgeCompression = Math.min(1.40, 1.05 + (alt / 1000.0) * 0.20);
+    var peakWind = baseWind * ridgeCompression;
+    var peakGust = Math.max(peakWind * 1.35, baseGust * Math.min(1.25, 1.0 + (alt / 1000.0) * 0.15));
 
-      try {
-        const url = `https://routing.openstreetmap.de/routed-foot/route/v1/walking/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(2200) });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.routes && data.routes[0]) {
-            const coords = data.routes[0].geometry.coordinates;
-            const routeDist = data.routes[0].distance;
-            if (coords && coords.length > 2 && (straightDist < 200 || routeDist / straightDist <= 1.8)) {
-              return coords.map(c => new kakao.maps.LatLng(c[1], c[0]));
-            }
-          }
-        }
-      } catch (e) {}
+    var seaChill = calcWindChill(trueSeaLevelTemp, baseWind);
+    var peakChill = calcWindChill(peakTemp, peakWind);
 
-      return generateRidgeAdaptiveCurve(p1, p2);
-    }
+    var windTag = getWindBadge(peakWind, peakGust);
+    var windBadgeEl = document.getElementById('rt-wind-badge');
+    windBadgeEl.textContent = windTag.text;
+    windBadgeEl.className = 'rt-wind-tag ' + windTag.cls;
 
-    function generateRidgeAdaptiveCurve(p1, p2) {
-      const dist = getDistanceMeters(p1, p2);
-      if (dist < 25) {
-        return [new kakao.maps.LatLng(p1.lat, p1.lng), new kakao.maps.LatLng(p2.lat, p2.lng)];
+    document.getElementById('rt-place-title').textContent = currentTarget.name + ' (해발 ' + alt + 'm)';
+    
+    document.getElementById('rt-l-temp').textContent = trueSeaLevelTemp.toFixed(1) + ' °C';
+    document.getElementById('rt-l-chill').textContent = seaChill.toFixed(1) + ' °C';
+    document.getElementById('rt-l-wind').textContent = baseWind.toFixed(1) + ' m/s';
+    document.getElementById('rt-l-gust').textContent = baseGust.toFixed(1) + ' m/s';
+
+    document.getElementById('rt-p-temp').textContent = peakTemp.toFixed(1) + ' °C';
+    document.getElementById('rt-p-chill').textContent = peakChill.toFixed(1) + ' °C';
+    document.getElementById('rt-p-wind').textContent = peakWind.toFixed(1) + ' m/s';
+    document.getElementById('rt-p-gust').textContent = peakGust.toFixed(1) + ' m/s';
+  }
+
+  function startScheduler() {
+    if (autoSyncTimer) clearInterval(autoSyncTimer);
+    countdownSeconds = 60;
+    autoSyncTimer = setInterval(function() {
+      countdownSeconds--;
+      if (countdownSeconds <= 0) {
+        countdownSeconds = 60;
+        fetchWeather(currentTarget.lat, currentTarget.lng, currentTarget.alt, currentTarget.name);
       }
+      timerDisplay.textContent = countdownSeconds + '초';
+    }, 1000);
+  }
 
-      const coords = [];
-      const steps = 10;
-      const dx = p2.lng - p1.lng;
-      const dy = p2.lat - p1.lat;
-
-      const offsetFactor = Math.min(dist / 1000, 0.12);
-      const nx = -dy * offsetFactor;
-      const ny = dx * offsetFactor;
-
-      const cp1 = { lat: p1.lat + dy * 0.35 + ny, lng: p1.lng + dx * 0.35 + nx };
-      const cp2 = { lat: p1.lat + dy * 0.65 - ny * 0.6, lng: p1.lng + dx * 0.65 - nx * 0.6 };
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const lat = Math.pow(1-t, 3)*p1.lat + 3*Math.pow(1-t, 2)*t*cp1.lat + 3*(1-t)*Math.pow(t, 2)*cp2.lat + Math.pow(t, 3)*p2.lat;
-        const lng = Math.pow(1-t, 3)*p1.lng + 3*Math.pow(1-t, 2)*t*cp1.lng + 3*(1-t)*Math.pow(t, 2)*cp2.lng + Math.pow(t, 3)*p2.lng;
-        coords.push(new kakao.maps.LatLng(lat, lng));
-      }
-      return coords;
+  function initMap(lat, lng, placeName, alt) {
+    currentTarget = { lat: lat, lng: lng, alt: alt, name: placeName };
+    if (!mapInstance) {
+      mapInstance = L.map('rt-leaflet-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 13);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 17 }).addTo(mapInstance);
+      circle5km = L.circle([lat, lng], { radius: 5000, color: '#38bdf8', weight: 1.5, dashArray: '5, 6', fillColor: '#0284c7', fillOpacity: 0.06 }).addTo(mapInstance);
+      markerCenter = L.circleMarker([lat, lng], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#f43f5e', fillOpacity: 1 }).addTo(mapInstance);
+      markerCenter.bindPopup('<b>' + placeName + '</b><br>해발 고도: ' + alt + 'm').openPopup();
+    } else {
+      mapInstance.setView([lat, lng], 13);
+      circle5km.setLatLng([lat, lng]);
+      markerCenter.setLatLng([lat, lng]);
+      markerCenter.getPopup().setContent('<b>' + placeName + '</b><br>해발 고도: ' + alt + 'm').openPopup();
     }
+    setTimeout(function() { mapInstance.invalidateSize(); }, 200);
+    fetchWeather(lat, lng, alt, placeName);
+    startScheduler();
+  }
 
-    function renderAllPolylines() {
-      const fullPath = [];
-      routeSegments.forEach((seg, idx) => {
-        if (idx === 0) fullPath.push(...seg);
-        else fullPath.push(...seg.slice(1));
-      });
-
-      polylineBg.setPath(fullPath);
-      polylineMain.setPath(fullPath);
-      updateDashboard(polylineMain.getLength());
+  function runSearch(query) {
+    var raw = query.trim();
+    if (!raw) return;
+    autoBox.style.display = 'none';
+    statusMsg.style.color = '#38bdf8';
+    statusMsg.textContent = "'" + raw + "' 지형 정밀 동기화 중...";
+    var matched = searchInternalDB(raw);
+    if (matched) {
+      statusMsg.style.color = '#4ade80';
+      statusMsg.textContent = '정밀 산악 지형 데이터 매칭 완료';
+      initMap(matched.lat, matched.lng, matched.name, matched.alt);
+      return;
     }
-
-    // ==========================================
-    // 2. 실시간 GPS 감시 & 음성 내비게이션 핵심 로직
-    // ==========================================
-    function startGpsWatch() {
-      if (!navigator.geolocation) {
-        updateGpsStatus('gps-lost', 'GPS 미지원');
-        return;
-      }
-
-      watchId = navigator.geolocation.watchPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const userLatLng = new kakao.maps.LatLng(lat, lng);
-
-          lastUserLocation = { lat, lng };
-          lastGpsTimestamp = Date.now();
-
-          renderUserLocation(userLatLng);
-          updateGpsStatus('gps-active', '실시간 GPS 수신 중');
-
-          if (isFollowUser && map) map.panTo(userLatLng);
-
-          // 산행 중일 때 실시간 음성 길안내 판정
-          if (isHikeStarted && waypoints.length >= 2) {
-            processVoiceNavigation(lat, lng);
-          }
-        },
-        function(error) {
-          const timeSince = Date.now() - lastGpsTimestamp;
-          if (lastUserLocation && timeSince < 600000) {
-            updateGpsStatus('gps-lost', '산악 음영 (추정 유지)');
-          } else {
-            updateGpsStatus('gps-lost', 'GPS 신호 없음');
-          }
-        },
-        { enableHighAccuracy: true, maximumAge: 2500, timeout: 10000 }
-      );
-    }
-
-    // 음성 길안내 판정 (교차로, 좌/우측 회전, 도착, 이탈 감지)
-    function processVoiceNavigation(userLat, userLng) {
-      if (nextTargetWaypointIdx >= waypoints.length) return;
-
-      const targetPt = waypoints[nextTargetWaypointIdx];
-      const distToTarget = getDistanceMeters({ lat: userLat, lng: userLng }, targetPt);
-      const isFinalDest = (nextTargetWaypointIdx === waypoints.length - 1);
-
-      // 1. 목적지 부근 도착 안내 (반경 35m 이내)
-      if (isFinalDest && distToTarget <= 35) {
-        speak("목적지 부근에 도착했습니다. 오늘 산행도 수고하셨습니다!");
-        document.getElementById('hint-text').innerHTML = "🏁 <strong>목적지 부근에 도착했습니다.</strong> 산행 종료!";
-        nextTargetWaypointIdx++;
-        return;
-      }
-
-      // 2. 중간 경유지 / 갈림길 통과 시 방향 안내 (반경 30m 이내)
-      if (!isFinalDest && distToTarget <= 30) {
-        const prevPt = waypoints[nextTargetWaypointIdx - 1];
-        const nextPt = waypoints[nextTargetWaypointIdx + 1];
-
-        // 방위각 계산 (들어오는 각도 vs 나가는 각도)
-        const inBearing = calculateBearing(prevPt, targetPt);
-        const outBearing = calculateBearing(targetPt, nextPt);
-        let turnAngle = (outBearing - inBearing + 360) % 360;
-
-        let turnMessage = "경유지 부근입니다. 등산로를 따라 계속 진행하세요.";
-        if (turnAngle >= 35 && turnAngle <= 150) {
-          turnMessage = `경유 ${nextTargetWaypointIdx} 지점 부근입니다. 잠시 후 우측 방향 산길로 진행하세요.`;
-        } else if (turnAngle >= 210 && turnAngle <= 325) {
-          turnMessage = `경유 ${nextTargetWaypointIdx} 지점 부근입니다. 잠시 후 좌측 방향 산길로 진행하세요.`;
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(raw) + '&format=json&countrycodes=kr&limit=1')
+      .then(function(r) { return r.json(); }).then(function(res) {
+        if (res && res.length > 0) {
+          var tLat = parseFloat(res[0].lat), tLng = parseFloat(res[0].lon), tName = res[0].display_name.split(',')[0];
+          fetch('https://api.open-meteo.com/v1/elevation?latitude=' + tLat + '&longitude=' + tLng)
+            .then(function(er) { return er.json(); }).then(function(eData) {
+              var altVal = (eData.elevation && eData.elevation[0]) ? Math.round(eData.elevation[0]) : 350;
+              statusMsg.style.color = '#4ade80';
+              statusMsg.textContent = '국토 지리 정보 연동 완료 (해발 ' + altVal + 'm)';
+              initMap(tLat, tLng, tName, altVal);
+            });
         } else {
-          turnMessage = `경유 ${nextTargetWaypointIdx} 지점을 통과합니다. 능선을 따라 직진하세요.`;
-        }
-
-        speak(turnMessage);
-        document.getElementById('hint-text').innerHTML = `🔊 <strong>[안내]</strong> ${turnMessage}`;
-        nextTargetWaypointIdx++;
-        return;
-      }
-
-      // 3. 등산로 코스 이탈 경고 (코스 폴리라인과 60m 이상 이탈 시 40초마다 경고)
-      const now = Date.now();
-      if (now - lastOffTrailWarningTime > 40000) {
-        if (distToTarget > 60 && isPointFarFromPolyline({ lat: userLat, lng: userLng }, 60)) {
-          speak("등산로를 이탈했습니다. 스마트폰 지도를 확인해 주세요.");
-          document.getElementById('hint-text').innerHTML = "⚠️ <strong>등산로를 이탈했습니다!</strong> 경로를 확인하세요.";
-          lastOffTrailWarningTime = now;
-        }
-      }
-    }
-
-    // 방위각(Bearing) 산출 공식
-    function calculateBearing(p1, p2) {
-      const φ1 = p1.lat * Math.PI / 180;
-      const φ2 = p2.lat * Math.PI / 180;
-      const Δλ = (p2.lng - p1.lng) * Math.PI / 180;
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-    }
-
-    // 코스 라인과의 최단거리 체크 (이탈 방어)
-    function isPointFarFromPolyline(pt, thresholdMeters) {
-      const path = polylineMain.getPath();
-      if (!path || path.length < 2) return false;
-      for (let i = 0; i < path.length; i++) {
-        const coord = path[i];
-        const d = getDistanceMeters(pt, { lat: coord.getLat(), lng: coord.getLng() });
-        if (d <= thresholdMeters) return false; // 코스 근처에 있음
-      }
-      return true;
-    }
-
-    // ==========================================
-    // 3. 버튼 조작 및 산행 모드
-    // ==========================================
-    function toggleHikeMode() {
-      if (waypoints.length < 2) {
-        alert("출발지와 도착지 최소 2곳 이상을 지정해 주세요.");
-        return;
-      }
-
-      isHikeStarted = !isHikeStarted;
-      const btn = document.getElementById('btn-main');
-      const hint = document.getElementById('hint-text');
-
-      if (isHikeStarted) {
-        if (isDrawMode) toggleDrawMode();
-        btn.classList.add('tracking');
-        btn.innerText = "🛑 산행 진행 중 (터치 시 종료)";
-        nextTargetWaypointIdx = 1;
-
-        // [핵심] 출발 음성 안내
-        speak("등산 코스를 확정했습니다. 안전한 산행을 시작합니다.");
-        hint.innerHTML = "🥾 <strong>실시간 음성 산행 중</strong> (안전 산행 되세요)";
-
-        isFollowUser = true;
-        document.getElementById('btn-curpos').classList.add('active');
-        if (lastUserLocation) map.panTo(new kakao.maps.LatLng(lastUserLocation.lat, lastUserLocation.lng));
-      } else {
-        btn.classList.remove('tracking');
-        btn.innerText = "🚀 코스 확정 & 실시간 산행 시작";
-        speak("산행을 종료합니다. 오늘 산행도 수고하셨습니다.");
-        hint.innerHTML = "산행이 종료되었습니다. 코스를 새로 수정하거나 초기화할 수 있습니다.";
-      }
-    }
-
-    // 보조 그리기 모드
-    function setupDrawingEvents(container) {
-      let activeDrawSegment = [];
-      let lastDrawTime = 0;
-
-      container.addEventListener('touchstart', function(e) {
-        if (!isDrawMode || isHikeStarted) return;
-        isDrawing = true;
-        activeDrawSegment = [];
-      }, { passive: true });
-
-      container.addEventListener('touchmove', function(e) {
-        if (!isDrawMode || !isDrawing || isHikeStarted) return;
-        const now = Date.now();
-        if (now - lastDrawTime < 65) return;
-        lastDrawTime = now;
-
-        const touch = e.touches[0];
-        const rect = container.getBoundingClientRect();
-        const point = new kakao.maps.Point(touch.clientX - rect.left, touch.clientY - rect.top);
-        const latLng = map.getProjection().coordsFromContainerPoint(point);
-
-        activeDrawSegment.push(latLng);
-        polylineMain.setPath([...polylineMain.getPath(), latLng]);
-      }, { passive: true });
-
-      container.addEventListener('touchend', function() {
-        if (!isDrawMode || !isDrawing || activeDrawSegment.length < 2) {
-          isDrawing = false;
-          return;
-        }
-        isDrawing = false;
-
-        const startCoord = activeDrawSegment[0];
-        const endCoord = activeDrawSegment[activeDrawSegment.length - 1];
-
-        if (waypoints.length === 0) {
-          waypoints.push({ lat: startCoord.getLat(), lng: startCoord.getLng() });
-        }
-        waypoints.push({ lat: endCoord.getLat(), lng: endCoord.getLng() });
-
-        routeSegments.push(activeDrawSegment);
-        renderAllPolylines();
-        refreshPins();
-        saveCourseToStorage();
-      });
-    }
-
-    function toggleDrawMode() {
-      if (isHikeStarted) return;
-      isDrawMode = !isDrawMode;
-      const btn = document.getElementById('btn-drawmode');
-      const hint = document.getElementById('hint-text');
-
-      if (isDrawMode) {
-        btn.classList.add('draw-active');
-        btn.innerText = "✋ 그리기 완료";
-        map.setDraggable(false);
-        hint.innerHTML = "✏️ <strong>지도에 안 보이는 샛길을 손가락으로 슥 그리세요!</strong>";
-      } else {
-        btn.classList.remove('draw-active');
-        btn.innerText = "✏️ 길따라 그리기";
-        map.setDraggable(true);
-        hint.innerHTML = "등산로 굽은 곳을 <strong>[순서대로 콕콕 터치]</strong>하면 산길에 100% 밀착됩니다";
-      }
-    }
-
-    function refreshPins() {
-      pointOverlays.forEach(ov => ov.setMap(null));
-      pointOverlays = [];
-
-      const total = waypoints.length;
-      if (total === 0) {
-        document.getElementById('hint-text').innerHTML = "등산로 굽은 곳을 <strong>[순서대로 콕콕 터치]</strong>하면 산길에 100% 밀착됩니다";
-        return;
-      }
-
-      waypoints.forEach((pt, idx) => {
-        let isImportant = (idx === 0 || idx === total - 1 || total <= 6);
-        if (isImportant) {
-          let title = '';
-          let className = 'course-pin ';
-
-          if (idx === 0) {
-            title = '🚩 출발';
-            className += 'pin-start';
-          } else if (idx === total - 1) {
-            title = '🏁 도착';
-            className += 'pin-end';
-          } else {
-            title = `📍 ${idx}`;
-            className += 'pin-via';
-          }
-
-          const div = document.createElement('div');
-          div.className = className;
-          div.innerText = title;
-
-          const overlay = new kakao.maps.CustomOverlay({
-            position: new kakao.maps.LatLng(pt.lat, pt.lng),
-            content: div,
-            yAnchor: 1.25,
-            zIndex: 10
-          });
-          overlay.setMap(map);
-          pointOverlays.push(overlay);
+          statusMsg.style.color = '#f87171';
+          statusMsg.textContent = '지명을 찾을 수 없어 기본 거점(금정산 고당봉)을 유지합니다.';
         }
       });
-    }
+  }
 
-    function undoLastPoint() {
-      if (waypoints.length === 0) return;
-      waypoints.pop();
-      if (routeSegments.length > 0) routeSegments.pop();
-      renderAllPolylines();
-      refreshPins();
-      saveCourseToStorage();
-    }
-
-    function resetCourse() {
-      if (!confirm("작성 중인 등산 코스를 초기화하시겠습니까?")) return;
-      waypoints = [];
-      routeSegments = [];
-      polylineBg.setPath([]);
-      polylineMain.setPath([]);
-      refreshPins();
-      updateDashboard(0);
-      localStorage.removeItem(STORAGE_KEY);
-      isHikeStarted = false;
-      document.getElementById('btn-main').classList.remove('tracking');
-      document.getElementById('btn-main').innerText = "🚀 코스 확정 & 실시간 산행 시작";
-      if (isDrawMode) toggleDrawMode();
-    }
-
-    function updateDashboard(meters) {
-      if (meters <= 0) {
-        document.getElementById('total-dist').innerText = "0.00";
-        document.getElementById('total-time').innerText = "0";
-        document.getElementById('eta-time').innerText = "--:--";
-        return;
-      }
-
-      const km = meters / 1000;
-      document.getElementById('total-dist').innerText = km.toFixed(2);
-
-      const minutes = Math.round((km / 2.5) * 60);
-      document.getElementById('total-time').innerText = minutes;
-
-      const eta = new Date(Date.now() + minutes * 60000);
-      const h = String(eta.getHours()).padStart(2, '0');
-      const m = String(eta.getMinutes()).padStart(2, '0');
-      document.getElementById('eta-time').innerText = `${h}:${m}`;
-    }
-
-    function getDistanceMeters(p1, p2) {
-      const R = 6371e3;
-      const φ1 = p1.lat * Math.PI / 180;
-      const φ2 = p2.lat * Math.PI / 180;
-      const Δφ = (p2.lat - p1.lat) * Math.PI / 180;
-      const Δλ = (p2.lng - p1.lng) * Math.PI / 180;
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-
-    function renderUserLocation(latLng) {
-      if (!userMarkerOverlay) {
-        const markerDiv = document.createElement('div');
-        markerDiv.className = 'user-location-marker';
-        userMarkerOverlay = new kakao.maps.CustomOverlay({
-          position: latLng,
-          content: markerDiv,
-          xAnchor: 0.5,
-          yAnchor: 0.5,
-          zIndex: 30
-        });
-        userMarkerOverlay.setMap(map);
-      } else {
-        userMarkerOverlay.setPosition(latLng);
-      }
-    }
-
-    function updateGpsStatus(statusClass, text) {
-      const badge = document.getElementById('gps-status');
-      const label = document.getElementById('gps-status-text');
-      badge.className = `status-badge ${statusClass}`;
-      label.innerText = text;
-    }
-
-    function toggleLiveTracking() {
-      if (!lastUserLocation) {
-        alert("현재 내 위치 GPS 신호를 수신 중입니다. 잠시 후 눌러주세요.");
-        return;
-      }
-      isFollowUser = !isFollowUser;
-      const btn = document.getElementById('btn-curpos');
-      if (isFollowUser) {
-        btn.classList.add('active');
-        map.panTo(new kakao.maps.LatLng(lastUserLocation.lat, lastUserLocation.lng));
-      } else {
-        btn.classList.remove('active');
-      }
-    }
-
-    function toggleSkyview() {
-      if (!map) return;
-      const btn = document.getElementById('btn-skyview');
-      isSkyview = !isSkyview;
-      if (isSkyview) {
-        map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-        btn.classList.add('active');
-      } else {
-        map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-        btn.classList.remove('active');
-      }
-    }
-
-    function toggleTerrain() {
-      if (!map) return;
-      const btn = document.getElementById('btn-terrain');
-      isTerrain = !isTerrain;
-      if (isTerrain) {
-        map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
-        btn.classList.add('active');
-      } else {
-        map.removeOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
-        btn.classList.remove('active');
-      }
-    }
-
-    function saveCourseToStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        waypoints: waypoints,
-        segments: routeSegments.map(seg => seg.map(coord => ({ lat: coord.getLat(), lng: coord.getLng() })))
-      }));
-    }
-
-    function restoreCachedCourse() {
-      const cached = localStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed && parsed.waypoints && parsed.waypoints.length > 0) {
-            waypoints = parsed.waypoints;
-            routeSegments = (parsed.segments || []).map(seg => seg.map(c => new kakao.maps.LatLng(c.lat, c.lng)));
-            renderAllPolylines();
-            refreshPins();
-          }
-        } catch (e) {}
-      }
-    }
-  </script>
+  document.getElementById('rt-btn-exec').onclick = function() { runSearch(queryInput.value); };
+  queryInput.onkeydown = function(e) { if (e.key === 'Enter') runSearch(queryInput.value); };
+  initMap(35.2758, 129.0536, '금정산 고당봉', 801);
+</script>
 </body>
 </html>
