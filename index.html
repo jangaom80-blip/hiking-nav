@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>HIKER ULTRA v5.5 (프로 산행 내비게이션)</title>
-<!-- [카카오 지도 API 연동 완료] -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080a0f">
+<title>HIKER ULTRA v6.0 (Titanium Pro Edition)</title>
+<!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
   :root {
     --bg-glass: rgba(11, 15, 23, 0.78);
-    --bg-glass-card: rgba(16, 21, 31, 0.86);
+    --bg-glass-card: rgba(16, 21, 31, 0.88);
     --border-glass: rgba(255, 255, 255, 0.12);
     --border-glass-subtle: rgba(255, 255, 255, 0.06);
     --text-primary: #f8fafc;
@@ -18,7 +21,6 @@
     --accent-orange: #ff5e00;
     --accent-orange-glow: rgba(255, 94, 0, 0.35);
     --accent-green: #10b981;
-    --accent-green-glow: rgba(16, 185, 129, 0.35);
     --accent-cyan: #38bdf8;
     --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Pretendard Variable", sans-serif;
   }
@@ -28,7 +30,7 @@
   
   #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #080a0f; }
 
-  /* 길따라 그리기 레이어 */
+  /* 터치 드로잉 캔버스 */
   #rt-draw-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -119,7 +121,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: background 0.15s;
   }
   .ultra-search-item:last-child { border-bottom: none; }
   .ultra-search-item:active { background: rgba(255, 255, 255, 0.06); }
@@ -196,6 +197,10 @@
     color: var(--accent-green);
     border-color: rgba(16, 185, 129, 0.4);
   }
+  .ultra-icon-btn.sos-btn {
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+  }
 
   /* 하단 슬라이딩 콕핏 대시보드 */
   .ultra-cockpit-panel {
@@ -226,6 +231,7 @@
     50% { border-color: rgba(239, 68, 68, 0.3); }
   }
 
+  /* 미니멀 접힘 모드 */
   .ultra-cockpit-panel.collapsed {
     transform: translateY(calc(100% - 76px));
     padding: 10px 16px 14px 16px;
@@ -249,7 +255,6 @@
     margin-bottom: 8px;
     transition: background 0.2s;
   }
-  .ultra-handle-zone:active .ultra-pill-handle { background: rgba(255, 255, 255, 0.5); }
   
   .ultra-status-bar {
     width: 100%;
@@ -276,6 +281,7 @@
     letter-spacing: 0.5px;
   }
 
+  /* 접혔을 때 1줄 HUD 요약 바 */
   .ultra-mini-dashboard {
     display: none;
     justify-content: space-between;
@@ -294,11 +300,7 @@
     font-weight: 800;
     letter-spacing: -0.2px;
   }
-  .radar-dot {
-    width: 6.5px;
-    height: 6.5px;
-    border-radius: 50%;
-  }
+  .radar-dot { width: 6.5px; height: 6.5px; border-radius: 50%; }
   .dot-standby { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
   .dot-active  { background: var(--accent-orange); box-shadow: 0 0 10px var(--accent-orange); animation: radarPulse 1.8s infinite; }
   .dot-alert   { background: #ef4444; box-shadow: 0 0 12px #ef4444; animation: radarPulse 1s infinite; }
@@ -351,7 +353,7 @@
     display: grid;
     grid-template-columns: 1fr 1.3fr 0.8fr 0.8fr;
     gap: 6px;
-    margin-bottom: 9px;
+    margin-bottom: 7px;
   }
   .ultra-subtool-btn {
     background: rgba(255, 255, 255, 0.06);
@@ -375,6 +377,34 @@
     border-color: var(--accent-orange);
     color: #ffffff;
     box-shadow: 0 0 16px var(--accent-orange-glow);
+  }
+
+  /* 전문 프로 보조 바 (GPX 내보내기/가져오기, 시뮬레이션) */
+  .ultra-pro-tools-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 6px;
+    margin-bottom: 9px;
+  }
+  .ultra-pro-mini-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .ultra-pro-mini-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .ultra-pro-mini-btn.sim-active {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(56, 189, 248, 0.15);
   }
 
   .ultra-action-btn {
@@ -403,12 +433,7 @@
     box-shadow: 0 8px 28px rgba(255, 94, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     animation: ultraPulse 2s infinite;
   }
-  @keyframes ultraPulse {
-    0%, 100% { box-shadow: 0 8px 28px rgba(255, 94, 0, 0.35); }
-    50% { box-shadow: 0 8px 36px rgba(255, 94, 0, 0.65); }
-  }
 
-  /* [신규] 법적 고지 캡슐 바 */
   .ultra-disclaimer-bar {
     display: flex;
     justify-content: center;
@@ -428,12 +453,10 @@
     gap: 4px;
     padding: 3px 8px;
     border-radius: 6px;
-    transition: color 0.2s;
   }
   .ultra-disclaimer-btn svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.2; }
-  .ultra-disclaimer-btn:hover, .ultra-disclaimer-btn:active { color: var(--accent-cyan); }
+  .ultra-disclaimer-btn:hover { color: var(--accent-cyan); }
 
-  /* 하단 브랜딩 */
   .ultra-footer {
     display: flex;
     justify-content: space-between;
@@ -474,7 +497,7 @@
     padding-right: 6px;
   }
 
-  /* 핀 마커 */
+  /* 핀 마커 칩 */
   .ultra-pin-container {
     display: inline-flex;
     flex-direction: column;
@@ -496,63 +519,63 @@
     color: #ffffff;
     white-space: nowrap;
   }
-  .pin-dot {
-    width: 6.5px;
-    height: 6.5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .pin-dot { width: 6.5px; height: 6.5px; border-radius: 50%; flex-shrink: 0; }
   .pin-start .pin-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
   .pin-via .pin-dot   { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
   .pin-dest .pin-dot  { background: #ff5e00; box-shadow: 0 0 10px #ff5e00; }
   .pin-start { border-color: rgba(56, 189, 248, 0.4); }
   .pin-via   { border-color: rgba(245, 158, 11, 0.4); }
   .pin-dest  { border-color: rgba(255, 94, 0, 0.45); }
-
-  .pin-tag {
-    font-size: 8.5px;
-    font-weight: 900;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-  }
+  .pin-tag { font-size: 8.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; }
   .pin-start .pin-tag { color: #38bdf8; }
   .pin-via .pin-tag   { color: #f59e0b; }
   .pin-dest .pin-tag  { color: #ff5e00; }
-
-  .pin-divider {
-    width: 1px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-  }
-  .pin-name {
-    font-size: 11px;
-    color: #f1f5f9;
-    letter-spacing: -0.2px;
-    font-weight: 700;
-  }
+  .pin-divider { width: 1px; height: 8px; background: rgba(255, 255, 255, 0.2); }
+  .pin-name { font-size: 11px; color: #f1f5f9; letter-spacing: -0.2px; font-weight: 700; }
   .ultra-pin-caret {
-    width: 0;
-    height: 0;
+    width: 0; height: 0;
     border-left: 4.5px solid transparent;
     border-right: 4.5px solid transparent;
     border-top: 5px solid rgba(14, 19, 28, 0.95);
     margin-top: -1px;
   }
 
-  .ultra-gps-radar {
-    width: 20px;
-    height: 20px;
+  /* 방향 지시 나침반 레이더 마커 */
+  .ultra-radar-wrap {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+  .ultra-heading-arrow {
+    position: absolute;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 9px solid var(--accent-cyan);
+    filter: drop-shadow(0 0 4px var(--accent-cyan));
+    transform-origin: center 18px;
+    transition: transform 0.2s ease-out;
+  }
+  .ultra-gps-core {
+    width: 16px;
+    height: 16px;
     background: #0284c7;
-    border: 3.5px solid #ffffff;
+    border: 3px solid #ffffff;
     border-radius: 50%;
-    box-shadow: 0 0 16px rgba(2, 132, 199, 1);
+    box-shadow: 0 0 14px rgba(2, 132, 199, 1);
   }
 
-  /* [신규] 법적 고지 애플 글래스모피즘 모달창 */
+  /* 모달 오버레이 공통 */
   .ultra-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(4, 7, 12, 0.78);
+    background: rgba(4, 7, 12, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     z-index: 5000;
@@ -587,35 +610,29 @@
     border-bottom: 1px solid var(--border-glass-subtle);
   }
   .ultra-modal-title {
-    font-size: 14.5px;
+    font-size: 14px;
     font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
     gap: 7px;
-    letter-spacing: -0.3px;
   }
   .ultra-modal-title svg { width: 16px; height: 16px; stroke: var(--accent-orange); fill: none; stroke-width: 2.2; }
   .ultra-modal-close-btn {
     background: rgba(255, 255, 255, 0.08);
     border: none;
-    width: 28px;
-    height: 28px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
   }
   .ultra-modal-close-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; }
-  
   .ultra-modal-body {
     overflow-y: auto;
     font-size: 11.5px;
     line-height: 1.65;
     color: #cbd5e1;
-    padding-right: 4px;
   }
   .ultra-disclaimer-clause {
     background: rgba(0, 0, 0, 0.25);
@@ -625,36 +642,45 @@
     margin-bottom: 10px;
   }
   .clause-title {
-    font-weight: 800;
-    color: #ffffff;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    font-weight: 800; color: #ffffff; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
   }
   .clause-bullet { width: 4px; height: 4px; background: var(--accent-cyan); border-radius: 50%; flex-shrink: 0; }
   .clause-desc { color: var(--text-secondary); font-size: 11px; }
-
   .ultra-modal-confirm-btn {
-    margin-top: 14px;
-    width: 100%;
-    padding: 13px;
+    margin-top: 14px; width: 100%; padding: 13px;
     background: linear-gradient(135deg, #0284c7, #0369a1);
-    border: none;
-    border-radius: 14px;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
+    border: none; border-radius: 14px; color: #ffffff;
+    font-size: 13px; font-weight: 800; cursor: pointer;
   }
+
+  /* SOS 구조 모달 전용 박스 */
+  .sos-coord-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .sos-coord-text { font-size: 15px; font-weight: 900; color: #fecaca; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+  .sos-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .sos-action-btn {
+    padding: 12px; border-radius: 12px; border: none; font-size: 12.5px; font-weight: 800; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 6px;
+  }
+  .btn-copy-sos { background: #1e293b; color: #ffffff; border: 1px solid var(--border-glass); }
+  .btn-call-119 { background: #dc2626; color: #ffffff; }
+
+  /* 파일 인풋 숨김 */
+  #gpx-file-input { display: none; }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
 <div id="rt-draw-layer"></div>
+<input type="file" id="gpx-file-input" accept=".gpx" onchange="handleGpxFileSelect(event)">
 
 <!-- 상단 검색창 -->
 <div class="ultra-search-container">
@@ -689,6 +715,11 @@
   <button class="ultra-icon-btn voice-on" id="btn-voice" onclick="toggleVoice()" title="음성 안내">
     <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
   </button>
+
+  <!-- [신규] SOS 119 긴급 구조 요청 버튼 -->
+  <button class="ultra-icon-btn sos-btn" onclick="openSosModal()" title="119 긴급 구조">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+  </button>
 </div>
 
 <!-- 하단 콕핏 대시보드 -->
@@ -706,7 +737,7 @@
     </div>
   </div>
 
-  <!-- 접혔을 때 1줄 HUD 요약 바 -->
+  <!-- 접혔을 때 1줄 요약 바 -->
   <div class="ultra-mini-dashboard" onclick="togglePanelCollapse()">
     <div class="ultra-radar-chip">
       <span class="radar-dot dot-standby" id="mini-radar-dot"></span>
@@ -724,7 +755,7 @@
         <span class="ultra-m-value val-white" id="val-total-dist">0.00 <span style="font-size:10px;font-weight:600;">km</span></span>
       </div>
       <div class="ultra-metric-tile">
-        <span class="ultra-m-title">진행한 거리</span>
+        <span class="ultra-m-title">진행 거리</span>
         <span class="ultra-m-value val-green" id="val-walked-dist">0.00 <span style="font-size:10px;font-weight:600;">km</span></span>
       </div>
       <div class="ultra-metric-tile">
@@ -737,9 +768,10 @@
       </div>
     </div>
 
+    <!-- 보조 툴바 1: 기본 기능 -->
     <div class="ultra-subtools-row">
       <button class="ultra-subtool-btn" onclick="panToUserLocation()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="12" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="1" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
         <span>내 위치</span>
       </button>
       <button class="ultra-subtool-btn" id="btn-draw" onclick="toggleDrawMode()">
@@ -756,11 +788,27 @@
       </button>
     </div>
 
+    <!-- [신규] 보조 툴바 2: GPX 및 실내 모의 테스트 -->
+    <div class="ultra-pro-tools-row">
+      <button class="ultra-pro-mini-btn" onclick="triggerGpxImport()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>GPX 열기</span>
+      </button>
+      <button class="ultra-pro-mini-btn" onclick="exportRouteAsGpx()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>GPX 저장</span>
+      </button>
+      <button class="ultra-pro-mini-btn" id="btn-sim-mode" onclick="toggleSimulationMode()">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span id="txt-sim-label">모의 산행 테스트</span>
+      </button>
+    </div>
+
     <button class="ultra-action-btn btn-start" id="btn-hike-toggle" onclick="toggleHiking()">
       <span id="txt-action-label">산행 시작</span>
     </button>
 
-    <!-- [신규] 법적 고지 모달 트리거 캡슐 링크 -->
+    <!-- 법적 고지 트리거 링크 -->
     <div class="ultra-disclaimer-bar">
       <button type="button" class="ultra-disclaimer-btn" onclick="openLegalModal()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
@@ -769,17 +817,17 @@
     </div>
 
     <div class="ultra-footer">
-      <div class="ultra-footer-hint">※ 산행 중에는 지도를 더블클릭해도 핀이 찍히지 않고 자유롭게 확대/탐색됩니다</div>
+      <div class="ultra-footer-hint">※ 홈 화면에 추가 시 주소창 없는 100% 풀스크린 앱으로 구동됩니다</div>
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v5.5</span>
+        <span class="badge-chip-ver">v6.0</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- [신규] 애플 하프시트 법적 고지 모달 -->
+<!-- 법적 고지 모달 -->
 <div class="ultra-modal-overlay" id="ultra-legal-modal" onclick="closeLegalModal(event)">
   <div class="ultra-modal-card" onclick="event.stopPropagation()">
     <div class="ultra-modal-header">
@@ -804,12 +852,41 @@
         <div class="clause-title"><span class="clause-bullet"></span>3. 안전사고에 대한 책임의 한계</div>
         <div class="clause-desc">실제 등산로의 폐쇄 여부, 낙석, 빙판, 기상 변화 등 현장 상황 판단 및 조난, 실족 등 일체의 안전사고에 대한 민·형사상 법적 책임은 전적으로 이용자 본인에게 있습니다.</div>
       </div>
-      <div class="ultra-disclaimer-clause">
-        <div class="clause-title"><span class="clause-bullet"></span>4. 비상 상황 행동 요령</div>
-        <div class="clause-desc">배터리 방전이나 통신 두절에 대비하여 보조 배터리 및 비상 장비를 지참하시고, 위급 상황 발생 시 지체 없이 119 산악구조대 또는 국립공원 관리사무소로 연락하십시오.</div>
-      </div>
     </div>
     <button class="ultra-modal-confirm-btn" onclick="closeLegalModal()">확인 및 안전 수칙 준수 동의</button>
+  </div>
+</div>
+
+<!-- [신규] SOS 긴급 구조 좌표 브리핑 모달 -->
+<div class="ultra-modal-overlay" id="ultra-sos-modal" onclick="closeSosModal(event)">
+  <div class="ultra-modal-card" onclick="event.stopPropagation()">
+    <div class="ultra-modal-header">
+      <div class="ultra-modal-title" style="color: #f87171;">
+        <svg viewBox="0 0 24 24" style="stroke: #ef4444;"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span>119 긴급 구조 요청 브리핑</span>
+      </div>
+      <button class="ultra-modal-close-btn" onclick="closeSosModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="ultra-modal-body">
+      <div class="sos-coord-box">
+        <div style="font-size: 11px; color: #f87171; font-weight: 700; margin-bottom: 5px;">현재 내 WGS84 정밀 위경도</div>
+        <div class="sos-coord-text" id="sos-coord-val">위도 --.---- / 경도 ---.----</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;" id="sos-alt-val">해발고도 측정 중</div>
+      </div>
+      <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 6px;">
+        구조대원에게 위 좌표를 전달하면 전국 산악 위치를 즉각 파악할 수 있습니다. 아래 버튼을 눌러 문자로 복사하거나 119에 전화하세요.
+      </div>
+      <div class="sos-btn-grid">
+        <button class="sos-action-btn btn-copy-sos" onclick="copySosText()">
+          <span>좌표 문자 복사</span>
+        </button>
+        <button class="sos-action-btn btn-call-119" onclick="location.href='tel:119'">
+          <span>119 전화 연결</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -836,6 +913,8 @@
   var remainDistKm = 0;
   var currentUserPos = null;
   var lastUserPos = null;
+  var currentUserAlt = null;
+  var currentHeading = 0;
   var hasInitialCentered = false;
   var lastTapTime = 0;
   var lastTouchRegisteredTime = 0;
@@ -846,6 +925,11 @@
   var lastTbtAlertTime = 0;
   var wakeLockObj = null;
   var silentAudio = null;
+
+  // [시뮬레이션 모드 변수]
+  var isSimulating = false;
+  var simInterval = null;
+  var simStepIndex = 0;
 
   function speak(msg) {
     if (!isVoiceOn || !('speechSynthesis' in window)) return;
@@ -872,20 +956,34 @@
   }
 
   // 모달 제어
-  function openLegalModal() {
-    var modal = document.getElementById('ultra-legal-modal');
-    if (modal) modal.style.display = 'flex';
+  function openLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'flex'; }
+  function closeLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'none'; }
+  
+  function openSosModal() {
+    if (currentUserPos) {
+      document.getElementById('sos-coord-val').textContent = 
+        currentUserPos.getLat().toFixed(6) + '°N, ' + currentUserPos.getLng().toFixed(6) + '°E';
+      document.getElementById('sos-alt-val').textContent = 
+        currentUserAlt ? '해발고도: 약 ' + Math.round(currentUserAlt) + ' m' : '해발고도: 측정 불가(위성 수신 중)';
+    }
+    document.getElementById('ultra-sos-modal').style.display = 'flex';
   }
-  function closeLegalModal(e) {
-    var modal = document.getElementById('ultra-legal-modal');
-    if (modal) modal.style.display = 'none';
+  function closeSosModal() { document.getElementById('ultra-sos-modal').style.display = 'none'; }
+
+  function copySosText() {
+    if (!currentUserPos) return;
+    var txt = '[119 산악 조난 긴급 구조 요청]\n위치: ' + currentUserPos.getLat().toFixed(6) + ', ' + currentUserPos.getLng().toFixed(6) +
+              (currentUserAlt ? ' (고도: ' + Math.round(currentUserAlt) + 'm)' : '') +
+              '\n도움이 시급히 필요합니다.';
+    navigator.clipboard.writeText(txt).then(function() {
+      alert('119 전송용 긴급 구조 문자 양식이 클립보드에 복사되었습니다. 119 문자 수신창에 붙여넣으세요.');
+    });
   }
 
+  // 화면 꺼짐 방지
   async function enableScreenKeepAwake() {
     try {
-      if ('wakeLock' in navigator) {
-        wakeLockObj = await navigator.wakeLock.request('screen');
-      }
+      if ('wakeLock' in navigator) wakeLockObj = await navigator.wakeLock.request('screen');
     } catch (e) {}
 
     if (!silentAudio) {
@@ -896,14 +994,8 @@
   }
 
   function disableScreenKeepAwake() {
-    if (wakeLockObj) {
-      wakeLockObj.release().catch(function(){});
-      wakeLockObj = null;
-    }
-    if (silentAudio) {
-      silentAudio.pause();
-      silentAudio = null;
-    }
+    if (wakeLockObj) { wakeLockObj.release().catch(function(){}); wakeLockObj = null; }
+    if (silentAudio) { silentAudio.pause(); silentAudio = null; }
   }
 
   function initKakaoMap() {
@@ -927,7 +1019,6 @@
 
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isDrawing || isHiking) return;
-
       var latlng = mouseEvent.latLng;
       var now = Date.now();
       if (now - lastTapTime < 350) {
@@ -944,12 +1035,24 @@
       }
     });
 
+    // 스마트폰 나침반 각도(Compass Heading) 이벤트 연동
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', function(e) {
+        if (e.webkitCompassHeading) {
+          currentHeading = e.webkitCompassHeading;
+        } else if (e.alpha) {
+          currentHeading = 360 - e.alpha;
+        }
+        updateHeadingArrow(currentHeading);
+      }, true);
+    }
+
     initTouchDrawingEngine();
     startGpsTracking();
   }
 
   // ============================================================
-  // 더블터치 순차 연결 엔진
+  // 더블터치 순차 연결
   // ============================================================
   function handleDoubleTouchWaypoint(latlng) {
     waypointCoords.push(latlng);
@@ -1050,45 +1153,11 @@
     var total = waypointCoords.length;
     for (var i = 0; i < total; i++) {
       var pt = waypointCoords[i];
-      var html = '';
-      if (i === 0) {
-        html = '<div class="ultra-pin-container">' +
-                 '<div class="ultra-pin-badge pin-start">' +
-                   '<span class="pin-dot"></span>' +
-                   '<span class="pin-tag">START</span>' +
-                   '<span class="pin-divider"></span>' +
-                   '<span class="pin-name">출발</span>' +
-                 '</div>' +
-                 '<div class="ultra-pin-caret"></div>' +
-               '</div>';
-      } else if (i === total - 1) {
-        html = '<div class="ultra-pin-container">' +
-                 '<div class="ultra-pin-badge pin-dest">' +
-                   '<span class="pin-dot"></span>' +
-                   '<span class="pin-tag">FINISH</span>' +
-                   '<span class="pin-divider"></span>' +
-                   '<span class="pin-name">도착</span>' +
-                 '</div>' +
-                 '<div class="ultra-pin-caret"></div>' +
-               '</div>';
-      } else {
-        html = '<div class="ultra-pin-container">' +
-                 '<div class="ultra-pin-badge pin-via">' +
-                   '<span class="pin-dot"></span>' +
-                   '<span class="pin-tag">VIA ' + i + '</span>' +
-                   '<span class="pin-divider"></span>' +
-                   '<span class="pin-name">경유</span>' +
-                 '</div>' +
-                 '<div class="ultra-pin-caret"></div>' +
-               '</div>';
-      }
+      var html = (i === 0) ? '<div class="ultra-pin-container"><div class="ultra-pin-badge pin-start"><span class="pin-dot"></span><span class="pin-tag">START</span><span class="pin-divider"></span><span class="pin-name">출발</span></div><div class="ultra-pin-caret"></div></div>' :
+                 (i === total - 1) ? '<div class="ultra-pin-container"><div class="ultra-pin-badge pin-dest"><span class="pin-dot"></span><span class="pin-tag">FINISH</span><span class="pin-divider"></span><span class="pin-name">도착</span></div><div class="ultra-pin-caret"></div></div>' :
+                 '<div class="ultra-pin-container"><div class="ultra-pin-badge pin-via"><span class="pin-dot"></span><span class="pin-tag">VIA ' + i + '</span><span class="pin-divider"></span><span class="pin-name">경유</span></div><div class="ultra-pin-caret"></div></div>';
 
-      var overlay = new kakao.maps.CustomOverlay({
-        position: pt,
-        content: html,
-        xAnchor: 0.5,
-        yAnchor: 1.0
-      });
+      var overlay = new kakao.maps.CustomOverlay({ position: pt, content: html, xAnchor: 0.5, yAnchor: 1.0 });
       overlay.setMap(map);
       waypointOverlays.push(overlay);
     }
@@ -1110,7 +1179,7 @@
   }
 
   // ============================================================
-  // 네비게이션 감지
+  // 네비게이션 실시간 엔진 (40m 이탈, 갈림길, 턴바이턴)
   // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
@@ -1246,57 +1315,163 @@
     document.getElementById('val-remain-time').innerHTML = remainMin + ' <span style="font-size:10px;font-weight:600;">분</span>';
   }
 
-  function toggleHiking() {
-    isHiking = !isHiking;
-    var btn = document.getElementById('btn-hike-toggle');
-    var label = document.getElementById('txt-action-label');
-    var miniText = document.getElementById('mini-status-text');
-    var miniDot = document.getElementById('mini-radar-dot');
+  // ============================================================
+  // [신규 기능 1] 방 안에서 테스트하는 모의 산행 시뮬레이터
+  // ============================================================
+  function toggleSimulationMode() {
+    if (rawPathPoints.length < 2) {
+      alert('먼저 지도를 더블터치하거나 [길따라 그리기]로 경로를 먼저 생성하세요.');
+      return;
+    }
 
-    if (isHiking) {
-      if (rawPathPoints.length < 2 && waypointCoords.length < 2) {
-        alert('먼저 지도를 더블터치하거나 [길따라 그리기]로 산행 경로를 지정하세요.');
-        isHiking = false;
-        return;
-      }
-      if (isDrawing) toggleDrawMode();
+    isSimulating = !isSimulating;
+    var btn = document.getElementById('btn-sim-mode');
+    var label = document.getElementById('txt-sim-label');
 
-      map.setZoomable(true);
-      walkedDistKm = 0;
-      remainDistKm = totalDistKm;
-      lastUserPos = currentUserPos;
-      isOffTrail = false;
+    if (isSimulating) {
+      btn.classList.add('sim-active');
+      label.textContent = '모의산행 중지';
 
-      btn.className = 'ultra-action-btn btn-active';
-      label.textContent = '산행 진행 중 (터치 시 종료)';
-      setStatusText('실시간 산행 진행 중 · 안전 산행 되세요', false);
-      if (miniText) { miniText.textContent = '진행 중'; miniText.style.color = 'var(--accent-orange)'; }
-      if (miniDot) miniDot.className = 'radar-dot dot-active';
-      speak('안전 산행을 시작합니다. 화면이 꺼져도 음성 안내가 지속됩니다.');
+      if (!isHiking) toggleHiking(); // 자동으로 산행 시작 모드 전환
 
-      enableScreenKeepAwake();
+      simStepIndex = 0;
+      speak('모의 산행 시뮬레이션을 시작합니다. 경로를 따라 가상으로 이동합니다.');
 
-      setTimeout(function() {
-        if (!isPanelCollapsed) togglePanelCollapse();
-      }, 600);
+      simInterval = setInterval(function() {
+        if (simStepIndex >= rawPathPoints.length) {
+          clearInterval(simInterval);
+          isSimulating = false;
+          btn.classList.remove('sim-active');
+          label.textContent = '모의 산행 테스트';
+          return;
+        }
+
+        var pt = rawPathPoints[simStepIndex];
+        currentUserPos = pt;
+        updateGpsMarker(pt);
+        map.panTo(pt);
+        updateHikingNavigation(pt);
+
+        simStepIndex++;
+      }, 700); // 700ms마다 다음 포인트로 전진 (시뮬레이션 가속)
     } else {
-      btn.className = 'ultra-action-btn btn-start';
-      label.textContent = '산행 시작';
-      setStatusText('산행이 종료되었습니다.', false);
-      if (miniText) { miniText.textContent = '산행 준비'; miniText.style.color = 'var(--accent-green)'; }
-      if (miniDot) miniDot.className = 'radar-dot dot-standby';
-      document.getElementById('rt-bottom-panel').classList.remove('off-trail');
-      speak('산행이 종료되었습니다. 수고하셨습니다.');
-      disableScreenKeepAwake();
-      if (isPanelCollapsed) togglePanelCollapse();
+      clearInterval(simInterval);
+      btn.classList.remove('sim-active');
+      label.textContent = '모의 산행 테스트';
+      speak('모의 산행이 중지되었습니다.');
     }
   }
 
+  // ============================================================
+  // [신규 기능 2] GPX 파일 내보내기 & 불러오기 엔진
+  // ============================================================
+  function triggerGpxImport() {
+    document.getElementById('gpx-file-input').click();
+  }
+
+  function handleGpxFileSelect(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var content = e.target.result;
+      parseAndApplyGpx(content);
+    };
+    reader.readAsText(file);
+  }
+
+  function parseAndApplyGpx(xmlStr) {
+    try {
+      var parser = new DOMParser();
+      var xmlDoc = parser.parseFromString(xmlStr, "text/xml");
+      var trkpts = xmlDoc.getElementsByTagName("trkpt");
+
+      if (!trkpts || trkpts.length === 0) {
+        trkpts = xmlDoc.getElementsByTagName("wpt");
+      }
+
+      if (!trkpts || trkpts.length < 2) {
+        alert("유효한 등산로 좌표(trkpt)가 포함된 GPX 파일이 아닙니다.");
+        return;
+      }
+
+      resetRouteSilent();
+      rawPathPoints = [];
+
+      for (var i = 0; i < trkpts.length; i++) {
+        var lat = parseFloat(trkpts[i].getAttribute("lat"));
+        var lon = parseFloat(trkpts[i].getAttribute("lon"));
+        rawPathPoints.push(new kakao.maps.LatLng(lat, lon));
+      }
+
+      waypointCoords = [rawPathPoints[0], rawPathPoints[rawPathPoints.length - 1]];
+      drawPolyline(rawPathPoints);
+      renderWaypointPins();
+
+      // 바운즈 맞춤
+      var bounds = new kakao.maps.LatLngBounds();
+      rawPathPoints.forEach(function(p) { bounds.extend(p); });
+      map.setBounds(bounds, 80, 80, 80, 80);
+
+      totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
+      walkedDistKm = 0;
+      remainDistKm = totalDistKm;
+      updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
+
+      setStatusText('GPX 파일 로드 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
+      speak('GPX 등산로 경로가 로드되었습니다.');
+    } catch (err) {
+      alert("GPX 파일을 분석하는 중 오류가 발생했습니다.");
+    }
+  }
+
+  function exportRouteAsGpx() {
+    if (rawPathPoints.length < 2) {
+      alert("내보낼 등산로 경로가 없습니다. 경로를 먼저 그려주세요.");
+      return;
+    }
+
+    var gpxHeader = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<gpx version="1.1" creator="HIKER_ULTRA" xmlns="http://www.topografix.com/GPX/1/1">\n' +
+      '  <trk>\n    <name>HIKER_ULTRA_ROUTE</name>\n    <trkseg>\n';
+
+    var gpxBody = '';
+    rawPathPoints.forEach(function(pt) {
+      gpxBody += '      <trkpt lat="' + pt.getLat().toFixed(6) + '" lon="' + pt.getLng().toFixed(6) + '"></trkpt>\n';
+    });
+
+    var gpxFooter = '    </trkseg>\n  </trk>\n</gpx>';
+    var fullGpx = gpxHeader + gpxBody + gpxFooter;
+
+    var blob = new Blob([fullGpx], { type: "application/gpx+xml;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "HIKER_ROUTE_" + Date.now() + ".gpx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    speak('등산로 GPX 파일이 다운로드되었습니다.');
+  }
+
+  // ============================================================
+  // GPS 및 헤딩 나침반 렌더링
+  // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(function(pos) {
+      // 숲속 GPS 튐 필터 (정밀도 오차 50m 초과 시 거부)
+      if (pos.coords.accuracy > 50) {
+        document.getElementById('txt-gps').textContent = 'GPS 정밀도 낮음';
+        return;
+      }
+
       currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      currentUserAlt = pos.coords.altitude;
+
       if (!hasInitialCentered) {
         map.setCenter(currentUserPos);
         hasInitialCentered = true;
@@ -1306,11 +1481,20 @@
     }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
 
     watchId = navigator.geolocation.watchPosition(function(pos) {
+      if (pos.coords.accuracy > 50) return; // 노이즈 필터
+
       currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      currentUserAlt = pos.coords.altitude;
       document.getElementById('txt-gps').textContent = '실시간 GPS';
       updateGpsMarker(currentUserPos);
 
-      if (isHiking) {
+      // GPS heading 속성이 있으면 반영
+      if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+        currentHeading = pos.coords.heading;
+        updateHeadingArrow(currentHeading);
+      }
+
+      if (isHiking && !isSimulating) {
         updateHikingNavigation(currentUserPos);
       }
     }, function() {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 });
@@ -1318,15 +1502,24 @@
 
   function updateGpsMarker(pos) {
     if (!userMarker) {
+      var content = '<div class="ultra-radar-wrap">' +
+                      '<div class="ultra-heading-arrow" id="gps-heading-arrow"></div>' +
+                      '<div class="ultra-gps-core"></div>' +
+                    '</div>';
       userMarker = new kakao.maps.CustomOverlay({
         position: pos,
-        content: '<div class="ultra-gps-radar"></div>',
+        content: content,
         zIndex: 999
       });
       userMarker.setMap(map);
     } else {
       userMarker.setPosition(pos);
     }
+  }
+
+  function updateHeadingArrow(deg) {
+    var arrow = document.getElementById('gps-heading-arrow');
+    if (arrow) arrow.style.transform = 'rotate(' + deg + 'deg)';
   }
 
   function panToUserLocation() {
@@ -1339,7 +1532,7 @@
   }
 
   // ============================================================
-  // 카카오 공식 장소 검색
+  // 카카오 장소 검색
   // ============================================================
   var searchKw = document.getElementById('rt-search-kw');
   var dropBox = document.getElementById('rt-search-dropdown');
@@ -1526,7 +1719,58 @@
   }
 
   // ============================================================
-  // 공통 컨트롤
+  // 산행 시작/종료 토글
+  // ============================================================
+  function toggleHiking() {
+    isHiking = !isHiking;
+    var btn = document.getElementById('btn-hike-toggle');
+    var label = document.getElementById('txt-action-label');
+    var miniText = document.getElementById('mini-status-text');
+    var miniDot = document.getElementById('mini-radar-dot');
+
+    if (isHiking) {
+      if (rawPathPoints.length < 2 && waypointCoords.length < 2) {
+        alert('먼저 지도를 더블터치하거나 [길따라 그리기]로 산행 경로를 지정하세요.');
+        isHiking = false;
+        return;
+      }
+      if (isDrawing) toggleDrawMode();
+
+      map.setZoomable(true);
+      walkedDistKm = 0;
+      remainDistKm = totalDistKm;
+      lastUserPos = currentUserPos;
+      isOffTrail = false;
+
+      btn.className = 'ultra-action-btn btn-active';
+      label.textContent = '산행 진행 중 (터치 시 종료)';
+      setStatusText('실시간 산행 진행 중 · 안전 산행 되세요', false);
+      if (miniText) { miniText.textContent = '진행 중'; miniText.style.color = 'var(--accent-orange)'; }
+      if (miniDot) miniDot.className = 'radar-dot dot-active';
+      speak('안전 산행을 시작합니다. 화면이 꺼져도 음성 안내가 지속됩니다.');
+
+      enableScreenKeepAwake();
+
+      setTimeout(function() {
+        if (!isPanelCollapsed) togglePanelCollapse();
+      }, 600);
+    } else {
+      btn.className = 'ultra-action-btn btn-start';
+      label.textContent = '산행 시작';
+      setStatusText('산행이 종료되었습니다.', false);
+      if (miniText) { miniText.textContent = '산행 준비'; miniText.style.color = 'var(--accent-green)'; }
+      if (miniDot) miniDot.className = 'radar-dot dot-standby';
+      document.getElementById('rt-bottom-panel').classList.remove('off-trail');
+      speak('산행이 종료되었습니다. 수고하셨습니다.');
+      disableScreenKeepAwake();
+
+      if (isSimulating) toggleSimulationMode(); // 시뮬레이터 자동 정지
+      if (isPanelCollapsed) togglePanelCollapse();
+    }
+  }
+
+  // ============================================================
+  // 콕핏 패널 제어
   // ============================================================
   function togglePanelCollapse() {
     isPanelCollapsed = !isPanelCollapsed;
@@ -1576,6 +1820,12 @@
       alert('산행 진행 중에는 초기화할 수 없습니다. 산행을 먼저 종료하세요.');
       return;
     }
+    resetRouteSilent();
+    setStatusText('더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결', false);
+    speak('경로가 초기화되었습니다.');
+  }
+
+  function resetRouteSilent() {
     rawPathPoints = [];
     waypointCoords = [];
     if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
@@ -1585,8 +1835,6 @@
     walkedDistKm = 0;
     remainDistKm = 0;
     updateMetricsDisplay(0, 0, 0);
-    setStatusText('더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결', false);
-    speak('경로가 초기화되었습니다.');
   }
 
   function toggleSkyview() {
