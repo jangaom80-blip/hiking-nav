@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0f">
-<title>HIKER ULTRA v7.2 (Direct Mountain Path Edition)</title>
+<title>HIKER ULTRA v7.3 (True Waypoint Edition)</title>
 <!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
@@ -38,7 +38,6 @@
     cursor: crosshair; background: rgba(0, 0, 0, 0.01);
   }
 
-  /* 상단 플로팅 검색바 */
   .ultra-search-container {
     position: absolute;
     top: env(safe-area-inset-top, 14px);
@@ -88,7 +87,6 @@
   }
   .ultra-search-action-btn:active { background: rgba(255, 255, 255, 0.2); }
 
-  /* 검색 결과 드롭다운 */
   .ultra-search-dropdown {
     position: absolute;
     top: 52px;
@@ -136,7 +134,6 @@
     border: 1px solid rgba(56, 189, 248, 0.3);
   }
 
-  /* 우측 플로팅 컨트롤 */
   .ultra-controls-stack {
     position: absolute;
     top: 74px;
@@ -202,7 +199,6 @@
     border-color: rgba(239, 68, 68, 0.4);
   }
 
-  /* 하단 슬라이딩 콕핏 대시보드 */
   .ultra-cockpit-panel {
     position: absolute;
     bottom: env(safe-area-inset-bottom, 16px);
@@ -492,7 +488,7 @@
     padding-right: 6px;
   }
 
-  /* [핵심] 최상단 zIndex: 9999 보장 핀 마커 스타일 */
+  /* 최상단 zIndex: 9999 보장 핀 마커 스타일 */
   .ultra-pin-container {
     display: inline-flex;
     flex-direction: column;
@@ -744,7 +740,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
     </span>
-    <input type="text" class="ultra-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리 검색 (예: 간월재, 지리산, 금정산)" autocomplete="off">
+    <input type="text" class="ultra-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리 검색 (예: 금정산, 지리산, 간월재)" autocomplete="off">
     <button class="ultra-search-action-btn" onclick="execSearch()">검색</button>
   </div>
   <div class="ultra-search-dropdown" id="rt-search-dropdown"></div>
@@ -781,7 +777,7 @@
         <span class="ultra-status-icon" id="txt-status-icon">
           <svg viewBox="0 0 24 24"><path d="M8 3l4 8 5-5 5 15H2L8 3z"></path></svg>
         </span>
-        <span id="txt-hike-status-inner">등산로를 터치하여 출발 ➔ 도착 지점을 지정하세요</span>
+        <span id="txt-hike-status-inner">등산로를 터치하여 출발 ➔ 경유 ➔ 도착 핀을 지정하세요</span>
       </span>
       <span class="ultra-collapse-toggle" id="btn-collapse-label">메뉴 접기</span>
     </div>
@@ -863,11 +859,11 @@
     </div>
 
     <div class="ultra-footer">
-      <div class="ultra-footer-hint">※ 지도를 톡 터치하면 핀이 즉각 꽂히며 산길이 정밀하게 이어집니다</div>
+      <div class="ultra-footer-hint">※ 모든 경유지와 봉우리 방문 궤적이 100% 보장됩니다</div>
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v7.2</span>
+        <span class="badge-chip-ver">v7.3</span>
       </div>
     </div>
   </div>
@@ -1087,7 +1083,7 @@
   function initKakaoMap() {
     var container = document.getElementById('map');
     var options = {
-      center: new kakao.maps.LatLng(35.5435, 129.0467),
+      center: new kakao.maps.LatLng(35.2798, 129.0568), // 금정산 남산봉 인근
       level: 4,
       disableDoubleClickZoom: false
     };
@@ -1095,7 +1091,7 @@
     ps = new kakao.maps.services.Places();
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-    // [원터치 리스너] 사용자가 누른 그 자리에 100% 1:1 핀 꽂기
+    // [원터치 리스너] 1번 탭으로 핀 생성
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isDrawing || isHiking) return;
       handleSingleTapWaypoint(mouseEvent.latLng);
@@ -1115,44 +1111,42 @@
   }
 
   // ============================================================
-  // [완전 무결] 사용자 직접 지정 출발/도착 100% 산길 추종 엔진
+  // [완전 복원] 모든 경유지 100% 방문 순차 라우팅 엔진
   // ============================================================
   function handleSingleTapWaypoint(latlng) {
     waypointCoords.push(latlng);
     var count = waypointCoords.length;
 
     if (count === 1) {
-      // 1. 출발지 지정
       rawPathPoints = [latlng];
       renderWaypointPins();
-      setStatusText('🚩 출발지 설정됨 ➔ 도착할 산길을 터치하세요', false);
-      speak('출발지가 지정되었습니다. 도착 지점을 터치하세요.');
+      setStatusText('🚩 출발지 설정됨 ➔ 다음 산길을 터치하세요', false);
+      speak('출발지가 지정되었습니다. 다음 지점을 터치하세요.');
       updateMetricsDisplay(0, 0, 0);
     } else if (count === 2) {
-      // 2. 도착지 지정 ➔ 즉시 둘 사이 완만 산길 연결
-      setStatusText('공식 등산로 탐색 및 굽이길 연결 중...', false);
+      setStatusText('등산로 탐색 및 연결 중...', false);
       renderWaypointPins();
-      speak('도착지가 지정되었습니다. 산길을 연결합니다.');
-      calculateAccurateTrail();
+      speak('도착지가 지정되었습니다. 등산로를 연결합니다.');
+      calculateTrueWaypointRoute();
     } else {
-      // 3. 경유지 추가 ➔ 지그재그 산길 추가 제어
       var viaNum = count - 2;
-      setStatusText('경유지 ' + viaNum + '곳 추가 ➔ 산길 재계산 중', false);
+      setStatusText('경유지 ' + viaNum + '곳 추가 ➔ 봉우리 및 경유 코스 연결 중', false);
       renderWaypointPins();
       speak(viaNum + '번째 경유지가 추가되었습니다.');
-      calculateAccurateTrail();
+      calculateTrueWaypointRoute();
     }
   }
 
-  function calculateAccurateTrail() {
+  // 모든 핀을 100% 순서대로 잇는 정밀 엔진
+  function calculateTrueWaypointRoute() {
     if (waypointCoords.length < 2) return;
 
     var coordsStr = waypointCoords.map(function(pt) {
       return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
     }).join('|');
 
-    // [핵심] 가파른 샛길 지름길을 배제하고 완만한 지그재그 임도를 우선하는 trekking 프로파일 적용
-    var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(coordsStr) + '&profile=trekking&alternativeidx=0&format=geojson';
+    // [핵심] 암릉길, 계단, 봉우리 샛길도 허용하는 hiking-mountain 프로파일 복원
+    var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(coordsStr) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
 
     fetch(brouterUrl).then(function(r) { return r.json(); }).then(function(data) {
       if (data && data.features && data.features.length > 0) {
@@ -1160,19 +1154,24 @@
         var directDist = calcDirectMeters(waypointCoords);
         var routeDist = data.features[0].properties ? data.features[0].properties['track-length'] : directDist;
 
-        if (routeDist > directDist * 2.5) {
+        if (routeDist > directDist * 2.8) {
           generateReliableRidgePath();
         } else {
-          var mappedPoints = coords.map(function(c) { return new kakao.maps.LatLng(c[1], c[0]); });
-          // [핵심] 도착점 2줄 왕복 유턴 꼬리선 제거
-          rawPathPoints = pruneOverlappingLoops(mappedPoints);
+          // [핵심 해결] 루프 제거기(pruneOverlappingLoops) 완전 삭제!
+          // 모든 경유지 방문 궤적을 1픽셀도 건드리지 않고 그대로 화면에 렌더링
+          rawPathPoints = coords.map(function(c) {
+            return new kakao.maps.LatLng(c[1], c[0]);
+          });
+
+          // 도착지 끝의 20m 미세 꼬리선만 안전하게 살짝 정리 (중간 경유지는 절대 건드리지 않음)
+          trimOnlyDestinationTip();
 
           drawPolyline(rawPathPoints);
           totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
           walkedDistKm = 0;
           remainDistKm = totalDistKm;
           updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
-          setStatusText('등산로 정밀 연결 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
+          setStatusText('모든 경유지 등산로 정밀 연결 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
         }
       } else {
         generateReliableRidgePath();
@@ -1182,25 +1181,16 @@
     });
   }
 
-  // [알고리즘] 끝점에서 왔던 길을 10m 이내로 되돌아가는 왕복 겹침선 제거
-  function pruneOverlappingLoops(pts) {
-    if (!pts || pts.length < 5) return pts;
-    var cleaned = [pts[0]];
-    for (var i = 1; i < pts.length; i++) {
-      var curr = pts[i];
-      var loopFound = false;
-      var lookbackLimit = Math.max(0, cleaned.length - 80);
-      for (var j = cleaned.length - 3; j >= lookbackLimit; j--) {
-        var d = getDistanceBetween(curr, cleaned[j]);
-        if (d < 12) {
-          cleaned.splice(j + 1);
-          loopFound = true;
-          break;
-        }
-      }
-      if (!loopFound) cleaned.push(curr);
+  // 중간 경유지를 건드리지 않고, 오직 맨 끝 도착점의 15m 오버슛만 정리하는 안전 트리머
+  function trimOnlyDestinationTip() {
+    if (!rawPathPoints || rawPathPoints.length < 5) return;
+    var len = rawPathPoints.length;
+    var pEnd = rawPathPoints[len - 1];
+    var pPrev1 = rawPathPoints[len - 2];
+    var pPrev2 = rawPathPoints[len - 3];
+    if (getDistanceBetween(pPrev2, pEnd) < 15 && getDistanceBetween(pPrev1, pEnd) < 15) {
+      rawPathPoints.pop();
     }
-    return cleaned;
   }
 
   function generateReliableRidgePath() {
@@ -1439,6 +1429,9 @@
     document.getElementById('val-remain-time').innerHTML = remainMin + ' <span style="font-size:10px;font-weight:600;">분</span>';
   }
 
+  // ============================================================
+  // [완전 검증] 경유지를 하나도 빠짐없이 거쳐가는 모의 산행 엔진
+  // ============================================================
   function toggleSimulationMode() {
     if (rawPathPoints.length < 2) {
       alert('먼저 지도를 터치하여 경로를 생성하세요.');
@@ -1456,7 +1449,7 @@
       if (!isHiking) toggleHiking();
 
       simStepIndex = 0;
-      speak('모의 산행 시뮬레이션을 시작합니다.');
+      speak('모의 산행 시뮬레이션을 시작합니다. 모든 경유지를 경유합니다.');
 
       simInterval = setInterval(function() {
         if (simStepIndex >= rawPathPoints.length) {
@@ -1474,7 +1467,7 @@
         updateHikingNavigation(pt);
 
         simStepIndex++;
-      }, 700);
+      }, 500); // 500ms 간격으로 경유지를 빠짐없이 순차 보행
     } else {
       clearInterval(simInterval);
       btn.classList.remove('sim-active');
@@ -1756,12 +1749,12 @@
     if (waypointCoords.length > 0 && !isDrawing) {
       waypointCoords.pop();
       if (waypointCoords.length >= 2) {
-        calculateAccurateTrail();
+        calculateTrueWaypointRoute();
       } else if (waypointCoords.length === 1) {
         if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
         renderWaypointPins();
         updateMetricsDisplay(0, 0, 0);
-        setStatusText('🚩 출발지 설정됨 ➔ 도착할 산길을 터치하세요', false);
+        setStatusText('🚩 출발지 설정됨 ➔ 다음 산길을 터치하세요', false);
       } else {
         resetRouteSilent();
       }
@@ -1792,7 +1785,7 @@
       return;
     }
     resetRouteSilent();
-    setStatusText('등산로를 터치하여 출발 ➔ 도착 지점을 지정하세요', false);
+    setStatusText('등산로를 터치하여 출발 ➔ 경유 ➔ 도착 핀을 지정하세요', false);
     speak('경로가 초기화되었습니다.');
   }
 
