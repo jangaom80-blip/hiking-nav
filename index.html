@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>실시간 음성 산행 네비게이션 v3.6</title>
+<title>실시간 음성 산행 네비게이션 v4.0 (프로 산행 에디션)</title>
 <!-- [카카오 지도 API 키 연동 완료] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
@@ -12,7 +12,7 @@
   
   #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #0b0f17; }
 
-  /* 길따라 그리기 전용 터치 레이어 */
+  /* 길따라 그리기 터치 레이어 */
   #rt-draw-layer {
     position: absolute;
     top: 0;
@@ -26,7 +26,7 @@
     background: rgba(0, 0, 0, 0.01);
   }
 
-  /* 상단 독립 검색창 */
+  /* 상단 통합 검색창 */
   .rt-search-container {
     position: absolute;
     top: 12px;
@@ -164,7 +164,7 @@
   }
   .rt-gps-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 6px #22c55e; }
 
-  /* 하단 슬라이딩 콕핏 */
+  /* 하단 슬라이딩 콕핏 대시보드 */
   .rt-bottom-panel {
     position: absolute;
     bottom: 14px;
@@ -172,15 +172,26 @@
     right: 12px;
     background: rgba(16, 23, 38, 0.95);
     backdrop-filter: blur(14px);
-    border: 1px solid #1e293b;
+    border: 1.5px solid #1e293b;
     border-radius: 18px;
     padding: 12px 14px 14px 14px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88);
     z-index: 900;
     color: #f8fafc;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s, border-color 0.3s;
   }
 
+  /* 경로 이탈 시 콕핏 테두리 경보 애니메이션 */
+  .rt-bottom-panel.off-trail {
+    border-color: #ef4444 !important;
+    animation: alertBorder 1.2s infinite;
+  }
+  @keyframes alertBorder {
+    0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+  }
+
+  /* 메뉴 접혔을 때 (미니바 모드) */
   .rt-bottom-panel.collapsed {
     transform: translateY(calc(100% - 46px));
     padding: 8px 14px 10px 14px;
@@ -213,11 +224,12 @@
     border-radius: 6px;
   }
 
+  /* 접혔을 때 표출되는 고정밀 미니 요약바 */
   .rt-mini-summary {
     display: none;
     justify-content: space-between;
     align-items: center;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 800;
     color: #ffffff;
     padding-top: 2px;
@@ -225,20 +237,25 @@
   .rt-bottom-panel.collapsed .rt-mini-summary { display: flex; }
   .rt-bottom-panel.collapsed .rt-full-content { display: none; }
 
+  /* 4단 핵심 지표 그리드 (총거리 / 진행거리 / 남은거리 / 남은시간) */
   .rt-metrics-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     text-align: center;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 10px;
+    gap: 2px;
   }
   .rt-metric-col { display: flex; flex-direction: column; gap: 3px; }
-  .rt-metric-title { font-size: 10px; font-weight: 600; color: #94a3b8; }
-  .rt-metric-val { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
+  .rt-metric-title { font-size: 9.5px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+  .rt-metric-val { font-size: 15px; font-weight: 900; letter-spacing: -0.5px; }
   .val-white { color: #ffffff; }
+  .val-green { color: #4ade80; }
   .val-cyan  { color: #38bdf8; }
+  .val-amber { color: #f59e0b; }
 
+  /* 제어 툴바 */
   .rt-tools-row {
     display: grid;
     grid-template-columns: 1fr 1.35fr 0.8fr 0.8fr;
@@ -269,6 +286,7 @@
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
   }
 
+  /* 주 실행 버튼 */
   .rt-action-btn {
     width: 100%;
     padding: 12px;
@@ -347,6 +365,7 @@
 <div id="map"></div>
 <div id="rt-draw-layer"></div>
 
+<!-- 상단 독립 검색창 -->
 <div class="rt-search-container">
   <div class="rt-search-input-wrap">
     <input type="text" class="rt-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리, 들머리 검색 (예: 지리산 중산리, 금정산 범어사)" autocomplete="off">
@@ -355,6 +374,7 @@
   <div class="rt-search-dropdown" id="rt-search-dropdown"></div>
 </div>
 
+<!-- 우측 플로팅 컨트롤 -->
 <div class="rt-floating-controls">
   <div class="rt-gps-pill">
     <span class="rt-gps-dot"></span>
@@ -365,6 +385,7 @@
   <button class="rt-fab-btn rt-voice-fab" id="btn-voice" onclick="toggleVoice()">🪶 음성 켜짐</button>
 </div>
 
+<!-- 하단 슬라이딩 콕핏 대시보드 -->
 <div class="rt-bottom-panel" id="rt-bottom-panel">
   <div class="rt-panel-handle-bar" onclick="togglePanelCollapse()">
     <div class="rt-panel-title-text">
@@ -374,26 +395,32 @@
     <div class="rt-panel-collapse-btn" id="btn-collapse-label">▼ 메뉴 접기</div>
   </div>
 
+  <!-- 접혔을 때 실시간 요약 바 -->
   <div class="rt-mini-summary" onclick="togglePanelCollapse()">
-    <span style="color:#4ade80;" id="mini-status">🏃 산행 대기 중</span>
-    <span>거리: <span id="mini-dist" style="color:#38bdf8;">0.00km</span></span>
-    <span>예상: <span id="mini-time">0분</span></span>
-    <span>도착: <span id="mini-eta" style="color:#38bdf8;">--:--</span></span>
+    <span style="color:#4ade80;" id="mini-status">🏃 산행 대기</span>
+    <span>총: <span id="mini-total" style="color:#ffffff;">0.0km</span></span>
+    <span>진행: <span id="mini-walked" style="color:#4ade80;">0.0km</span></span>
+    <span>남은: <span id="mini-remain" style="color:#38bdf8;">0.0km</span></span>
   </div>
 
+  <!-- 전체 지표 화면 -->
   <div class="rt-full-content">
     <div class="rt-metrics-grid">
       <div class="rt-metric-col">
-        <span class="rt-metric-title">총 산행 거리</span>
-        <span class="rt-metric-val val-white" id="val-distance">0.00 km</span>
+        <span class="rt-metric-title">총 거리</span>
+        <span class="rt-metric-val val-white" id="val-total-dist">0.00 km</span>
       </div>
       <div class="rt-metric-col">
-        <span class="rt-metric-title">예상 산행시간</span>
-        <span class="rt-metric-val val-white" id="val-duration">0분</span>
+        <span class="rt-metric-title">진행한 거리</span>
+        <span class="rt-metric-val val-green" id="val-walked-dist">0.00 km</span>
       </div>
       <div class="rt-metric-col">
-        <span class="rt-metric-title">도착 예정 시간</span>
-        <span class="rt-metric-val val-cyan" id="val-eta">--:--</span>
+        <span class="rt-metric-title">남은 거리</span>
+        <span class="rt-metric-val val-cyan" id="val-remain-dist">0.00 km</span>
+      </div>
+      <div class="rt-metric-col">
+        <span class="rt-metric-title">남은 시간</span>
+        <span class="rt-metric-val val-amber" id="val-remain-time">0분</span>
       </div>
     </div>
 
@@ -409,10 +436,10 @@
     </button>
 
     <div class="rt-footer-badge">
-      <div class="rt-guide-hint">※ 지도를 톡톡 더블터치하면 출발 ➔ 경유 ➔ 도착 핀이 연결됩니다</div>
+      <div class="rt-guide-hint">※ 운동 중에는 지도를 더블클릭해도 핀이 찍히지 않고 자유롭게 확대/축소됩니다</div>
       <div class="rt-dev-pill">
         <span>🥨 꿀꽈배기</span>
-        <span class="rt-ver-tag">v3.6</span>
+        <span class="rt-ver-tag">v4.0</span>
       </div>
     </div>
   </div>
@@ -436,10 +463,22 @@
   var searchMarker = null;
   var watchId = null;
 
-  var currentDistKm = 0;
+  // 산행 수치 변수
+  var totalDistKm = 0;
+  var walkedDistKm = 0;
+  var remainDistKm = 0;
   var currentUserPos = null;
+  var lastUserPos = null;
   var hasInitialCentered = false;
   var lastTapTime = 0;
+
+  // 네비게이션 제어 변수 (이탈 / 갈림길 안내 쿨다운)
+  var isOffTrail = false;
+  var lastOffTrailAlertTime = 0;
+  var lastTbtAlertIndex = -1;
+  var lastTbtAlertTime = 0;
+  var wakeLockObj = null;
+  var silentAudio = null;
 
   function speak(msg) {
     if (!isVoiceOn || !('speechSynthesis' in window)) return;
@@ -450,21 +489,50 @@
     window.speechSynthesis.speak(ut);
   }
 
+  // 화면 꺼짐 방지 (Wake Lock & 백그라운드 유지)
+  async function enableScreenKeepAwake() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockObj = await navigator.wakeLock.request('screen');
+      }
+    } catch (e) {}
+
+    // 무음 백그라운드 오디오 루프 (모바일 절전 모드 차단)
+    if (!silentAudio) {
+      silentAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+      silentAudio.loop = true;
+      silentAudio.play().catch(function(){});
+    }
+  }
+
+  function disableScreenKeepAwake() {
+    if (wakeLockObj) {
+      wakeLockObj.release().catch(function(){});
+      wakeLockObj = null;
+    }
+    if (silentAudio) {
+      silentAudio.pause();
+      silentAudio = null;
+    }
+  }
+
   function initKakaoMap() {
     var container = document.getElementById('map');
     var options = {
       center: new kakao.maps.LatLng(35.2818, 129.0494),
       level: 4,
-      disableDoubleClickZoom: true
+      disableDoubleClickZoom: false // 기본 확대 허용 (산행 중 자유 줌)
     };
     map = new kakao.maps.Map(container, options);
     ps = new kakao.maps.services.Places();
 
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-    // [핵심 복원] 모바일 스마트 더블터치 감지 (350ms 내 연속 터치)
+    // [핵심 해결] 산행 중에는 더블터치 시 핀이 찍히지 않고 순수 지도 확대/축소만 실행!
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isDrawing) return;
+      if (isHiking) return; // 산행 중에는 위치지정 차단!
+
       var latlng = mouseEvent.latLng;
       var now = Date.now();
       if (now - lastTapTime < 350) {
@@ -475,9 +543,10 @@
       }
     });
 
-    // 데스크톱 더블클릭
     kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
-      if (!isDrawing) handleDoubleTouchWaypoint(mouseEvent.latLng);
+      if (!isDrawing && !isHiking) {
+        handleDoubleTouchWaypoint(mouseEvent.latLng);
+      }
     });
 
     initTouchDrawingEngine();
@@ -485,7 +554,7 @@
   }
 
   // ============================================================
-  // [핵심 복원] 더블터치 출발 ➔ 경유 ➔ 도착 순차 연결 엔진
+  // 산행 전 더블터치 출발 ➔ 경유 ➔ 도착 지점 설정
   // ============================================================
   function handleDoubleTouchWaypoint(latlng) {
     waypointCoords.push(latlng);
@@ -496,7 +565,7 @@
       renderWaypointPins();
       document.getElementById('txt-hike-status').textContent = '🚩 출발지 설정됨 ➔ 다음 산길을 더블터치하세요';
       speak('출발지가 지정되었습니다. 다음 지점을 더블터치하세요.');
-      updateMetrics(0);
+      updateMetricsDisplay(0, 0, 0);
     } else if (count === 2) {
       document.getElementById('txt-hike-status').textContent = '산길 경로 연결 중...';
       renderWaypointPins();
@@ -511,7 +580,6 @@
     }
   }
 
-  // 비정상 우회 루프를 차단하는 스마트 안심 라우터
   function calculateSmartRoute() {
     if (waypointCoords.length < 2) return;
 
@@ -519,7 +587,6 @@
       return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
     }).join('|');
 
-    // 1차: BRouter 산악 직등 엔진 호출
     var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(coordsStr) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
 
     fetch(brouterUrl).then(function(r) { return r.json(); }).then(function(data) {
@@ -528,15 +595,16 @@
         var directDist = calcDirectMeters(waypointCoords);
         var routeDist = data.features[0].properties ? data.features[0].properties['track-length'] : directDist;
 
-        // 거리가 직선거리 대비 1.8배 이상 튀면 (정류장 유턴 등 엉뚱한 루프 발생 시) 안전한 능선 연결로 전환
         if (routeDist > directDist * 1.8) {
           generateReliableRidgePath();
         } else {
           rawPathPoints = coords.map(function(c) { return new kakao.maps.LatLng(c[1], c[0]); });
           drawPolyline(rawPathPoints);
-          currentDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
-          updateMetrics(currentDistKm);
-          document.getElementById('txt-hike-status').textContent = '🦅 산길 연결 완료 (' + currentDistKm.toFixed(2) + 'km)';
+          totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
+          walkedDistKm = 0;
+          remainDistKm = totalDistKm;
+          updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
+          document.getElementById('txt-hike-status').textContent = '🦅 산길 연결 완료 (' + totalDistKm.toFixed(2) + 'km)';
         }
       } else {
         generateReliableRidgePath();
@@ -564,9 +632,11 @@
       }
     }
     drawPolyline(rawPathPoints);
-    currentDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
-    updateMetrics(currentDistKm);
-    document.getElementById('txt-hike-status').textContent = '산길 능선 연결 완료 (' + currentDistKm.toFixed(2) + 'km)';
+    totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
+    walkedDistKm = 0;
+    remainDistKm = totalDistKm;
+    updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
+    document.getElementById('txt-hike-status').textContent = '산길 능선 연결 완료 (' + totalDistKm.toFixed(2) + 'km)';
   }
 
   function calcDirectMeters(points) {
@@ -585,16 +655,11 @@
     var total = waypointCoords.length;
     for (var i = 0; i < total; i++) {
       var pt = waypointCoords[i];
-      var html = '';
-      if (i === 0)         html = '<div class="rt-pin-badge badge-start">🚩 출발</div>';
-      else if (i === total - 1) html = '<div class="rt-pin-badge badge-dest">🏁 도착</div>';
-      else                 html = '<div class="rt-pin-badge badge-via">🟡 경유 ' + i + '</div>';
+      var html = (i === 0) ? '<div class="rt-pin-badge badge-start">🚩 출발</div>' :
+                 (i === total - 1) ? '<div class="rt-pin-badge badge-dest">🏁 도착</div>' :
+                 '<div class="rt-pin-badge badge-via">🟡 경유 ' + i + '</div>';
 
-      var overlay = new kakao.maps.CustomOverlay({
-        position: pt,
-        content: html,
-        yAnchor: 1.35
-      });
+      var overlay = new kakao.maps.CustomOverlay({ position: pt, content: html, yAnchor: 1.35 });
       overlay.setMap(map);
       waypointOverlays.push(overlay);
     }
@@ -616,7 +681,260 @@
   }
 
   // ============================================================
-  // 카카오 공식 실측 검색
+  // [핵심 엔진] 실시간 네비게이션 (이탈 40m 감지 / 갈림길 좌우 안내 / 도착 감지)
+  // ============================================================
+  function updateHikingNavigation(currentLatLng) {
+    if (!isHiking || rawPathPoints.length < 2) return;
+
+    // 1. 걸은 거리 누적 계산 (GPS 변위)
+    if (lastUserPos) {
+      var stepMeters = getDistanceBetween(lastUserPos, currentLatLng);
+      if (stepMeters >= 2 && stepMeters <= 50) { // 정상 보행 필터
+        walkedDistKm += (stepMeters / 1000.0);
+      }
+    }
+    lastUserPos = currentLatLng;
+
+    // 2. 남은 거리 계산
+    remainDistKm = Math.max(0, totalDistKm - walkedDistKm);
+    updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
+
+    // 3. 목적지 도착 감지 (마지막 점과 35m 이내)
+    var finalDest = rawPathPoints[rawPathPoints.length - 1];
+    var distToDest = getDistanceBetween(currentLatLng, finalDest);
+    if (distToDest <= 35) {
+      speak("목적지에 도착했습니다! 오늘 산행을 성공적으로 완료했습니다.");
+      toggleHiking();
+      return;
+    }
+
+    // 4. 경로 이탈(40m) 감지
+    var minTrailDist = getMinDistanceToRoute(currentLatLng, rawPathPoints);
+    var now = Date.now();
+    var panel = document.getElementById('rt-bottom-panel');
+
+    if (minTrailDist > 40) { // 40m 초과 이탈
+      if (!isOffTrail || (now - lastOffTrailAlertTime > 25000)) {
+        isOffTrail = true;
+        lastOffTrailAlertTime = now;
+        panel.classList.add('off-trail');
+        document.getElementById('txt-hike-status').textContent = '⚠️ 경로 이탈 (' + Math.round(minTrailDist) + 'm 벗어남) 등산로 확인!';
+        speak('등산로를 이탈했습니다! 주변 등산로를 확인하세요.');
+      }
+    } else {
+      if (isOffTrail) {
+        isOffTrail = false;
+        panel.classList.remove('off-trail');
+        document.getElementById('txt-hike-status').textContent = '🛡️ 정상 등산로에 복귀했습니다';
+        speak('정상 등산로에 복귀했습니다.');
+      }
+    }
+
+    // 5. 갈림길 좌·우 회전 턴바이턴 안내
+    if (!isOffTrail) {
+      checkUpcomingTurn(currentLatLng, now);
+    }
+  }
+
+  // 전방 갈림길/급커브 감지 (30~45m 전방 탐색)
+  function checkUpcomingTurn(userPos, now) {
+    if (now - lastTbtAlertTime < 20000) return; // 20초 쿨다운
+
+    for (var i = 0; i < rawPathPoints.length - 2; i++) {
+      var pMid = rawPathPoints[i + 1];
+      var distToTurn = getDistanceBetween(userPos, pMid);
+
+      // 전방 25~45m 내에 위치한 지점 검사
+      if (distToTurn >= 25 && distToTurn <= 45 && i !== lastTbtAlertIndex) {
+        var pPrev = rawPathPoints[i];
+        var pNext = rawPathPoints[i + 2];
+
+        var angle = getTurnAngle(pPrev, pMid, pNext);
+        // 35도 이상 꺾일 때 갈림길 방향 안내
+        if (Math.abs(angle) >= 35 && Math.abs(angle) <= 145) {
+          lastTbtAlertIndex = i;
+          lastTbtAlertTime = now;
+          var dirStr = angle > 0 ? "우측" : "좌측";
+          speak("약 30미터 앞 " + dirStr + " 방향입니다.");
+          document.getElementById('txt-hike-status').textContent = "🧭 약 30m 앞 " + dirStr + " 방향으로 이동하세요";
+          break;
+        }
+      }
+    }
+  }
+
+  // 3개 점 사이의 회전 각도 연산 (양수: 우회전, 음수: 좌회전)
+  function getTurnAngle(p1, p2, p3) {
+    var b1 = getBearing(p1, p2);
+    var b2 = getBearing(p2, p3);
+    var diff = b2 - b1;
+    while (diff < -180) diff += 360;
+    while (diff > 180) diff -= 360;
+    return diff;
+  }
+
+  function getBearing(p1, p2) {
+    var lat1 = p1.getLat() * Math.PI / 180;
+    var lat2 = p2.getLat() * Math.PI / 180;
+    var dLng = (p2.getLng() - p1.getLng()) * Math.PI / 180;
+    var y = Math.sin(dLng) * Math.cos(lat2);
+    var x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  // 점과 선분 사이의 최단 수직거리(미터) 연산
+  function getMinDistanceToRoute(p, points) {
+    var minDist = 999999;
+    for (var i = 0; i < points.length - 1; i++) {
+      var d = distToSegment(p, points[i], points[i + 1]);
+      if (d < minDist) minDist = d;
+    }
+    return minDist;
+  }
+
+  function distToSegment(p, v, w) {
+    var l2 = Math.pow(getDistanceBetween(v, w), 2);
+    if (l2 === 0) return getDistanceBetween(p, v);
+    var t = ((p.getLat() - v.getLat()) * (w.getLat() - v.getLat()) + (p.getLng() - v.getLng()) * (w.getLng() - v.getLng())) /
+            (Math.pow(w.getLat() - v.getLat(), 2) + Math.pow(w.getLng() - v.getLng(), 2));
+    t = Math.max(0, Math.min(1, t));
+    var proj = new kakao.maps.LatLng(v.getLat() + t * (w.getLat() - v.getLat()), v.getLng() + t * (w.getLng() - v.getLng()));
+    return getDistanceBetween(p, proj);
+  }
+
+  function getDistanceBetween(p1, p2) {
+    var R = 6371000;
+    var dLat = (p2.getLat() - p1.getLat()) * Math.PI / 180;
+    var dLng = (p2.getLng() - p1.getLng()) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(p1.getLat() * Math.PI / 180) * Math.cos(p2.getLat() * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // ============================================================
+  // [4대 지표 실시간 표출 함수]
+  // ============================================================
+  function updateMetricsDisplay(totalKm, walkedKm, remainKm) {
+    document.getElementById('val-total-dist').textContent = totalKm.toFixed(2) + ' km';
+    document.getElementById('val-walked-dist').textContent = walkedKm.toFixed(2) + ' km';
+    document.getElementById('val-remain-dist').textContent = remainKm.toFixed(2) + ' km';
+
+    // 미니바 연동
+    document.getElementById('mini-total').textContent = totalKm.toFixed(2) + 'km';
+    document.getElementById('mini-walked').textContent = walkedKm.toFixed(2) + 'km';
+    document.getElementById('mini-remain').textContent = remainKm.toFixed(2) + 'km';
+
+    if (remainKm <= 0.01) {
+      document.getElementById('val-remain-time').textContent = '0분';
+      return;
+    }
+
+    var remainMin = Math.round((remainKm / 2.5) * 60); // 산악 표준 2.5km/h
+    document.getElementById('val-remain-time').textContent = remainMin + '분';
+  }
+
+  // ============================================================
+  // 산행 시작/종료 토글
+  // ============================================================
+  function toggleHiking() {
+    isHiking = !isHiking;
+    var btn = document.getElementById('btn-hike-toggle');
+    var label = document.getElementById('txt-action-label');
+    var statusTitle = document.getElementById('txt-hike-status');
+    var miniStatus = document.getElementById('mini-status');
+
+    if (isHiking) {
+      if (rawPathPoints.length < 2 && waypointCoords.length < 2) {
+        alert('먼저 지도를 더블터치하거나 [길따라 그리기]로 산행 경로를 지정하세요.');
+        isHiking = false;
+        return;
+      }
+      if (isDrawing) toggleDrawMode();
+
+      // 산행 시작: 지도 더블클릭 위치지정 자동 잠금 & 확대/축소 자유화
+      map.setZoomable(true);
+
+      walkedDistKm = 0;
+      remainDistKm = totalDistKm;
+      lastUserPos = currentUserPos;
+      isOffTrail = false;
+
+      btn.className = 'rt-action-btn btn-active';
+      label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
+      statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
+      miniStatus.textContent = '🔴 진행 중';
+      speak('안전 산행을 시작합니다. 화면이 꺼져도 음성 안내가 지속됩니다.');
+
+      enableScreenKeepAwake();
+
+      setTimeout(function() {
+        if (!isPanelCollapsed) togglePanelCollapse();
+      }, 600);
+    } else {
+      btn.className = 'rt-action-btn btn-start';
+      label.textContent = '산행 시작';
+      statusTitle.textContent = '산행이 종료되었습니다.';
+      miniStatus.textContent = '산행 대기';
+      document.getElementById('rt-bottom-panel').classList.remove('off-trail');
+      speak('산행이 종료되었습니다. 수고하셨습니다.');
+      disableScreenKeepAwake();
+      if (isPanelCollapsed) togglePanelCollapse();
+    }
+  }
+
+  // ============================================================
+  // GPS 위치 실시간 수신부
+  // ============================================================
+  function startGpsTracking() {
+    if (!('geolocation' in navigator)) return;
+
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      if (!hasInitialCentered) {
+        map.setCenter(currentUserPos);
+        hasInitialCentered = true;
+      }
+      updateGpsMarker(currentUserPos);
+      document.getElementById('txt-gps').textContent = '내위치 수신완료';
+    }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
+
+    watchId = navigator.geolocation.watchPosition(function(pos) {
+      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      document.getElementById('txt-gps').textContent = '실시간 GPS';
+      updateGpsMarker(currentUserPos);
+
+      // 산행 모드일 때 네비게이션 실시간 판별 가동
+      if (isHiking) {
+        updateHikingNavigation(currentUserPos);
+      }
+    }, function() {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 });
+  }
+
+  function updateGpsMarker(pos) {
+    if (!userMarker) {
+      userMarker = new kakao.maps.CustomOverlay({
+        position: pos,
+        content: '<div class="rt-gps-marker"></div>',
+        zIndex: 999
+      });
+      userMarker.setMap(map);
+    } else {
+      userMarker.setPosition(pos);
+    }
+  }
+
+  function panToUserLocation() {
+    if (currentUserPos) {
+      map.panTo(currentUserPos);
+      speak('내 위치로 이동합니다.');
+    } else {
+      alert('현재 GPS 위치 정보를 수신 중입니다.');
+    }
+  }
+
+  // ============================================================
+  // 카카오 공식 장소 검색
   // ============================================================
   var searchKw = document.getElementById('rt-search-kw');
   var dropBox = document.getElementById('rt-search-dropdown');
@@ -624,10 +942,6 @@
   searchKw.addEventListener('input', function() {
     var kw = this.value.trim();
     if (!kw) { dropBox.style.display = 'none'; return; }
-    requestKakaoPlaces(kw);
-  });
-
-  function requestKakaoPlaces(kw) {
     if (!ps) return;
     ps.keywordSearch(kw, function(data, status) {
       if (status === kakao.maps.services.Status.OK && data.length > 0) {
@@ -660,7 +974,7 @@
         dropBox.style.display = 'none';
       }
     });
-  }
+  });
 
   function moveToExactLocation(lat, lng, name) {
     var pos = new kakao.maps.LatLng(lat, lng);
@@ -675,20 +989,20 @@
     });
     searchMarker.setMap(map);
 
-    document.getElementById('txt-hike-status').textContent = '📍 ' + name + ' 이동 완료 ➔ 더블터치로 출발/도착을 지정하세요';
-    speak(name + '로 이동했습니다. 더블터치로 산길을 지정해보세요.');
+    document.getElementById('txt-hike-status').textContent = '📍 ' + name + ' 이동 완료 ➔ 더블터치로 산길을 지정하세요';
+    speak(name + '로 이동했습니다.');
   }
 
   function execSearch() {
     var kw = searchKw.value.trim();
     if (!kw) return;
-    requestKakaoPlaces(kw);
+    searchKw.dispatchEvent(new Event('input'));
   }
   searchKw.onkeydown = function(e) { if (e.key === 'Enter') execSearch(); };
   searchKw.addEventListener('blur', function() { setTimeout(function() { dropBox.style.display = 'none'; }, 250); });
 
   // ============================================================
-  // 길따라 그리기 모드 (터치 드로잉)
+  // 길따라 그리기 모드
   // ============================================================
   var isPointerDown = false;
   var lastAddedPixel = null;
@@ -759,81 +1073,16 @@
     rawPathPoints.push(latlng);
     if (rawPathPoints.length >= 2) {
       drawPolyline(rawPathPoints);
-      currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-      updateMetrics(currentDistKm);
+      totalDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
+      walkedDistKm = 0;
+      remainDistKm = totalDistKm;
+      updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
     }
   }
 
   // ============================================================
-  // GPS 및 콕핏 제어
+  // 공통 컨트롤
   // ============================================================
-  function startGpsTracking() {
-    if (!('geolocation' in navigator)) return;
-
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-      if (!hasInitialCentered) {
-        map.setCenter(currentUserPos);
-        map.setLevel(4);
-        hasInitialCentered = true;
-      }
-      updateGpsMarker(currentUserPos);
-      document.getElementById('txt-gps').textContent = '내위치 수신완료';
-    }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
-
-    watchId = navigator.geolocation.watchPosition(function(pos) {
-      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-      document.getElementById('txt-gps').textContent = '실시간 GPS';
-      updateGpsMarker(currentUserPos);
-    }, function() {}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
-  }
-
-  function updateGpsMarker(pos) {
-    if (!userMarker) {
-      userMarker = new kakao.maps.CustomOverlay({
-        position: pos,
-        content: '<div class="rt-gps-marker"></div>',
-        zIndex: 999
-      });
-      userMarker.setMap(map);
-    } else {
-      userMarker.setPosition(pos);
-    }
-  }
-
-  function panToUserLocation() {
-    if (currentUserPos) {
-      map.panTo(currentUserPos);
-      speak('내 위치로 이동합니다.');
-    } else {
-      alert('현재 GPS 위치 정보를 수신 중입니다.');
-    }
-  }
-
-  function updateMetrics(distKm) {
-    document.getElementById('val-distance').textContent = distKm.toFixed(2) + ' km';
-    document.getElementById('mini-dist').textContent = distKm.toFixed(2) + ' km';
-
-    if (distKm <= 0.01) {
-      document.getElementById('val-duration').textContent = '0분';
-      document.getElementById('val-eta').textContent = '--:--';
-      document.getElementById('mini-time').textContent = '0분';
-      document.getElementById('mini-eta').textContent = '--:--';
-      return;
-    }
-
-    var totalMinutes = Math.round((distKm / 2.5) * 60);
-    document.getElementById('val-duration').textContent = totalMinutes + '분';
-    document.getElementById('mini-time').textContent = totalMinutes + '분';
-
-    var now = new Date();
-    var eta = new Date(now.getTime() + totalMinutes * 60000);
-    var h = eta.getHours(), m = eta.getMinutes();
-    var etaStr = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-    document.getElementById('val-eta').textContent = etaStr;
-    document.getElementById('mini-eta').textContent = etaStr;
-  }
-
   function togglePanelCollapse() {
     isPanelCollapsed = !isPanelCollapsed;
     var panel = document.getElementById('rt-bottom-panel');
@@ -847,40 +1096,6 @@
     }
   }
 
-  function toggleHiking() {
-    isHiking = !isHiking;
-    var btn = document.getElementById('btn-hike-toggle');
-    var label = document.getElementById('txt-action-label');
-    var statusTitle = document.getElementById('txt-hike-status');
-    var miniStatus = document.getElementById('mini-status');
-
-    if (isHiking) {
-      if (rawPathPoints.length < 2 && waypointCoords.length < 2) {
-        alert('먼저 지도를 더블터치하거나 [길따라 그리기]로 산행 경로를 지정하세요.');
-        isHiking = false;
-        return;
-      }
-      if (isDrawing) toggleDrawMode();
-
-      btn.className = 'rt-action-btn btn-active';
-      label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
-      statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
-      miniStatus.textContent = '🔴 산행 진행 중';
-      speak('안전 산행을 시작합니다. 경로 안내를 시작합니다.');
-
-      setTimeout(function() {
-        if (!isPanelCollapsed) togglePanelCollapse();
-      }, 600);
-    } else {
-      btn.className = 'rt-action-btn btn-start';
-      label.textContent = '산행 시작';
-      statusTitle.textContent = '산행이 종료되었습니다.';
-      miniStatus.textContent = '산행 대기 중';
-      speak('산행이 종료되었습니다. 수고하셨습니다.');
-      if (isPanelCollapsed) togglePanelCollapse();
-    }
-  }
-
   function undoLastPoint() {
     if (waypointCoords.length > 0) {
       waypointCoords.pop();
@@ -889,7 +1104,7 @@
       } else if (waypointCoords.length === 1) {
         if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
         renderWaypointPins();
-        updateMetrics(0);
+        updateMetricsDisplay(0, 0, 0);
       } else {
         resetRoute();
       }
@@ -900,18 +1115,20 @@
       rawPathPoints.pop();
       if (rawPathPoints.length >= 2) {
         drawPolyline(rawPathPoints);
-        currentDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
-        updateMetrics(currentDistKm);
+        totalDistKm = activePolyline ? activePolyline.getLength() / 1000.0 : 0;
+        walkedDistKm = 0;
+        remainDistKm = totalDistKm;
+        updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
       } else {
         if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
-        updateMetrics(0);
+        updateMetricsDisplay(0, 0, 0);
       }
     }
   }
 
   function resetRoute() {
     if (isHiking) {
-      alert('산행 진행 중에는 초기화할 수 없습니다.');
+      alert('산행 진행 중에는 초기화할 수 없습니다. 산행을 먼저 종료하세요.');
       return;
     }
     rawPathPoints = [];
@@ -919,8 +1136,10 @@
     if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
     waypointOverlays.forEach(function(ov) { ov.setMap(null); });
     waypointOverlays = [];
-    currentDistKm = 0;
-    updateMetrics(0);
+    totalDistKm = 0;
+    walkedDistKm = 0;
+    remainDistKm = 0;
+    updateMetricsDisplay(0, 0, 0);
     document.getElementById('txt-hike-status').textContent = '더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결';
     speak('경로가 초기화되었습니다.');
   }
