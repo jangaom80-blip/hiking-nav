@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>HIKER ULTRA v5.0 (프로 산행 내비게이션)</title>
+<title>HIKER ULTRA v5.2 (프로 산행 내비게이션)</title>
 <!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
   :root {
-    --bg-glass: rgba(13, 17, 23, 0.78);
-    --bg-glass-card: rgba(22, 27, 34, 0.82);
+    --bg-glass: rgba(11, 15, 23, 0.76);
+    --bg-glass-card: rgba(15, 20, 29, 0.84);
     --border-glass: rgba(255, 255, 255, 0.12);
     --border-glass-subtle: rgba(255, 255, 255, 0.06);
     --text-primary: #f8fafc;
@@ -19,7 +19,7 @@
     --accent-orange-glow: rgba(255, 94, 0, 0.35);
     --accent-green: #10b981;
     --accent-cyan: #38bdf8;
-    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Pretendard Variable", sans-serif;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -35,7 +35,7 @@
     cursor: crosshair; background: rgba(0, 0, 0, 0.01);
   }
 
-  /* 상단 애플 스타일 플로팅 검색바 */
+  /* 상단 플로팅 검색바 */
   .ultra-search-container {
     position: absolute;
     top: env(safe-area-inset-top, 14px);
@@ -60,7 +60,7 @@
     border-color: var(--accent-cyan);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 16px rgba(56, 189, 248, 0.35);
   }
-  .ultra-search-icon { font-size: 13px; color: var(--text-tertiary); margin-right: 8px; }
+  .ultra-search-icon { display: flex; align-items: center; color: var(--text-tertiary); margin-right: 8px; }
   .ultra-search-input {
     flex: 1;
     background: transparent;
@@ -85,7 +85,7 @@
   }
   .ultra-search-action-btn:active { background: rgba(255, 255, 255, 0.2); }
 
-  /* 검색 자동완성 드롭다운 */
+  /* 검색 결과 드롭다운 */
   .ultra-search-dropdown {
     position: absolute;
     top: 52px;
@@ -134,7 +134,7 @@
     border: 1px solid rgba(56, 189, 248, 0.3);
   }
 
-  /* 우측 상단 미니멀 플로팅 버튼 스택 */
+  /* 우측 상단 플로팅 컨트롤 스택 */
   .ultra-controls-stack {
     position: absolute;
     top: 74px;
@@ -176,7 +176,6 @@
     border: 1px solid var(--border-glass);
     border-radius: 12px;
     color: var(--text-secondary);
-    font-size: 16px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -184,6 +183,7 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
+  .ultra-icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   .ultra-icon-btn:active { transform: scale(0.92); }
   .ultra-icon-btn.active {
     background: rgba(2, 132, 199, 0.3);
@@ -196,7 +196,7 @@
     border-color: rgba(16, 185, 129, 0.4);
   }
 
-  /* 하단 슬라이딩 애플 콕핏 대시보드 */
+  /* 하단 슬라이딩 콕핏 대시보드 */
   .ultra-cockpit-panel {
     position: absolute;
     bottom: env(safe-area-inset-bottom, 16px);
@@ -215,7 +215,6 @@
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, padding 0.3s;
   }
 
-  /* 이탈 시 울트라 앰버/레드 알림 */
   .ultra-cockpit-panel.off-trail {
     border-color: #ef4444 !important;
     box-shadow: 0 28px 60px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -226,7 +225,6 @@
     50% { border-color: rgba(239, 68, 68, 0.3); }
   }
 
-  /* 미니멀 접힘 모드 */
   .ultra-cockpit-panel.collapsed {
     transform: translateY(calc(100% - 48px));
     padding: 8px 16px 12px 16px;
@@ -234,7 +232,6 @@
     border-color: rgba(255, 255, 255, 0.18);
   }
 
-  /* 상단 다이내믹 아일랜드 핸들 바 */
   .ultra-handle-zone {
     display: flex;
     flex-direction: column;
@@ -265,9 +262,11 @@
     color: var(--accent-cyan);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     letter-spacing: -0.2px;
   }
+  .ultra-status-icon { display: inline-flex; align-items: center; }
+  .ultra-status-icon svg { width: 14px; height: 14px; stroke: var(--accent-cyan); fill: none; stroke-width: 2; }
   .ultra-collapse-toggle {
     font-size: 9.5px;
     color: var(--text-tertiary);
@@ -276,7 +275,6 @@
     letter-spacing: 0.5px;
   }
 
-  /* 접혔을 때 1줄 미니멀 요약 */
   .ultra-mini-dashboard {
     display: none;
     justify-content: space-between;
@@ -290,11 +288,11 @@
   .ultra-mini-stat { font-size: 11.5px; font-weight: 700; }
   .stat-label { color: var(--text-tertiary); font-size: 10px; font-weight: 600; margin-right: 2px; }
 
-  /* 4대 핵심 지표 그리드 (SF Pro / Tabular Nums) */
+  /* 4대 핵심 지표 그리드 */
   .ultra-metrics-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.24);
     border-radius: 16px;
     padding: 10px 4px;
     border: 1px solid var(--border-glass-subtle);
@@ -345,9 +343,10 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     transition: all 0.2s;
   }
+  .ultra-subtool-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
   .ultra-subtool-btn:active { background: rgba(255, 255, 255, 0.12); transform: scale(0.96); }
   .ultra-subtool-btn.drawing {
     background: rgba(255, 94, 0, 0.2);
@@ -356,7 +355,6 @@
     box-shadow: 0 0 16px var(--accent-orange-glow);
   }
 
-  /* 애플 워치 울트라 액션 버튼 (산행 시작/종료) */
   .ultra-action-btn {
     width: 100%;
     padding: 14px;
@@ -388,6 +386,7 @@
     50% { box-shadow: 0 8px 36px rgba(255, 94, 0, 0.65); }
   }
 
+  /* [신규 하이엔드 브랜딩] PRO · STAT LAB · v5.2 */
   .ultra-footer {
     display: flex;
     justify-content: space-between;
@@ -395,20 +394,40 @@
     margin-top: 10px;
     padding: 0 4px;
   }
-  .ultra-footer-hint { font-size: 9.5px; color: var(--text-tertiary); font-weight: 500; }
-  .ultra-badge-group { display: flex; align-items: center; gap: 4px; }
-  .ultra-pro-tag {
-    background: rgba(255, 94, 0, 0.15);
-    color: var(--accent-orange);
-    border: 1px solid rgba(255, 94, 0, 0.3);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 8.5px;
+  .ultra-footer-hint { font-size: 9px; color: var(--text-tertiary); font-weight: 500; }
+  .ultra-statlab-badge {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 2px 3px 2px 2px;
+    gap: 5px;
+  }
+  .badge-chip-pro {
+    background: var(--accent-orange);
+    color: #ffffff;
+    font-size: 8px;
     font-weight: 900;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .badge-chip-lab {
+    color: #e2e8f0;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .badge-chip-ver {
+    color: var(--text-tertiary);
+    font-size: 8px;
+    font-weight: 700;
+    padding-right: 5px;
   }
 
-  /* 핀 마커 배지 (애플 미니멀 칩) */
+  /* 핀 마커 칩 */
   .ultra-pin-chip {
     padding: 4px 8px;
     border-radius: 8px;
@@ -424,7 +443,6 @@
   .chip-via   { background: #d97706; }
   .chip-dest  { background: #ff5e00; }
 
-  /* GPS 내 위치 레이더 마커 */
   .ultra-gps-radar {
     width: 20px;
     height: 20px;
@@ -440,39 +458,74 @@
 <div id="map"></div>
 <div id="rt-draw-layer"></div>
 
-<!-- 상단 애플 스타일 통합 검색바 -->
+<!-- 상단 플로팅 검색바 -->
 <div class="ultra-search-container">
   <div class="ultra-search-bar">
-    <span class="ultra-search-icon">􀊫</span>
+    <span class="ultra-search-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </span>
     <input type="text" class="ultra-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리, 들머리 검색" autocomplete="off">
     <button class="ultra-search-action-btn" onclick="execSearch()">검색</button>
   </div>
   <div class="ultra-search-dropdown" id="rt-search-dropdown"></div>
 </div>
 
-<!-- 우측 상단 플로팅 컨트롤 스택 -->
+<!-- 우측 상단 플로팅 컨트롤 스택 (정밀 벡터 SVG 적용) -->
 <div class="ultra-controls-stack">
   <div class="ultra-gps-capsule">
     <span class="ultra-gps-dot"></span>
     <span id="txt-gps">GPS 연결 대기</span>
   </div>
-  <button class="ultra-icon-btn active" id="btn-skyview" onclick="toggleSkyview()" title="스카이뷰">🦅</button>
-  <button class="ultra-icon-btn" id="btn-terrain" onclick="toggleTerrain()" title="등고선">🌾</button>
-  <button class="ultra-icon-btn voice-on" id="btn-voice" onclick="toggleVoice()" title="음성 안내">🪶</button>
+  
+  <!-- 스카이뷰 레이어 아이콘 -->
+  <button class="ultra-icon-btn active" id="btn-skyview" onclick="toggleSkyview()" title="스카이뷰">
+    <svg viewBox="0 0 24 24">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+      <polyline points="2 17 12 22 22 17"></polyline>
+      <polyline points="2 12 12 17 22 12"></polyline>
+    </svg>
+  </button>
+  
+  <!-- 등고선 아이콘 -->
+  <button class="ultra-icon-btn" id="btn-terrain" onclick="toggleTerrain()" title="등고선">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 18c4-4 8 2 12-2s4-4 4-4"></path>
+      <path d="M2 12c5-3 9 3 14-2s4-3 6-3"></path>
+      <path d="M3 6c4-2 8 2 13-1s4-2 5-2"></path>
+    </svg>
+  </button>
+  
+  <!-- 음성 안내 사운드웨이브 아이콘 -->
+  <button class="ultra-icon-btn voice-on" id="btn-voice" onclick="toggleVoice()" title="음성 안내">
+    <svg viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+  </button>
 </div>
 
-<!-- 하단 애플 글래스 콕핏 대시보드 -->
+<!-- 하단 글래스모피즘 콕핏 대시보드 -->
 <div class="ultra-cockpit-panel" id="rt-bottom-panel">
-  <!-- 다이내믹 아일랜드 스타일 핸들 -->
   <div class="ultra-handle-zone" onclick="togglePanelCollapse()">
     <div class="ultra-pill-handle"></div>
     <div class="ultra-status-bar">
-      <span class="ultra-status-text" id="txt-hike-status">더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결</span>
+      <span class="ultra-status-text" id="txt-hike-status">
+        <!-- 알파인 피크 벡터 아이콘 -->
+        <span class="ultra-status-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 3l4 8 5-5 5 15H2L8 3z"></path>
+          </svg>
+        </span>
+        <span id="txt-hike-status-inner">더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결</span>
+      </span>
       <span class="ultra-collapse-toggle" id="btn-collapse-label">메뉴 접기</span>
     </div>
   </div>
 
-  <!-- 접혔을 때 1줄 요약 미니 바 -->
   <div class="ultra-mini-dashboard" onclick="togglePanelCollapse()">
     <span style="color: var(--accent-green);" id="mini-status">🏃 산행 준비</span>
     <span class="ultra-mini-stat"><span class="stat-label">총</span><span id="mini-total" style="color: #fff;">0.0km</span></span>
@@ -480,7 +533,6 @@
     <span class="ultra-mini-stat"><span class="stat-label">남은</span><span id="mini-remain" style="color: var(--accent-cyan);">0.0km</span></span>
   </div>
 
-  <!-- 펼쳐졌을 때의 전체 콕핏 -->
   <div class="ultra-expanded-dashboard">
     <div class="ultra-metrics-row">
       <div class="ultra-metric-tile">
@@ -501,22 +553,37 @@
       </div>
     </div>
 
+    <!-- 보조 제어 툴바 (정밀 벡터 아이콘 적용) -->
     <div class="ultra-subtools-row">
-      <button class="ultra-subtool-btn" onclick="panToUserLocation()">📍 내 위치</button>
-      <button class="ultra-subtool-btn" id="btn-draw" onclick="toggleDrawMode()">✏️ 길따라 그리기</button>
-      <button class="ultra-subtool-btn" onclick="undoLastPoint()">↩️ 취소</button>
-      <button class="ultra-subtool-btn" onclick="resetRoute()">🔄 초기화</button>
+      <button class="ultra-subtool-btn" onclick="panToUserLocation()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="1" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
+        <span>내 위치</span>
+      </button>
+      <button class="ultra-subtool-btn" id="btn-draw" onclick="toggleDrawMode()">
+        <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+        <span>길따라 그리기</span>
+      </button>
+      <button class="ultra-subtool-btn" onclick="undoLastPoint()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+        <span>취소</span>
+      </button>
+      <button class="ultra-subtool-btn" onclick="resetRoute()">
+        <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+        <span>초기화</span>
+      </button>
     </div>
 
     <button class="ultra-action-btn btn-start" id="btn-hike-toggle" onclick="toggleHiking()">
       <span id="txt-action-label">산행 시작</span>
     </button>
 
+    <!-- 하단 브랜딩 영역: PRO · STAT LAB · v5.2 -->
     <div class="ultra-footer">
-      <div class="ultra-footer-hint">※ 산행 중에는 더블클릭 방해 없이 지도를 자유롭게 확대/탐색할 수 있습니다</div>
-      <div class="ultra-badge-group">
-        <span class="ultra-pro-tag">PRO</span>
-        <span style="font-size: 9px; font-weight: 800; color: var(--text-tertiary);">v5.0</span>
+      <div class="ultra-footer-hint">※ 산행 중에는 지도를 더블클릭해도 핀이 찍히지 않고 자유롭게 확대/탐색됩니다</div>
+      <div class="ultra-statlab-badge">
+        <span class="badge-chip-pro">PRO</span>
+        <span class="badge-chip-lab">STAT LAB</span>
+        <span class="badge-chip-ver">v5.2</span>
       </div>
     </div>
   </div>
@@ -547,8 +614,8 @@
   var lastUserPos = null;
   var hasInitialCentered = false;
   var lastTapTime = 0;
+  var lastTouchRegisteredTime = 0;
 
-  // 네비게이션 제어 변수 (40m 이탈 / 갈림길 안내 쿨다운)
   var isOffTrail = false;
   var lastOffTrailAlertTime = 0;
   var lastTbtAlertIndex = -1;
@@ -565,7 +632,11 @@
     window.speechSynthesis.speak(ut);
   }
 
-  // 화면 꺼짐 방지 (Wake Lock & 무음 백그라운드 유지)
+  function setStatusText(txt) {
+    var el = document.getElementById('txt-hike-status-inner');
+    if (el) el.textContent = txt;
+  }
+
   async function enableScreenKeepAwake() {
     try {
       if ('wakeLock' in navigator) {
@@ -603,14 +674,20 @@
 
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-    // 산행 중이 아닐 때만 더블터치 위치지정 활성화
+    function onSafeDoubleTouch(latlng) {
+      var now = Date.now();
+      if (now - lastTouchRegisteredTime < 400) return;
+      lastTouchRegisteredTime = now;
+      handleDoubleTouchWaypoint(latlng);
+    }
+
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
       if (isDrawing || isHiking) return;
 
       var latlng = mouseEvent.latLng;
       var now = Date.now();
       if (now - lastTapTime < 350) {
-        handleDoubleTouchWaypoint(latlng);
+        onSafeDoubleTouch(latlng);
         lastTapTime = 0;
       } else {
         lastTapTime = now;
@@ -619,7 +696,7 @@
 
     kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
       if (!isDrawing && !isHiking) {
-        handleDoubleTouchWaypoint(mouseEvent.latLng);
+        onSafeDoubleTouch(mouseEvent.latLng);
       }
     });
 
@@ -628,7 +705,7 @@
   }
 
   // ============================================================
-  // 더블터치 출발 ➔ 경유 ➔ 도착 순차 연결 엔진
+  // 더블터치 순차 연결 엔진
   // ============================================================
   function handleDoubleTouchWaypoint(latlng) {
     waypointCoords.push(latlng);
@@ -637,17 +714,17 @@
     if (count === 1) {
       rawPathPoints = [latlng];
       renderWaypointPins();
-      document.getElementById('txt-hike-status').textContent = '🚩 출발지 설정됨 ➔ 다음 산길을 더블터치하세요';
+      setStatusText('🚩 출발지 설정됨 ➔ 다음 산길을 더블터치하세요');
       speak('출발지가 지정되었습니다. 다음 지점을 더블터치하세요.');
       updateMetricsDisplay(0, 0, 0);
     } else if (count === 2) {
-      document.getElementById('txt-hike-status').textContent = '산길 경로 연결 중...';
+      setStatusText('산길 경로 연결 중...');
       renderWaypointPins();
       speak('도착지가 지정되었습니다. 산길을 연결합니다.');
       calculateSmartRoute();
     } else {
       var viaNum = count - 2;
-      document.getElementById('txt-hike-status').textContent = '경유지(' + viaNum + '곳) 추가 ➔ 산길 재계산 중...';
+      setStatusText('경유지(' + viaNum + '곳) 추가 ➔ 산길 재계산 중...');
       renderWaypointPins();
       speak(viaNum + '번째 경유지가 추가되었습니다.');
       calculateSmartRoute();
@@ -678,7 +755,7 @@
           walkedDistKm = 0;
           remainDistKm = totalDistKm;
           updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
-          document.getElementById('txt-hike-status').textContent = '🦅 산길 연결 완료 (' + totalDistKm.toFixed(2) + 'km)';
+          setStatusText('산길 연결 완료 (' + totalDistKm.toFixed(2) + 'km)');
         }
       } else {
         generateReliableRidgePath();
@@ -710,7 +787,7 @@
     walkedDistKm = 0;
     remainDistKm = totalDistKm;
     updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
-    document.getElementById('txt-hike-status').textContent = '산길 능선 연결 완료 (' + totalDistKm.toFixed(2) + 'km)';
+    setStatusText('산길 능선 연결 완료 (' + totalDistKm.toFixed(2) + 'km)');
   }
 
   function calcDirectMeters(points) {
@@ -746,7 +823,7 @@
     activePolyline = new kakao.maps.Polyline({
       path: points,
       strokeWeight: 6,
-      strokeColor: '#ff5e00', // 애플 워치 울트라 오렌지 궤적
+      strokeColor: '#ff5e00',
       strokeOpacity: 0.95,
       strokeStyle: 'solid',
       zIndex: 10
@@ -755,7 +832,7 @@
   }
 
   // ============================================================
-  // 네비게이션 실시간 감지 (40m 이탈 / 갈림길 좌우 / 도착 감지)
+  // 네비게이션 감지 (40m 이탈 / 갈림길 좌우 / 도착 감지)
   // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
@@ -771,7 +848,6 @@
     remainDistKm = Math.max(0, totalDistKm - walkedDistKm);
     updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
 
-    // 1. 도착 감지 (35m 이내)
     var finalDest = rawPathPoints[rawPathPoints.length - 1];
     if (getDistanceBetween(currentLatLng, finalDest) <= 35) {
       speak("목적지에 도착했습니다! 오늘 산행을 성공적으로 완료했습니다.");
@@ -779,7 +855,6 @@
       return;
     }
 
-    // 2. 40m 경로 이탈 감지
     var minTrailDist = getMinDistanceToRoute(currentLatLng, rawPathPoints);
     var now = Date.now();
     var panel = document.getElementById('rt-bottom-panel');
@@ -789,19 +864,18 @@
         isOffTrail = true;
         lastOffTrailAlertTime = now;
         panel.classList.add('off-trail');
-        document.getElementById('txt-hike-status').textContent = '⚠️ 경로 이탈 (' + Math.round(minTrailDist) + 'm 벗어남) 등산로 확인!';
+        setStatusText('⚠️ 경로 이탈 (' + Math.round(minTrailDist) + 'm 벗어남) 등산로 확인!');
         speak('등산로를 이탈했습니다! 주변 등산로를 확인하세요.');
       }
     } else {
       if (isOffTrail) {
         isOffTrail = false;
         panel.classList.remove('off-trail');
-        document.getElementById('txt-hike-status').textContent = '🛡️ 정상 등산로에 복귀했습니다';
+        setStatusText('정상 등산로에 복귀했습니다');
         speak('정상 등산로에 복귀했습니다.');
       }
     }
 
-    // 3. 갈림길 턴바이턴 안내
     if (!isOffTrail) checkUpcomingTurn(currentLatLng, now);
   }
 
@@ -819,7 +893,7 @@
           lastTbtAlertTime = now;
           var dirStr = angle > 0 ? "우측" : "좌측";
           speak("약 30미터 앞 " + dirStr + " 방향입니다.");
-          document.getElementById('txt-hike-status').textContent = "🧭 약 30m 앞 " + dirStr + " 방향으로 이동하세요";
+          setStatusText("🧭 약 30m 앞 " + dirStr + " 방향으로 이동하세요");
           break;
         }
       }
@@ -873,9 +947,6 @@
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // ============================================================
-  // 수치 업데이트 (Tabular Nums 연동)
-  // ============================================================
   function updateMetricsDisplay(totalKm, walkedKm, remainKm) {
     document.getElementById('val-total-dist').innerHTML = totalKm.toFixed(2) + ' <span style="font-size:10px;font-weight:600;">km</span>';
     document.getElementById('val-walked-dist').innerHTML = walkedKm.toFixed(2) + ' <span style="font-size:10px;font-weight:600;">km</span>';
@@ -894,14 +965,10 @@
     document.getElementById('val-remain-time').innerHTML = remainMin + ' <span style="font-size:10px;font-weight:600;">분</span>';
   }
 
-  // ============================================================
-  // 산행 시작/종료 토글
-  // ============================================================
   function toggleHiking() {
     isHiking = !isHiking;
     var btn = document.getElementById('btn-hike-toggle');
     var label = document.getElementById('txt-action-label');
-    var statusTitle = document.getElementById('txt-hike-status');
     var miniStatus = document.getElementById('mini-status');
 
     if (isHiking) {
@@ -920,7 +987,7 @@
 
       btn.className = 'ultra-action-btn btn-active';
       label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
-      statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
+      setStatusText('실시간 음성 산행 진행 중 (안전 산행 되세요)');
       miniStatus.textContent = '🔴 진행 중';
       speak('안전 산행을 시작합니다. 화면이 꺼져도 음성 안내가 지속됩니다.');
 
@@ -932,7 +999,7 @@
     } else {
       btn.className = 'ultra-action-btn btn-start';
       label.textContent = '산행 시작';
-      statusTitle.textContent = '산행이 종료되었습니다.';
+      setStatusText('산행이 종료되었습니다.');
       miniStatus.textContent = '산행 대기';
       document.getElementById('rt-bottom-panel').classList.remove('off-trail');
       speak('산행이 종료되었습니다. 수고하셨습니다.');
@@ -941,9 +1008,6 @@
     }
   }
 
-  // ============================================================
-  // GPS 위치 실시간 수신부
-  // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
@@ -1046,7 +1110,7 @@
     });
     searchMarker.setMap(map);
 
-    document.getElementById('txt-hike-status').textContent = '📍 ' + name + ' 이동 완료 ➔ 더블터치로 산길을 지정하세요';
+    setStatusText('📍 ' + name + ' 이동 완료 ➔ 더블터치로 산길을 지정하세요');
     speak(name + '로 이동했습니다.');
   }
 
@@ -1113,15 +1177,15 @@
       drawLayer.style.display = 'block';
       if (map) { map.setDraggable(false); map.setZoomable(false); }
       btn.classList.add('drawing');
-      btn.innerHTML = '🔒 그리기중';
-      document.getElementById('txt-hike-status').textContent = '✏️ 화면에 손가락을 대고 산길을 문지르면 선이 그려집니다!';
+      btn.querySelector('span').textContent = '그리기중';
+      setStatusText('화면에 손가락을 대고 산길을 문지르면 선이 그려집니다');
       speak('그리기 모드가 켜졌습니다. 손가락으로 산길을 문지르세요.');
     } else {
       drawLayer.style.display = 'none';
       if (map) { map.setDraggable(true); map.setZoomable(true); }
       btn.classList.remove('drawing');
-      btn.innerHTML = '✏️ 길따라 그리기';
-      document.getElementById('txt-hike-status').textContent = '그리기 모드 종료 (지도 탐색 가능)';
+      btn.querySelector('span').textContent = '길따라 그리기';
+      setStatusText('그리기 모드 종료 (지도 탐색 가능)');
       speak('그리기 모드가 종료되었습니다.');
     }
   }
@@ -1197,7 +1261,7 @@
     walkedDistKm = 0;
     remainDistKm = 0;
     updateMetricsDisplay(0, 0, 0);
-    document.getElementById('txt-hike-status').textContent = '더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결';
+    setStatusText('더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결');
     speak('경로가 초기화되었습니다.');
   }
 
