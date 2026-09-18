@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>HIKER ULTRA v5.4 (프로 산행 내비게이션)</title>
-<!-- [카카오 지도 API 연동] -->
+<title>HIKER ULTRA v5.5 (프로 산행 내비게이션)</title>
+<!-- [카카오 지도 API 연동 완료] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
   :root {
@@ -209,7 +209,7 @@
     -webkit-backdrop-filter: blur(36px) saturate(210%);
     border: 1px solid var(--border-glass);
     border-radius: 26px;
-    padding: 10px 16px 16px 16px;
+    padding: 10px 16px 14px 16px;
     box-shadow: 0 28px 60px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     z-index: 900;
     color: var(--text-primary);
@@ -318,7 +318,7 @@
     border-radius: 16px;
     padding: 10px 4px;
     border: 1px solid var(--border-glass-subtle);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-variant-numeric: tabular-nums;
   }
   .ultra-metric-tile {
@@ -351,7 +351,7 @@
     display: grid;
     grid-template-columns: 1fr 1.3fr 0.8fr 0.8fr;
     gap: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 9px;
   }
   .ultra-subtool-btn {
     background: rgba(255, 255, 255, 0.06);
@@ -379,7 +379,7 @@
 
   .ultra-action-btn {
     width: 100%;
-    padding: 14px;
+    padding: 13px;
     border-radius: 14px;
     border: none;
     font-size: 14px;
@@ -408,11 +408,37 @@
     50% { box-shadow: 0 8px 36px rgba(255, 94, 0, 0.65); }
   }
 
+  /* [신규] 법적 고지 캡슐 바 */
+  .ultra-disclaimer-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .ultra-disclaimer-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    transition: color 0.2s;
+  }
+  .ultra-disclaimer-btn svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .ultra-disclaimer-btn:hover, .ultra-disclaimer-btn:active { color: var(--accent-cyan); }
+
+  /* 하단 브랜딩 */
   .ultra-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 6px;
     padding: 0 4px;
   }
   .ultra-footer-hint { font-size: 9px; color: var(--text-tertiary); font-weight: 500; }
@@ -448,7 +474,7 @@
     padding-right: 6px;
   }
 
-  /* [신규] 초정밀 미니멀 글래스모피즘 마커 핀 디자인 */
+  /* 핀 마커 */
   .ultra-pin-container {
     display: inline-flex;
     flex-direction: column;
@@ -521,6 +547,108 @@
     border-radius: 50%;
     box-shadow: 0 0 16px rgba(2, 132, 199, 1);
   }
+
+  /* [신규] 법적 고지 애플 글래스모피즘 모달창 */
+  .ultra-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(4, 7, 12, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 5000;
+    display: none;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 16px;
+  }
+  .ultra-modal-card {
+    width: 100%;
+    max-width: 480px;
+    max-height: 82vh;
+    background: rgba(18, 24, 35, 0.96);
+    border: 1px solid var(--border-glass);
+    border-radius: 28px;
+    padding: 22px 20px;
+    box-shadow: 0 32px 70px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    animation: sheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .ultra-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-glass-subtle);
+  }
+  .ultra-modal-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: -0.3px;
+  }
+  .ultra-modal-title svg { width: 16px; height: 16px; stroke: var(--accent-orange); fill: none; stroke-width: 2.2; }
+  .ultra-modal-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .ultra-modal-close-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  
+  .ultra-modal-body {
+    overflow-y: auto;
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: #cbd5e1;
+    padding-right: 4px;
+  }
+  .ultra-disclaimer-clause {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 14px;
+    padding: 11px 13px;
+    margin-bottom: 10px;
+  }
+  .clause-title {
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .clause-bullet { width: 4px; height: 4px; background: var(--accent-cyan); border-radius: 50%; flex-shrink: 0; }
+  .clause-desc { color: var(--text-secondary); font-size: 11px; }
+
+  .ultra-modal-confirm-btn {
+    margin-top: 14px;
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    border: none;
+    border-radius: 14px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
+  }
 </style>
 </head>
 <body>
@@ -578,7 +706,7 @@
     </div>
   </div>
 
-  <!-- 접혔을 때 1줄 요약 바 (글씨 잘림 없는 최적 레이아웃) -->
+  <!-- 접혔을 때 1줄 HUD 요약 바 -->
   <div class="ultra-mini-dashboard" onclick="togglePanelCollapse()">
     <div class="ultra-radar-chip">
       <span class="radar-dot dot-standby" id="mini-radar-dot"></span>
@@ -611,7 +739,7 @@
 
     <div class="ultra-subtools-row">
       <button class="ultra-subtool-btn" onclick="panToUserLocation()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="1" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="12" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
         <span>내 위치</span>
       </button>
       <button class="ultra-subtool-btn" id="btn-draw" onclick="toggleDrawMode()">
@@ -632,14 +760,56 @@
       <span id="txt-action-label">산행 시작</span>
     </button>
 
+    <!-- [신규] 법적 고지 모달 트리거 캡슐 링크 -->
+    <div class="ultra-disclaimer-bar">
+      <button type="button" class="ultra-disclaimer-btn" onclick="openLegalModal()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>안전 주의사항 및 법적 면책 고지</span>
+      </button>
+    </div>
+
     <div class="ultra-footer">
       <div class="ultra-footer-hint">※ 산행 중에는 지도를 더블클릭해도 핀이 찍히지 않고 자유롭게 확대/탐색됩니다</div>
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v5.4</span>
+        <span class="badge-chip-ver">v5.5</span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- [신규] 애플 하프시트 법적 고지 모달 -->
+<div class="ultra-modal-overlay" id="ultra-legal-modal" onclick="closeLegalModal(event)">
+  <div class="ultra-modal-card" onclick="event.stopPropagation()">
+    <div class="ultra-modal-header">
+      <div class="ultra-modal-title">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span>안전 주의사항 및 법적 면책 고지</span>
+      </div>
+      <button class="ultra-modal-close-btn" onclick="closeLegalModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="ultra-modal-body">
+      <div class="ultra-disclaimer-clause">
+        <div class="clause-title"><span class="clause-bullet"></span>1. 단순 산행 보조 도구 명시</div>
+        <div class="clause-desc">본 서비스(HIKER ULTRA)는 산행 편의를 돕는 단순 참고용 디지털 보조 수단이며, 공인된 전문 산악 가이드나 구조 장비를 대체하지 않습니다.</div>
+      </div>
+      <div class="ultra-disclaimer-clause">
+        <div class="clause-title"><span class="clause-bullet"></span>2. 위치정보 및 GPS 오차 면책</div>
+        <div class="clause-desc">깊은 협곡, 수목 밀집 지대, 절벽 및 기상 악화 시 GPS 신호 오차가 발생할 수 있습니다. 시스템이 표출하는 경로 및 이탈 감지의 절대적 정확성을 보장하지 않습니다.</div>
+      </div>
+      <div class="ultra-disclaimer-clause">
+        <div class="clause-title"><span class="clause-bullet"></span>3. 안전사고에 대한 책임의 한계</div>
+        <div class="clause-desc">실제 등산로의 폐쇄 여부, 낙석, 빙판, 기상 변화 등 현장 상황 판단 및 조난, 실족 등 일체의 안전사고에 대한 민·형사상 법적 책임은 전적으로 이용자 본인에게 있습니다.</div>
+      </div>
+      <div class="ultra-disclaimer-clause">
+        <div class="clause-title"><span class="clause-bullet"></span>4. 비상 상황 행동 요령</div>
+        <div class="clause-desc">배터리 방전이나 통신 두절에 대비하여 보조 배터리 및 비상 장비를 지참하시고, 위급 상황 발생 시 지체 없이 119 산악구조대 또는 국립공원 관리사무소로 연락하십시오.</div>
+      </div>
+    </div>
+    <button class="ultra-modal-confirm-btn" onclick="closeLegalModal()">확인 및 안전 수칙 준수 동의</button>
   </div>
 </div>
 
@@ -699,6 +869,16 @@
         icon.style.stroke = 'var(--accent-cyan)';
       }
     }
+  }
+
+  // 모달 제어
+  function openLegalModal() {
+    var modal = document.getElementById('ultra-legal-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+  function closeLegalModal(e) {
+    var modal = document.getElementById('ultra-legal-modal');
+    if (modal) modal.style.display = 'none';
   }
 
   async function enableScreenKeepAwake() {
@@ -863,7 +1043,6 @@
     return total;
   }
 
-  // [핵심] 초정밀 미니멀 글래스모피즘 핀 렌더링
   function renderWaypointPins() {
     waypointOverlays.forEach(function(ov) { ov.setMap(null); });
     waypointOverlays = [];
@@ -1237,7 +1416,7 @@
   searchKw.addEventListener('blur', function() { setTimeout(function() { dropBox.style.display = 'none'; }, 250); });
 
   // ============================================================
-  // [핵심] 길따라 그리기 모드 (출발·경유·도착 핀 자동 실시간 연동)
+  // 길따라 그리기 모드
   // ============================================================
   var isPointerDown = false;
   var lastAddedPixel = null;
@@ -1261,13 +1440,11 @@
       isPointerDown = true;
       var res = getLatLng(e);
       if (res && res.latlng) {
-        // 새 스트로크 시작
         if (rawPathPoints.length === 0) {
           waypointCoords = [res.latlng];
           addDrawPoint(res.latlng);
           renderWaypointPins();
         } else {
-          // 이미 그려진 상태에서 이어서 그릴 경우, 새 종착점 추가 준비
           waypointCoords.push(res.latlng);
           addDrawPoint(res.latlng);
           renderWaypointPins();
@@ -1283,7 +1460,6 @@
         var dx = res.x - lastAddedPixel.x, dy = res.y - lastAddedPixel.y;
         if (dx * dx + dy * dy >= 36) {
           addDrawPoint(res.latlng);
-          // 드래그 중 실시간으로 마지막 핀(도착) 좌표를 최신 위치로 갱신
           if (waypointCoords.length >= 2) {
             waypointCoords[waypointCoords.length - 1] = res.latlng;
           } else if (waypointCoords.length === 1) {
@@ -1350,7 +1526,7 @@
   }
 
   // ============================================================
-  // 공통 컨트롤 (취소 및 초기화 완벽 동기화)
+  // 공통 컨트롤
   // ============================================================
   function togglePanelCollapse() {
     isPanelCollapsed = !isPanelCollapsed;
