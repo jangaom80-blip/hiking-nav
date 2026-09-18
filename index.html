@@ -2,361 +2,436 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>실시간 음성 산행 네비게이션 v4.0 (프로 산행 에디션)</title>
-<!-- [카카오 지도 API 키 연동 완료] -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>HIKER ULTRA v5.0 (프로 산행 내비게이션)</title>
+<!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0f17; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  
-  #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #0b0f17; }
+  :root {
+    --bg-glass: rgba(13, 17, 23, 0.78);
+    --bg-glass-card: rgba(22, 27, 34, 0.82);
+    --border-glass: rgba(255, 255, 255, 0.12);
+    --border-glass-subtle: rgba(255, 255, 255, 0.06);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --accent-orange: #ff5e00;
+    --accent-orange-glow: rgba(255, 94, 0, 0.35);
+    --accent-green: #10b981;
+    --accent-cyan: #38bdf8;
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  }
 
-  /* 길따라 그리기 터치 레이어 */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #080a0f; font-family: var(--font-stack); }
+  
+  #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #080a0f; }
+
+  /* 길따라 그리기 레이어 */
   #rt-draw-layer {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 50;
-    display: none;
-    touch-action: none;
-    cursor: crosshair;
-    background: rgba(0, 0, 0, 0.01);
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 50; display: none; touch-action: none;
+    cursor: crosshair; background: rgba(0, 0, 0, 0.01);
   }
 
-  /* 상단 통합 검색창 */
-  .rt-search-container {
+  /* 상단 애플 스타일 플로팅 검색바 */
+  .ultra-search-container {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: env(safe-area-inset-top, 14px);
+    margin-top: 14px;
+    left: 14px;
+    right: 14px;
     z-index: 1000;
   }
-  .rt-search-input-wrap {
+  .ultra-search-bar {
     display: flex;
-    background: rgba(15, 23, 42, 0.94);
-    backdrop-filter: blur(12px);
-    border: 1.5px solid #0284c7;
-    border-radius: 12px;
-    padding: 4px 6px 4px 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.75);
+    align-items: center;
+    background: var(--bg-glass);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid var(--border-glass);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .rt-search-input {
+  .ultra-search-bar:focus-within {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 16px rgba(56, 189, 248, 0.35);
+  }
+  .ultra-search-icon { font-size: 13px; color: var(--text-tertiary); margin-right: 8px; }
+  .ultra-search-input {
     flex: 1;
     background: transparent;
     border: none;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 13.5px;
+    font-weight: 600;
     outline: none;
-    padding: 6px 0;
+    letter-spacing: -0.2px;
   }
-  .rt-search-input::placeholder { color: #64748b; font-weight: 500; font-size: 12px; }
-  .rt-search-btn {
-    background: #0284c7;
-    border: none;
-    color: #fff;
+  .ultra-search-input::placeholder { color: var(--text-tertiary); font-weight: 500; font-size: 12.5px; }
+  .ultra-search-action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
     font-size: 11px;
-    font-weight: 800;
-    padding: 6px 12px;
-    border-radius: 8px;
+    font-weight: 700;
+    padding: 7px 13px;
+    border-radius: 999px;
     cursor: pointer;
+    transition: all 0.2s;
   }
+  .ultra-search-action-btn:active { background: rgba(255, 255, 255, 0.2); }
 
-  /* 검색 결과 드롭다운 */
-  .rt-search-dropdown {
+  /* 검색 자동완성 드롭다운 */
+  .ultra-search-dropdown {
     position: absolute;
-    top: 48px;
-    left: 0;
-    right: 0;
-    background: #0f172a;
-    border: 1.5px solid #0284c7;
-    border-radius: 12px;
+    top: 52px;
+    left: 4px;
+    right: 4px;
+    background: rgba(18, 22, 30, 0.94);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    border: 1px solid var(--border-glass);
+    border-radius: 20px;
     max-height: 290px;
     overflow-y: auto;
-    box-shadow: 0 16px 36px rgba(0,0,0,0.92);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85);
     display: none;
     z-index: 2000;
   }
-  .rt-drop-header {
-    background: #1e293b;
-    padding: 7px 12px;
-    font-size: 10.5px;
+  .ultra-drop-header {
+    padding: 10px 16px;
+    font-size: 10px;
     font-weight: 800;
-    color: #38bdf8;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent-cyan);
+    border-bottom: 1px solid var(--border-glass-subtle);
   }
-  .rt-search-item {
-    padding: 10px 13px;
-    border-bottom: 1px solid #1e293b;
+  .ultra-search-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-glass-subtle);
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: background 0.15s;
   }
-  .rt-search-item:last-child { border-bottom: none; }
-  .rt-search-item:active { background: #1e293b; }
-  .rt-item-title { color: #f8fafc; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-  .rt-item-sub { color: #94a3b8; font-size: 10.5px; margin-top: 2px; }
-  .rt-item-badge { font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+  .ultra-search-item:last-child { border-bottom: none; }
+  .ultra-search-item:active { background: rgba(255, 255, 255, 0.06); }
+  .ultra-item-title { color: var(--text-primary); font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  .ultra-item-sub { color: var(--text-tertiary); font-size: 11px; margin-top: 3px; font-weight: 500; }
+  .ultra-item-tag {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
 
-  /* 우측 상단 플로팅 컨트롤 */
-  .rt-floating-controls {
+  /* 우측 상단 미니멀 플로팅 버튼 스택 */
+  .ultra-controls-stack {
     position: absolute;
-    top: 70px;
-    right: 12px;
+    top: 74px;
+    right: 14px;
     z-index: 800;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
     align-items: flex-end;
   }
-  .rt-fab-btn {
-    background: rgba(15, 23, 42, 0.9);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 7px 11px;
+  .ultra-gps-capsule {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    color: var(--text-primary);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 6px 10px;
     border-radius: 999px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
     display: flex;
     align-items: center;
-    gap: 4px;
-    transition: all 0.2s;
+    gap: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    letter-spacing: -0.2px;
   }
-  .rt-fab-btn.active {
-    background: #0284c7;
+  .ultra-gps-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+  }
+
+  .ultra-icon-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ultra-icon-btn:active { transform: scale(0.92); }
+  .ultra-icon-btn.active {
+    background: rgba(2, 132, 199, 0.3);
+    border-color: var(--accent-cyan);
     color: #ffffff;
-    border-color: #38bdf8;
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.5);
+    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
   }
-  .rt-voice-fab {
-    background: rgba(6, 78, 59, 0.9);
-    border: 1px solid #10b981;
-    color: #4ade80;
+  .ultra-icon-btn.voice-on {
+    color: var(--accent-green);
+    border-color: rgba(16, 185, 129, 0.4);
   }
-  .rt-voice-fab.muted {
-    background: rgba(30, 41, 59, 0.9);
-    border-color: #64748b;
-    color: #94a3b8;
+
+  /* 하단 슬라이딩 애플 콕핏 대시보드 */
+  .ultra-cockpit-panel {
+    position: absolute;
+    bottom: env(safe-area-inset-bottom, 16px);
+    margin-bottom: 12px;
+    left: 14px;
+    right: 14px;
+    background: var(--bg-glass-card);
+    backdrop-filter: blur(36px) saturate(210%);
+    -webkit-backdrop-filter: blur(36px) saturate(210%);
+    border: 1px solid var(--border-glass);
+    border-radius: 26px;
+    padding: 10px 16px 16px 16px;
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    z-index: 900;
+    color: var(--text-primary);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, padding 0.3s;
   }
-  .rt-gps-pill {
-    background: rgba(11, 15, 23, 0.9);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #4ade80;
-    font-size: 9.5px;
-    font-weight: 800;
-    padding: 5px 9px;
+
+  /* 이탈 시 울트라 앰버/레드 알림 */
+  .ultra-cockpit-panel.off-trail {
+    border-color: #ef4444 !important;
+    box-shadow: 0 28px 60px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: alertPulse 1.4s infinite;
+  }
+  @keyframes alertPulse {
+    0%, 100% { border-color: #ef4444; }
+    50% { border-color: rgba(239, 68, 68, 0.3); }
+  }
+
+  /* 미니멀 접힘 모드 */
+  .ultra-cockpit-panel.collapsed {
+    transform: translateY(calc(100% - 48px));
+    padding: 8px 16px 12px 16px;
+    border-radius: 20px;
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  /* 상단 다이내믹 아일랜드 핸들 바 */
+  .ultra-handle-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 10px;
+  }
+  .ultra-pill-handle {
+    width: 38px;
+    height: 4.5px;
     border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    margin-bottom: 8px;
+    transition: background 0.2s;
+  }
+  .ultra-handle-zone:active .ultra-pill-handle { background: rgba(255, 255, 255, 0.5); }
+  
+  .ultra-status-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .ultra-status-text {
+    color: var(--accent-cyan);
     display: flex;
     align-items: center;
     gap: 5px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    letter-spacing: -0.2px;
   }
-  .rt-gps-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 6px #22c55e; }
-
-  /* 하단 슬라이딩 콕핏 대시보드 */
-  .rt-bottom-panel {
-    position: absolute;
-    bottom: 14px;
-    left: 12px;
-    right: 12px;
-    background: rgba(16, 23, 38, 0.95);
-    backdrop-filter: blur(14px);
-    border: 1.5px solid #1e293b;
-    border-radius: 18px;
-    padding: 12px 14px 14px 14px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88);
-    z-index: 900;
-    color: #f8fafc;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s, border-color 0.3s;
-  }
-
-  /* 경로 이탈 시 콕핏 테두리 경보 애니메이션 */
-  .rt-bottom-panel.off-trail {
-    border-color: #ef4444 !important;
-    animation: alertBorder 1.2s infinite;
-  }
-  @keyframes alertBorder {
-    0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-    50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
-  }
-
-  /* 메뉴 접혔을 때 (미니바 모드) */
-  .rt-bottom-panel.collapsed {
-    transform: translateY(calc(100% - 46px));
-    padding: 8px 14px 10px 14px;
-    border-color: #0284c7;
-  }
-
-  .rt-panel-handle-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    margin-bottom: 8px;
-    user-select: none;
-  }
-  .rt-panel-title-text {
-    font-size: 11px;
-    font-weight: 700;
-    color: #38bdf8;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .rt-panel-collapse-btn {
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #cbd5e1;
-    font-size: 10px;
+  .ultra-collapse-toggle {
+    font-size: 9.5px;
+    color: var(--text-tertiary);
     font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  /* 접혔을 때 표출되는 고정밀 미니 요약바 */
-  .rt-mini-summary {
+  /* 접혔을 때 1줄 미니멀 요약 */
+  .ultra-mini-dashboard {
     display: none;
     justify-content: space-between;
     align-items: center;
-    font-size: 11px;
-    font-weight: 800;
-    color: #ffffff;
-    padding-top: 2px;
+    padding-top: 4px;
+    font-variant-numeric: tabular-nums;
   }
-  .rt-bottom-panel.collapsed .rt-mini-summary { display: flex; }
-  .rt-bottom-panel.collapsed .rt-full-content { display: none; }
+  .ultra-cockpit-panel.collapsed .ultra-mini-dashboard { display: flex; }
+  .ultra-cockpit-panel.collapsed .ultra-expanded-dashboard { display: none; }
 
-  /* 4단 핵심 지표 그리드 (총거리 / 진행거리 / 남은거리 / 남은시간) */
-  .rt-metrics-grid {
+  .ultra-mini-stat { font-size: 11.5px; font-weight: 700; }
+  .stat-label { color: var(--text-tertiary); font-size: 10px; font-weight: 600; margin-right: 2px; }
+
+  /* 4대 핵심 지표 그리드 (SF Pro / Tabular Nums) */
+  .ultra-metrics-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    text-align: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 10px;
-    gap: 2px;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 16px;
+    padding: 10px 4px;
+    border: 1px solid var(--border-glass-subtle);
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
   }
-  .rt-metric-col { display: flex; flex-direction: column; gap: 3px; }
-  .rt-metric-title { font-size: 9.5px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
-  .rt-metric-val { font-size: 15px; font-weight: 900; letter-spacing: -0.5px; }
-  .val-white { color: #ffffff; }
-  .val-green { color: #4ade80; }
-  .val-cyan  { color: #38bdf8; }
-  .val-amber { color: #f59e0b; }
+  .ultra-metric-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .ultra-metric-tile:last-child { border-right: none; }
+  .ultra-m-title {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .ultra-m-value {
+    font-size: 16.5px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+  .val-white  { color: #ffffff; }
+  .val-green  { color: var(--accent-green); }
+  .val-cyan   { color: var(--accent-cyan); }
+  .val-orange { color: var(--accent-orange); }
 
-  /* 제어 툴바 */
-  .rt-tools-row {
+  /* 보조 제어 툴바 */
+  .ultra-subtools-row {
     display: grid;
-    grid-template-columns: 1fr 1.35fr 0.8fr 0.8fr;
+    grid-template-columns: 1fr 1.3fr 0.8fr 0.8fr;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
-  .rt-tool-btn {
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #f1f5f9;
+  .ultra-subtool-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-glass-subtle);
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 700;
-    padding: 8px 4px;
-    border-radius: 8px;
+    padding: 9px 4px;
+    border-radius: 12px;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 4px;
-    white-space: nowrap;
     transition: all 0.2s;
   }
-  .rt-tool-btn:active { background: #334155; }
-  .rt-tool-btn.drawing {
-    background: #0284c7;
-    border-color: #38bdf8;
-    color: #fff;
-    box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  .ultra-subtool-btn:active { background: rgba(255, 255, 255, 0.12); transform: scale(0.96); }
+  .ultra-subtool-btn.drawing {
+    background: rgba(255, 94, 0, 0.2);
+    border-color: var(--accent-orange);
+    color: #ffffff;
+    box-shadow: 0 0 16px var(--accent-orange-glow);
   }
 
-  /* 주 실행 버튼 */
-  .rt-action-btn {
+  /* 애플 워치 울트라 액션 버튼 (산행 시작/종료) */
+  .ultra-action-btn {
     width: 100%;
-    padding: 12px;
-    border-radius: 10px;
+    padding: 14px;
+    border-radius: 14px;
     border: none;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800;
-    color: #fff;
+    letter-spacing: -0.2px;
+    color: #ffffff;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .btn-start { background: linear-gradient(135deg, #0284c7, #0369a1); }
+  .btn-start {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .btn-start:active { transform: scale(0.98); }
   .btn-active {
-    background: linear-gradient(135deg, #059669, #047857);
-    border: 1px solid #34d399;
-    animation: hikePulse 2s infinite;
+    background: linear-gradient(135deg, #ff5e00, #d94e00);
+    box-shadow: 0 8px 28px rgba(255, 94, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    animation: ultraPulse 2s infinite;
   }
-  @keyframes hikePulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
-    50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.75); }
+  @keyframes ultraPulse {
+    0%, 100% { box-shadow: 0 8px 28px rgba(255, 94, 0, 0.35); }
+    50% { box-shadow: 0 8px 36px rgba(255, 94, 0, 0.65); }
   }
 
-  .rt-footer-badge {
+  .ultra-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 10px;
+    padding: 0 4px;
   }
-  .rt-guide-hint { font-size: 9px; color: #64748b; }
-  .rt-dev-pill {
-    background: #090e17;
-    border: 1px solid #1e293b;
-    border-radius: 6px;
-    padding: 2px 6px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  .ultra-footer-hint { font-size: 9.5px; color: var(--text-tertiary); font-weight: 500; }
+  .ultra-badge-group { display: flex; align-items: center; gap: 4px; }
+  .ultra-pro-tag {
+    background: rgba(255, 94, 0, 0.15);
+    color: var(--accent-orange);
+    border: 1px solid rgba(255, 94, 0, 0.3);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 8.5px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
   }
-  .rt-ver-tag { background: #0284c7; color: #fff; border-radius: 4px; padding: 1px 4px; font-size: 8.5px; }
 
-  /* 핀 마커 배지 */
-  .rt-pin-badge {
+  /* 핀 마커 배지 (애플 미니멀 칩) */
+  .ultra-pin-chip {
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 11px;
     font-weight: 800;
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
     white-space: nowrap;
-    border: 1.5px solid rgba(255,255,255,0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    letter-spacing: -0.2px;
   }
-  .badge-start { background: #0284c7; }
-  .badge-via   { background: #d97706; }
-  .badge-dest  { background: #ef4444; }
+  .chip-start { background: #0284c7; }
+  .chip-via   { background: #d97706; }
+  .chip-dest  { background: #ff5e00; }
 
-  .rt-gps-marker {
-    width: 18px;
-    height: 18px;
+  /* GPS 내 위치 레이더 마커 */
+  .ultra-gps-radar {
+    width: 20px;
+    height: 20px;
     background: #0284c7;
     border: 3.5px solid #ffffff;
     border-radius: 50%;
-    box-shadow: 0 0 14px rgba(2, 132, 199, 1);
+    box-shadow: 0 0 16px rgba(2, 132, 199, 1);
   }
 </style>
 </head>
@@ -365,81 +440,83 @@
 <div id="map"></div>
 <div id="rt-draw-layer"></div>
 
-<!-- 상단 독립 검색창 -->
-<div class="rt-search-container">
-  <div class="rt-search-input-wrap">
-    <input type="text" class="rt-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리, 들머리 검색 (예: 지리산 중산리, 금정산 범어사)" autocomplete="off">
-    <button class="rt-search-btn" onclick="execSearch()">검색</button>
+<!-- 상단 애플 스타일 통합 검색바 -->
+<div class="ultra-search-container">
+  <div class="ultra-search-bar">
+    <span class="ultra-search-icon">􀊫</span>
+    <input type="text" class="ultra-search-input" id="rt-search-kw" placeholder="산 이름, 봉우리, 들머리 검색" autocomplete="off">
+    <button class="ultra-search-action-btn" onclick="execSearch()">검색</button>
   </div>
-  <div class="rt-search-dropdown" id="rt-search-dropdown"></div>
+  <div class="ultra-search-dropdown" id="rt-search-dropdown"></div>
 </div>
 
-<!-- 우측 플로팅 컨트롤 -->
-<div class="rt-floating-controls">
-  <div class="rt-gps-pill">
-    <span class="rt-gps-dot"></span>
-    <span id="txt-gps">내위치 탐색중</span>
+<!-- 우측 상단 플로팅 컨트롤 스택 -->
+<div class="ultra-controls-stack">
+  <div class="ultra-gps-capsule">
+    <span class="ultra-gps-dot"></span>
+    <span id="txt-gps">GPS 연결 대기</span>
   </div>
-  <button class="rt-fab-btn active" id="btn-skyview" onclick="toggleSkyview()">🦅 스카이뷰</button>
-  <button class="rt-fab-btn" id="btn-terrain" onclick="toggleTerrain()">🌾 등고선</button>
-  <button class="rt-fab-btn rt-voice-fab" id="btn-voice" onclick="toggleVoice()">🪶 음성 켜짐</button>
+  <button class="ultra-icon-btn active" id="btn-skyview" onclick="toggleSkyview()" title="스카이뷰">🦅</button>
+  <button class="ultra-icon-btn" id="btn-terrain" onclick="toggleTerrain()" title="등고선">🌾</button>
+  <button class="ultra-icon-btn voice-on" id="btn-voice" onclick="toggleVoice()" title="음성 안내">🪶</button>
 </div>
 
-<!-- 하단 슬라이딩 콕핏 대시보드 -->
-<div class="rt-bottom-panel" id="rt-bottom-panel">
-  <div class="rt-panel-handle-bar" onclick="togglePanelCollapse()">
-    <div class="rt-panel-title-text">
-      <span>🦅</span>
-      <span id="txt-hike-status">더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결</span>
+<!-- 하단 애플 글래스 콕핏 대시보드 -->
+<div class="ultra-cockpit-panel" id="rt-bottom-panel">
+  <!-- 다이내믹 아일랜드 스타일 핸들 -->
+  <div class="ultra-handle-zone" onclick="togglePanelCollapse()">
+    <div class="ultra-pill-handle"></div>
+    <div class="ultra-status-bar">
+      <span class="ultra-status-text" id="txt-hike-status">더블터치: 출발 ➔ 경유 ➔ 도착 산길 연결</span>
+      <span class="ultra-collapse-toggle" id="btn-collapse-label">메뉴 접기</span>
     </div>
-    <div class="rt-panel-collapse-btn" id="btn-collapse-label">▼ 메뉴 접기</div>
   </div>
 
-  <!-- 접혔을 때 실시간 요약 바 -->
-  <div class="rt-mini-summary" onclick="togglePanelCollapse()">
-    <span style="color:#4ade80;" id="mini-status">🏃 산행 대기</span>
-    <span>총: <span id="mini-total" style="color:#ffffff;">0.0km</span></span>
-    <span>진행: <span id="mini-walked" style="color:#4ade80;">0.0km</span></span>
-    <span>남은: <span id="mini-remain" style="color:#38bdf8;">0.0km</span></span>
+  <!-- 접혔을 때 1줄 요약 미니 바 -->
+  <div class="ultra-mini-dashboard" onclick="togglePanelCollapse()">
+    <span style="color: var(--accent-green);" id="mini-status">🏃 산행 준비</span>
+    <span class="ultra-mini-stat"><span class="stat-label">총</span><span id="mini-total" style="color: #fff;">0.0km</span></span>
+    <span class="ultra-mini-stat"><span class="stat-label">진행</span><span id="mini-walked" style="color: var(--accent-green);">0.0km</span></span>
+    <span class="ultra-mini-stat"><span class="stat-label">남은</span><span id="mini-remain" style="color: var(--accent-cyan);">0.0km</span></span>
   </div>
 
-  <!-- 전체 지표 화면 -->
-  <div class="rt-full-content">
-    <div class="rt-metrics-grid">
-      <div class="rt-metric-col">
-        <span class="rt-metric-title">총 거리</span>
-        <span class="rt-metric-val val-white" id="val-total-dist">0.00 km</span>
+  <!-- 펼쳐졌을 때의 전체 콕핏 -->
+  <div class="ultra-expanded-dashboard">
+    <div class="ultra-metrics-row">
+      <div class="ultra-metric-tile">
+        <span class="ultra-m-title">총 거리</span>
+        <span class="ultra-m-value val-white" id="val-total-dist">0.00 <span style="font-size:10px;font-weight:600;">km</span></span>
       </div>
-      <div class="rt-metric-col">
-        <span class="rt-metric-title">진행한 거리</span>
-        <span class="rt-metric-val val-green" id="val-walked-dist">0.00 km</span>
+      <div class="ultra-metric-tile">
+        <span class="ultra-m-title">진행한 거리</span>
+        <span class="ultra-m-value val-green" id="val-walked-dist">0.00 <span style="font-size:10px;font-weight:600;">km</span></span>
       </div>
-      <div class="rt-metric-col">
-        <span class="rt-metric-title">남은 거리</span>
-        <span class="rt-metric-val val-cyan" id="val-remain-dist">0.00 km</span>
+      <div class="ultra-metric-tile">
+        <span class="ultra-m-title">남은 거리</span>
+        <span class="ultra-m-value val-cyan" id="val-remain-dist">0.00 <span style="font-size:10px;font-weight:600;">km</span></span>
       </div>
-      <div class="rt-metric-col">
-        <span class="rt-metric-title">남은 시간</span>
-        <span class="rt-metric-val val-amber" id="val-remain-time">0분</span>
+      <div class="ultra-metric-tile">
+        <span class="ultra-m-title">남은 시간</span>
+        <span class="ultra-m-value val-orange" id="val-remain-time">0 <span style="font-size:10px;font-weight:600;">분</span></span>
       </div>
     </div>
 
-    <div class="rt-tools-row">
-      <button class="rt-tool-btn" onclick="panToUserLocation()">📍 내 위치</button>
-      <button class="rt-tool-btn" id="btn-draw" onclick="toggleDrawMode()">✏️ 길따라 그리기</button>
-      <button class="rt-tool-btn" onclick="undoLastPoint()">↩️ 취소</button>
-      <button class="rt-tool-btn" onclick="resetRoute()">🔄 초기화</button>
+    <div class="ultra-subtools-row">
+      <button class="ultra-subtool-btn" onclick="panToUserLocation()">📍 내 위치</button>
+      <button class="ultra-subtool-btn" id="btn-draw" onclick="toggleDrawMode()">✏️ 길따라 그리기</button>
+      <button class="ultra-subtool-btn" onclick="undoLastPoint()">↩️ 취소</button>
+      <button class="ultra-subtool-btn" onclick="resetRoute()">🔄 초기화</button>
     </div>
 
-    <button class="rt-action-btn btn-start" id="btn-hike-toggle" onclick="toggleHiking()">
+    <button class="ultra-action-btn btn-start" id="btn-hike-toggle" onclick="toggleHiking()">
       <span id="txt-action-label">산행 시작</span>
     </button>
 
-    <div class="rt-footer-badge">
-      <div class="rt-guide-hint">※ 운동 중에는 지도를 더블클릭해도 핀이 찍히지 않고 자유롭게 확대/축소됩니다</div>
-      <div class="rt-dev-pill">
-        <span>🥨 꿀꽈배기</span>
-        <span class="rt-ver-tag">v4.0</span>
+    <div class="ultra-footer">
+      <div class="ultra-footer-hint">※ 산행 중에는 더블클릭 방해 없이 지도를 자유롭게 확대/탐색할 수 있습니다</div>
+      <div class="ultra-badge-group">
+        <span class="ultra-pro-tag">PRO</span>
+        <span style="font-size: 9px; font-weight: 800; color: var(--text-tertiary);">v5.0</span>
       </div>
     </div>
   </div>
@@ -463,7 +540,6 @@
   var searchMarker = null;
   var watchId = null;
 
-  // 산행 수치 변수
   var totalDistKm = 0;
   var walkedDistKm = 0;
   var remainDistKm = 0;
@@ -472,7 +548,7 @@
   var hasInitialCentered = false;
   var lastTapTime = 0;
 
-  // 네비게이션 제어 변수 (이탈 / 갈림길 안내 쿨다운)
+  // 네비게이션 제어 변수 (40m 이탈 / 갈림길 안내 쿨다운)
   var isOffTrail = false;
   var lastOffTrailAlertTime = 0;
   var lastTbtAlertIndex = -1;
@@ -489,7 +565,7 @@
     window.speechSynthesis.speak(ut);
   }
 
-  // 화면 꺼짐 방지 (Wake Lock & 백그라운드 유지)
+  // 화면 꺼짐 방지 (Wake Lock & 무음 백그라운드 유지)
   async function enableScreenKeepAwake() {
     try {
       if ('wakeLock' in navigator) {
@@ -497,7 +573,6 @@
       }
     } catch (e) {}
 
-    // 무음 백그라운드 오디오 루프 (모바일 절전 모드 차단)
     if (!silentAudio) {
       silentAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
       silentAudio.loop = true;
@@ -521,17 +596,16 @@
     var options = {
       center: new kakao.maps.LatLng(35.2818, 129.0494),
       level: 4,
-      disableDoubleClickZoom: false // 기본 확대 허용 (산행 중 자유 줌)
+      disableDoubleClickZoom: false
     };
     map = new kakao.maps.Map(container, options);
     ps = new kakao.maps.services.Places();
 
     map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
 
-    // [핵심 해결] 산행 중에는 더블터치 시 핀이 찍히지 않고 순수 지도 확대/축소만 실행!
+    // 산행 중이 아닐 때만 더블터치 위치지정 활성화
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-      if (isDrawing) return;
-      if (isHiking) return; // 산행 중에는 위치지정 차단!
+      if (isDrawing || isHiking) return;
 
       var latlng = mouseEvent.latLng;
       var now = Date.now();
@@ -554,7 +628,7 @@
   }
 
   // ============================================================
-  // 산행 전 더블터치 출발 ➔ 경유 ➔ 도착 지점 설정
+  // 더블터치 출발 ➔ 경유 ➔ 도착 순차 연결 엔진
   // ============================================================
   function handleDoubleTouchWaypoint(latlng) {
     waypointCoords.push(latlng);
@@ -655,9 +729,9 @@
     var total = waypointCoords.length;
     for (var i = 0; i < total; i++) {
       var pt = waypointCoords[i];
-      var html = (i === 0) ? '<div class="rt-pin-badge badge-start">🚩 출발</div>' :
-                 (i === total - 1) ? '<div class="rt-pin-badge badge-dest">🏁 도착</div>' :
-                 '<div class="rt-pin-badge badge-via">🟡 경유 ' + i + '</div>';
+      var html = (i === 0) ? '<div class="ultra-pin-chip chip-start">🚩 출발</div>' :
+                 (i === total - 1) ? '<div class="ultra-pin-chip chip-dest">🏁 도착</div>' :
+                 '<div class="ultra-pin-chip chip-via">🟡 경유 ' + i + '</div>';
 
       var overlay = new kakao.maps.CustomOverlay({ position: pt, content: html, yAnchor: 1.35 });
       overlay.setMap(map);
@@ -672,7 +746,7 @@
     activePolyline = new kakao.maps.Polyline({
       path: points,
       strokeWeight: 6,
-      strokeColor: '#f59e0b',
+      strokeColor: '#ff5e00', // 애플 워치 울트라 오렌지 궤적
       strokeOpacity: 0.95,
       strokeStyle: 'solid',
       zIndex: 10
@@ -681,39 +755,36 @@
   }
 
   // ============================================================
-  // [핵심 엔진] 실시간 네비게이션 (이탈 40m 감지 / 갈림길 좌우 안내 / 도착 감지)
+  // 네비게이션 실시간 감지 (40m 이탈 / 갈림길 좌우 / 도착 감지)
   // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
 
-    // 1. 걸은 거리 누적 계산 (GPS 변위)
     if (lastUserPos) {
       var stepMeters = getDistanceBetween(lastUserPos, currentLatLng);
-      if (stepMeters >= 2 && stepMeters <= 50) { // 정상 보행 필터
+      if (stepMeters >= 2 && stepMeters <= 50) {
         walkedDistKm += (stepMeters / 1000.0);
       }
     }
     lastUserPos = currentLatLng;
 
-    // 2. 남은 거리 계산
     remainDistKm = Math.max(0, totalDistKm - walkedDistKm);
     updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
 
-    // 3. 목적지 도착 감지 (마지막 점과 35m 이내)
+    // 1. 도착 감지 (35m 이내)
     var finalDest = rawPathPoints[rawPathPoints.length - 1];
-    var distToDest = getDistanceBetween(currentLatLng, finalDest);
-    if (distToDest <= 35) {
+    if (getDistanceBetween(currentLatLng, finalDest) <= 35) {
       speak("목적지에 도착했습니다! 오늘 산행을 성공적으로 완료했습니다.");
       toggleHiking();
       return;
     }
 
-    // 4. 경로 이탈(40m) 감지
+    // 2. 40m 경로 이탈 감지
     var minTrailDist = getMinDistanceToRoute(currentLatLng, rawPathPoints);
     var now = Date.now();
     var panel = document.getElementById('rt-bottom-panel');
 
-    if (minTrailDist > 40) { // 40m 초과 이탈
+    if (minTrailDist > 40) {
       if (!isOffTrail || (now - lastOffTrailAlertTime > 25000)) {
         isOffTrail = true;
         lastOffTrailAlertTime = now;
@@ -730,27 +801,19 @@
       }
     }
 
-    // 5. 갈림길 좌·우 회전 턴바이턴 안내
-    if (!isOffTrail) {
-      checkUpcomingTurn(currentLatLng, now);
-    }
+    // 3. 갈림길 턴바이턴 안내
+    if (!isOffTrail) checkUpcomingTurn(currentLatLng, now);
   }
 
-  // 전방 갈림길/급커브 감지 (30~45m 전방 탐색)
   function checkUpcomingTurn(userPos, now) {
-    if (now - lastTbtAlertTime < 20000) return; // 20초 쿨다운
+    if (now - lastTbtAlertTime < 20000) return;
 
     for (var i = 0; i < rawPathPoints.length - 2; i++) {
       var pMid = rawPathPoints[i + 1];
       var distToTurn = getDistanceBetween(userPos, pMid);
 
-      // 전방 25~45m 내에 위치한 지점 검사
       if (distToTurn >= 25 && distToTurn <= 45 && i !== lastTbtAlertIndex) {
-        var pPrev = rawPathPoints[i];
-        var pNext = rawPathPoints[i + 2];
-
-        var angle = getTurnAngle(pPrev, pMid, pNext);
-        // 35도 이상 꺾일 때 갈림길 방향 안내
+        var angle = getTurnAngle(rawPathPoints[i], pMid, rawPathPoints[i + 2]);
         if (Math.abs(angle) >= 35 && Math.abs(angle) <= 145) {
           lastTbtAlertIndex = i;
           lastTbtAlertTime = now;
@@ -763,7 +826,6 @@
     }
   }
 
-  // 3개 점 사이의 회전 각도 연산 (양수: 우회전, 음수: 좌회전)
   function getTurnAngle(p1, p2, p3) {
     var b1 = getBearing(p1, p2);
     var b2 = getBearing(p2, p3);
@@ -782,7 +844,6 @@
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   }
 
-  // 점과 선분 사이의 최단 수직거리(미터) 연산
   function getMinDistanceToRoute(p, points) {
     var minDist = 999999;
     for (var i = 0; i < points.length - 1; i++) {
@@ -813,25 +874,24 @@
   }
 
   // ============================================================
-  // [4대 지표 실시간 표출 함수]
+  // 수치 업데이트 (Tabular Nums 연동)
   // ============================================================
   function updateMetricsDisplay(totalKm, walkedKm, remainKm) {
-    document.getElementById('val-total-dist').textContent = totalKm.toFixed(2) + ' km';
-    document.getElementById('val-walked-dist').textContent = walkedKm.toFixed(2) + ' km';
-    document.getElementById('val-remain-dist').textContent = remainKm.toFixed(2) + ' km';
+    document.getElementById('val-total-dist').innerHTML = totalKm.toFixed(2) + ' <span style="font-size:10px;font-weight:600;">km</span>';
+    document.getElementById('val-walked-dist').innerHTML = walkedKm.toFixed(2) + ' <span style="font-size:10px;font-weight:600;">km</span>';
+    document.getElementById('val-remain-dist').innerHTML = remainKm.toFixed(2) + ' <span style="font-size:10px;font-weight:600;">km</span>';
 
-    // 미니바 연동
     document.getElementById('mini-total').textContent = totalKm.toFixed(2) + 'km';
     document.getElementById('mini-walked').textContent = walkedKm.toFixed(2) + 'km';
     document.getElementById('mini-remain').textContent = remainKm.toFixed(2) + 'km';
 
     if (remainKm <= 0.01) {
-      document.getElementById('val-remain-time').textContent = '0분';
+      document.getElementById('val-remain-time').innerHTML = '0 <span style="font-size:10px;font-weight:600;">분</span>';
       return;
     }
 
-    var remainMin = Math.round((remainKm / 2.5) * 60); // 산악 표준 2.5km/h
-    document.getElementById('val-remain-time').textContent = remainMin + '분';
+    var remainMin = Math.round((remainKm / 2.5) * 60);
+    document.getElementById('val-remain-time').innerHTML = remainMin + ' <span style="font-size:10px;font-weight:600;">분</span>';
   }
 
   // ============================================================
@@ -852,15 +912,13 @@
       }
       if (isDrawing) toggleDrawMode();
 
-      // 산행 시작: 지도 더블클릭 위치지정 자동 잠금 & 확대/축소 자유화
       map.setZoomable(true);
-
       walkedDistKm = 0;
       remainDistKm = totalDistKm;
       lastUserPos = currentUserPos;
       isOffTrail = false;
 
-      btn.className = 'rt-action-btn btn-active';
+      btn.className = 'ultra-action-btn btn-active';
       label.textContent = '🔴 산행 진행 중 (터치 시 종료)';
       statusTitle.textContent = '실시간 음성 산행 진행 중 (안전 산행 되세요)';
       miniStatus.textContent = '🔴 진행 중';
@@ -872,7 +930,7 @@
         if (!isPanelCollapsed) togglePanelCollapse();
       }, 600);
     } else {
-      btn.className = 'rt-action-btn btn-start';
+      btn.className = 'ultra-action-btn btn-start';
       label.textContent = '산행 시작';
       statusTitle.textContent = '산행이 종료되었습니다.';
       miniStatus.textContent = '산행 대기';
@@ -896,7 +954,7 @@
         hasInitialCentered = true;
       }
       updateGpsMarker(currentUserPos);
-      document.getElementById('txt-gps').textContent = '내위치 수신완료';
+      document.getElementById('txt-gps').textContent = 'GPS 정상 연결';
     }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
 
     watchId = navigator.geolocation.watchPosition(function(pos) {
@@ -904,7 +962,6 @@
       document.getElementById('txt-gps').textContent = '실시간 GPS';
       updateGpsMarker(currentUserPos);
 
-      // 산행 모드일 때 네비게이션 실시간 판별 가동
       if (isHiking) {
         updateHikingNavigation(currentUserPos);
       }
@@ -915,7 +972,7 @@
     if (!userMarker) {
       userMarker = new kakao.maps.CustomOverlay({
         position: pos,
-        content: '<div class="rt-gps-marker"></div>',
+        content: '<div class="ultra-gps-radar"></div>',
         zIndex: 999
       });
       userMarker.setMap(map);
@@ -947,19 +1004,19 @@
       if (status === kakao.maps.services.Status.OK && data.length > 0) {
         dropBox.innerHTML = '';
         var header = document.createElement('div');
-        header.className = 'rt-drop-header';
-        header.innerHTML = '<span>공식 실측 장소 (' + data.length + '개)</span><span>터치 시 즉시 이동</span>';
+        header.className = 'ultra-drop-header';
+        header.textContent = '카카오 공식 실측 장소 (' + data.length + ')';
         dropBox.appendChild(header);
 
         data.slice(0, 7).forEach(function(d) {
           var row = document.createElement('div');
-          row.className = 'rt-search-item';
+          row.className = 'ultra-search-item';
           row.innerHTML = 
             '<div>' +
-              '<div class="rt-item-title">📍 ' + d.place_name + '</div>' +
-              '<div class="rt-item-sub">' + (d.road_address_name || d.address_name) + '</div>' +
+              '<div class="ultra-item-title">📍 ' + d.place_name + '</div>' +
+              '<div class="ultra-item-sub">' + (d.road_address_name || d.address_name) + '</div>' +
             '</div>' +
-            '<span class="rt-item-badge">이동</span>';
+            '<span class="ultra-item-tag">이동</span>';
 
           row.onmousedown = function(e) { e.preventDefault(); };
           row.onclick = function() {
@@ -979,12 +1036,12 @@
   function moveToExactLocation(lat, lng, name) {
     var pos = new kakao.maps.LatLng(lat, lng);
     map.setCenter(pos);
-    map.setLevel(4);
+    map.setLevel(3);
 
     if (searchMarker) searchMarker.setMap(null);
     searchMarker = new kakao.maps.CustomOverlay({
       position: pos,
-      content: '<div class="rt-pin-badge badge-dest">📍 ' + name + '</div>',
+      content: '<div class="ultra-pin-chip chip-start">📍 ' + name + '</div>',
       yAnchor: 1.35
     });
     searchMarker.setMap(map);
@@ -1056,7 +1113,7 @@
       drawLayer.style.display = 'block';
       if (map) { map.setDraggable(false); map.setZoomable(false); }
       btn.classList.add('drawing');
-      btn.innerHTML = '🔒 그리기중 (터치/드래그)';
+      btn.innerHTML = '🔒 그리기중';
       document.getElementById('txt-hike-status').textContent = '✏️ 화면에 손가락을 대고 산길을 문지르면 선이 그려집니다!';
       speak('그리기 모드가 켜졌습니다. 손가락으로 산길을 문지르세요.');
     } else {
@@ -1089,10 +1146,10 @@
     var label = document.getElementById('btn-collapse-label');
     if (isPanelCollapsed) {
       panel.classList.add('collapsed');
-      label.textContent = '▲ 메뉴 펼치기';
+      label.textContent = '메뉴 펼치기';
     } else {
       panel.classList.remove('collapsed');
-      label.textContent = '▼ 메뉴 접기';
+      label.textContent = '메뉴 접기';
     }
   }
 
@@ -1175,12 +1232,10 @@
     isVoiceOn = !isVoiceOn;
     var btn = document.getElementById('btn-voice');
     if (isVoiceOn) {
-      btn.textContent = '🪶 음성 켜짐';
-      btn.className = 'rt-fab-btn rt-voice-fab';
+      btn.classList.add('voice-on');
       speak('음성 안내가 켜졌습니다.');
     } else {
-      btn.textContent = '🔇 음성 꺼짐';
-      btn.className = 'rt-fab-btn rt-voice-fab muted';
+      btn.classList.remove('voice-on');
       window.speechSynthesis.cancel();
     }
   }
