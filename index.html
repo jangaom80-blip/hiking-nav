@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0f">
-<title>HIKER ULTRA v6.0 (Titanium Pro Edition)</title>
+<title>HIKER ULTRA v6.1 (Titanium Pro Edition)</title>
 <!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
@@ -22,6 +22,7 @@
     --accent-orange-glow: rgba(255, 94, 0, 0.35);
     --accent-green: #10b981;
     --accent-cyan: #38bdf8;
+    --accent-red: #ef4444;
     --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Pretendard Variable", sans-serif;
   }
 
@@ -88,7 +89,7 @@
   }
   .ultra-search-action-btn:active { background: rgba(255, 255, 255, 0.2); }
 
-  /* 검색 결과 드롭다운 */
+  /* 검색 드롭다운 */
   .ultra-search-dropdown {
     position: absolute;
     top: 52px;
@@ -136,7 +137,7 @@
     border: 1px solid rgba(56, 189, 248, 0.3);
   }
 
-  /* 우측 플로팅 컨트롤 스택 */
+  /* 우측 컨트롤 스택 */
   .ultra-controls-stack {
     position: absolute;
     top: 74px;
@@ -202,7 +203,7 @@
     border-color: rgba(239, 68, 68, 0.4);
   }
 
-  /* 하단 슬라이딩 콕핏 대시보드 */
+  /* 하단 슬라이딩 콕핏 */
   .ultra-cockpit-panel {
     position: absolute;
     bottom: env(safe-area-inset-bottom, 16px);
@@ -231,7 +232,6 @@
     50% { border-color: rgba(239, 68, 68, 0.3); }
   }
 
-  /* 미니멀 접힘 모드 */
   .ultra-cockpit-panel.collapsed {
     transform: translateY(calc(100% - 76px));
     padding: 10px 16px 14px 16px;
@@ -281,7 +281,7 @@
     letter-spacing: 0.5px;
   }
 
-  /* 접혔을 때 1줄 HUD 요약 바 */
+  /* 접혔을 때 1줄 HUD */
   .ultra-mini-dashboard {
     display: none;
     justify-content: space-between;
@@ -348,7 +348,7 @@
   .val-cyan   { color: var(--accent-cyan); }
   .val-orange { color: var(--accent-orange); }
 
-  /* 보조 제어 툴바 */
+  /* 보조 툴바 1 */
   .ultra-subtools-row {
     display: grid;
     grid-template-columns: 1fr 1.3fr 0.8fr 0.8fr;
@@ -379,7 +379,7 @@
     box-shadow: 0 0 16px var(--accent-orange-glow);
   }
 
-  /* 전문 프로 보조 바 (GPX 내보내기/가져오기, 시뮬레이션) */
+  /* 보조 툴바 2 */
   .ultra-pro-tools-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1.3fr;
@@ -540,7 +540,7 @@
     margin-top: -1px;
   }
 
-  /* 방향 지시 나침반 레이더 마커 */
+  /* 나침반 레이더 마커 */
   .ultra-radar-wrap {
     position: relative;
     width: 28px;
@@ -654,25 +654,90 @@
     font-size: 13px; font-weight: 800; cursor: pointer;
   }
 
-  /* SOS 구조 모달 전용 박스 */
+  /* SOS 모달 박스 */
   .sos-coord-box {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: 16px;
-    padding: 14px;
+    padding: 13px;
     margin-bottom: 12px;
     text-align: center;
   }
   .sos-coord-text { font-size: 15px; font-weight: 900; color: #fecaca; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
-  .sos-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-  .sos-action-btn {
-    padding: 12px; border-radius: 12px; border: none; font-size: 12.5px; font-weight: 800; cursor: pointer;
-    display: flex; justify-content: center; align-items: center; gap: 6px;
-  }
-  .btn-copy-sos { background: #1e293b; color: #ffffff; border: 1px solid var(--border-glass); }
-  .btn-call-119 { background: #dc2626; color: #ffffff; }
 
-  /* 파일 인풋 숨김 */
+  .sos-copy-btn {
+    width: 100%;
+    padding: 11px;
+    background: #1e293b;
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+  }
+  .sos-copy-btn:active { background: #334155; }
+
+  /* [핵심] 꾹 누르며 밀어서 119 통화 슬라이더 트랙 */
+  .ultra-slider-track {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 999px;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+  .ultra-slider-fill {
+    position: absolute;
+    top: 0; left: 0; height: 100%; width: 0;
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.4), rgba(239, 68, 68, 0.85));
+    pointer-events: none;
+    border-radius: 999px;
+    transition: width 0.05s linear;
+  }
+  .ultra-slider-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    pointer-events: none;
+    padding-left: 28px;
+    transition: opacity 0.15s;
+  }
+  .ultra-slider-thumb {
+    position: absolute;
+    left: 4px;
+    width: 44px;
+    height: 44px;
+    background: #dc2626;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ffffff;
+    cursor: grab;
+    z-index: 2;
+  }
+  .ultra-slider-thumb:active { cursor: grabbing; }
+  .ultra-slider-thumb svg { width: 18px; height: 18px; stroke: #ffffff; fill: none; stroke-width: 2.2; }
+
   #gpx-file-input { display: none; }
 </style>
 </head>
@@ -716,7 +781,6 @@
     <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
   </button>
 
-  <!-- [신규] SOS 119 긴급 구조 요청 버튼 -->
   <button class="ultra-icon-btn sos-btn" onclick="openSosModal()" title="119 긴급 구조">
     <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
   </button>
@@ -768,7 +832,7 @@
       </div>
     </div>
 
-    <!-- 보조 툴바 1: 기본 기능 -->
+    <!-- 보조 툴바 1 -->
     <div class="ultra-subtools-row">
       <button class="ultra-subtool-btn" onclick="panToUserLocation()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="23"></line><line x1="1" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="23" y2="12"></line></svg>
@@ -788,7 +852,7 @@
       </button>
     </div>
 
-    <!-- [신규] 보조 툴바 2: GPX 및 실내 모의 테스트 -->
+    <!-- 보조 툴바 2 -->
     <div class="ultra-pro-tools-row">
       <button class="ultra-pro-mini-btn" onclick="triggerGpxImport()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -808,7 +872,6 @@
       <span id="txt-action-label">산행 시작</span>
     </button>
 
-    <!-- 법적 고지 트리거 링크 -->
     <div class="ultra-disclaimer-bar">
       <button type="button" class="ultra-disclaimer-btn" onclick="openLegalModal()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
@@ -821,7 +884,7 @@
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v6.0</span>
+        <span class="badge-chip-ver">v6.1</span>
       </div>
     </div>
   </div>
@@ -857,7 +920,7 @@
   </div>
 </div>
 
-<!-- [신규] SOS 긴급 구조 좌표 브리핑 모달 -->
+<!-- [개선] 꾹 누르며 밀어서 119 통화 연결 SOS 모달 -->
 <div class="ultra-modal-overlay" id="ultra-sos-modal" onclick="closeSosModal(event)">
   <div class="ultra-modal-card" onclick="event.stopPropagation()">
     <div class="ultra-modal-header">
@@ -875,16 +938,19 @@
         <div class="sos-coord-text" id="sos-coord-val">위도 --.---- / 경도 ---.----</div>
         <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;" id="sos-alt-val">해발고도 측정 중</div>
       </div>
-      <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 6px;">
-        구조대원에게 위 좌표를 전달하면 전국 산악 위치를 즉각 파악할 수 있습니다. 아래 버튼을 눌러 문자로 복사하거나 119에 전화하세요.
-      </div>
-      <div class="sos-btn-grid">
-        <button class="sos-action-btn btn-copy-sos" onclick="copySosText()">
-          <span>좌표 문자 복사</span>
-        </button>
-        <button class="sos-action-btn btn-call-119" onclick="location.href='tel:119'">
-          <span>119 전화 연결</span>
-        </button>
+
+      <button class="sos-copy-btn" onclick="copySosText()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>구조대 전송용 좌표 문자 복사</span>
+      </button>
+
+      <!-- [밀어서 119 통화 슬라이더 트랙] -->
+      <div class="ultra-slider-track" id="sos-slider-track">
+        <div class="ultra-slider-fill" id="sos-slider-fill"></div>
+        <div class="ultra-slider-text" id="sos-slider-text">꾹 누르고 밀어서 119 통화 연결 ➔</div>
+        <div class="ultra-slider-thumb" id="sos-slider-thumb">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
       </div>
     </div>
   </div>
@@ -926,7 +992,6 @@
   var wakeLockObj = null;
   var silentAudio = null;
 
-  // [시뮬레이션 모드 변수]
   var isSimulating = false;
   var simInterval = null;
   var simStepIndex = 0;
@@ -955,7 +1020,6 @@
     }
   }
 
-  // 모달 제어
   function openLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'flex'; }
   function closeLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'none'; }
   
@@ -966,6 +1030,7 @@
       document.getElementById('sos-alt-val').textContent = 
         currentUserAlt ? '해발고도: 약 ' + Math.round(currentUserAlt) + ' m' : '해발고도: 측정 불가(위성 수신 중)';
     }
+    resetSosSlider();
     document.getElementById('ultra-sos-modal').style.display = 'flex';
   }
   function closeSosModal() { document.getElementById('ultra-sos-modal').style.display = 'none'; }
@@ -976,11 +1041,95 @@
               (currentUserAlt ? ' (고도: ' + Math.round(currentUserAlt) + 'm)' : '') +
               '\n도움이 시급히 필요합니다.';
     navigator.clipboard.writeText(txt).then(function() {
-      alert('119 전송용 긴급 구조 문자 양식이 클립보드에 복사되었습니다. 119 문자 수신창에 붙여넣으세요.');
+      alert('119 전송용 긴급 구조 문자 양식이 클립보드에 복사되었습니다.');
     });
   }
 
-  // 화면 꺼짐 방지
+  // ============================================================
+  // [핵심] 밀어서 119 통화 연결 슬라이더 터치 물리 엔진
+  // ============================================================
+  var sliderTrack = null;
+  var sliderThumb = null;
+  var sliderFill = null;
+  var sliderText = null;
+  var isSliderDragging = false;
+  var sliderStartX = 0;
+  var sliderMaxX = 0;
+
+  function initSosSliderEngine() {
+    sliderTrack = document.getElementById('sos-slider-track');
+    sliderThumb = document.getElementById('sos-slider-thumb');
+    sliderFill = document.getElementById('sos-slider-fill');
+    sliderText = document.getElementById('sos-slider-text');
+
+    function onStart(e) {
+      isSliderDragging = true;
+      sliderStartX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+      var trackWidth = sliderTrack.getBoundingClientRect().width;
+      sliderMaxX = trackWidth - 52; // thumb width(44) + padding
+      sliderThumb.style.transition = 'none';
+      sliderFill.style.transition = 'none';
+    }
+
+    function onMove(e) {
+      if (!isSliderDragging) return;
+      var currentX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+      var delta = currentX - sliderStartX;
+      if (delta < 0) delta = 0;
+      if (delta > sliderMaxX) delta = sliderMaxX;
+
+      sliderThumb.style.transform = 'translateX(' + delta + 'px)';
+      sliderFill.style.width = (delta + 44) + 'px';
+      var ratio = delta / sliderMaxX;
+      sliderText.style.opacity = (1 - ratio * 1.5).toString();
+
+      // 88% 이상 도달 시 시각적 트리거
+      if (ratio >= 0.88) {
+        sliderThumb.style.background = '#b91c1c';
+      } else {
+        sliderThumb.style.background = '#dc2626';
+      }
+    }
+
+    function onEnd() {
+      if (!isSliderDragging) return;
+      isSliderDragging = false;
+
+      var currentTransform = sliderThumb.style.transform;
+      var match = currentTransform.match(/translateX\(([\d.]+)px\)/);
+      var delta = match ? parseFloat(match[1]) : 0;
+
+      // 85% 이상 밀었을 때만 119 실제 통화 연결
+      if (delta >= sliderMaxX * 0.85) {
+        sliderThumb.style.transform = 'translateX(' + sliderMaxX + 'px)';
+        sliderFill.style.width = '100%';
+        speak('119 긴급 통화를 연결합니다.');
+        setTimeout(function() {
+          location.href = 'tel:119';
+          resetSosSlider();
+        }, 200);
+      } else {
+        // 도중에 놓으면 스프링처럼 원위치로 튕겨서 취소
+        resetSosSlider();
+      }
+    }
+
+    sliderThumb.addEventListener('pointerdown', onStart);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  }
+
+  function resetSosSlider() {
+    if (!sliderThumb) return;
+    sliderThumb.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s';
+    sliderFill.style.transition = 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+    sliderThumb.style.transform = 'translateX(0px)';
+    sliderThumb.style.background = '#dc2626';
+    sliderFill.style.width = '0px';
+    if (sliderText) sliderText.style.opacity = '1';
+  }
+
   async function enableScreenKeepAwake() {
     try {
       if ('wakeLock' in navigator) wakeLockObj = await navigator.wakeLock.request('screen');
@@ -1035,7 +1184,6 @@
       }
     });
 
-    // 스마트폰 나침반 각도(Compass Heading) 이벤트 연동
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', function(e) {
         if (e.webkitCompassHeading) {
@@ -1048,6 +1196,7 @@
     }
 
     initTouchDrawingEngine();
+    initSosSliderEngine();
     startGpsTracking();
   }
 
@@ -1179,7 +1328,7 @@
   }
 
   // ============================================================
-  // 네비게이션 실시간 엔진 (40m 이탈, 갈림길, 턴바이턴)
+  // 실시간 네비게이션 엔진
   // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
@@ -1316,7 +1465,7 @@
   }
 
   // ============================================================
-  // [신규 기능 1] 방 안에서 테스트하는 모의 산행 시뮬레이터
+  // 모의 산행 시뮬레이터
   // ============================================================
   function toggleSimulationMode() {
     if (rawPathPoints.length < 2) {
@@ -1332,10 +1481,10 @@
       btn.classList.add('sim-active');
       label.textContent = '모의산행 중지';
 
-      if (!isHiking) toggleHiking(); // 자동으로 산행 시작 모드 전환
+      if (!isHiking) toggleHiking();
 
       simStepIndex = 0;
-      speak('모의 산행 시뮬레이션을 시작합니다. 경로를 따라 가상으로 이동합니다.');
+      speak('모의 산행 시뮬레이션을 시작합니다.');
 
       simInterval = setInterval(function() {
         if (simStepIndex >= rawPathPoints.length) {
@@ -1353,7 +1502,7 @@
         updateHikingNavigation(pt);
 
         simStepIndex++;
-      }, 700); // 700ms마다 다음 포인트로 전진 (시뮬레이션 가속)
+      }, 700);
     } else {
       clearInterval(simInterval);
       btn.classList.remove('sim-active');
@@ -1363,21 +1512,16 @@
   }
 
   // ============================================================
-  // [신규 기능 2] GPX 파일 내보내기 & 불러오기 엔진
+  // GPX 입출력 엔진
   // ============================================================
-  function triggerGpxImport() {
-    document.getElementById('gpx-file-input').click();
-  }
+  function triggerGpxImport() { document.getElementById('gpx-file-input').click(); }
 
   function handleGpxFileSelect(event) {
     var file = event.target.files[0];
     if (!file) return;
 
     var reader = new FileReader();
-    reader.onload = function(e) {
-      var content = e.target.result;
-      parseAndApplyGpx(content);
-    };
+    reader.onload = function(e) { parseAndApplyGpx(e.target.result); };
     reader.readAsText(file);
   }
 
@@ -1387,10 +1531,7 @@
       var xmlDoc = parser.parseFromString(xmlStr, "text/xml");
       var trkpts = xmlDoc.getElementsByTagName("trkpt");
 
-      if (!trkpts || trkpts.length === 0) {
-        trkpts = xmlDoc.getElementsByTagName("wpt");
-      }
-
+      if (!trkpts || trkpts.length === 0) trkpts = xmlDoc.getElementsByTagName("wpt");
       if (!trkpts || trkpts.length < 2) {
         alert("유효한 등산로 좌표(trkpt)가 포함된 GPX 파일이 아닙니다.");
         return;
@@ -1409,7 +1550,6 @@
       drawPolyline(rawPathPoints);
       renderWaypointPins();
 
-      // 바운즈 맞춤
       var bounds = new kakao.maps.LatLngBounds();
       rawPathPoints.forEach(function(p) { bounds.extend(p); });
       map.setBounds(bounds, 80, 80, 80, 80);
@@ -1457,13 +1597,12 @@
   }
 
   // ============================================================
-  // GPS 및 헤딩 나침반 렌더링
+  // GPS & 나침반
   // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(function(pos) {
-      // 숲속 GPS 튐 필터 (정밀도 오차 50m 초과 시 거부)
       if (pos.coords.accuracy > 50) {
         document.getElementById('txt-gps').textContent = 'GPS 정밀도 낮음';
         return;
@@ -1481,14 +1620,13 @@
     }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
 
     watchId = navigator.geolocation.watchPosition(function(pos) {
-      if (pos.coords.accuracy > 50) return; // 노이즈 필터
+      if (pos.coords.accuracy > 50) return;
 
       currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       currentUserAlt = pos.coords.altitude;
       document.getElementById('txt-gps').textContent = '실시간 GPS';
       updateGpsMarker(currentUserPos);
 
-      // GPS heading 속성이 있으면 반영
       if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
         currentHeading = pos.coords.heading;
         updateHeadingArrow(currentHeading);
@@ -1719,7 +1857,7 @@
   }
 
   // ============================================================
-  // 산행 시작/종료 토글
+  // 공통 컨트롤
   // ============================================================
   function toggleHiking() {
     isHiking = !isHiking;
@@ -1764,14 +1902,11 @@
       speak('산행이 종료되었습니다. 수고하셨습니다.');
       disableScreenKeepAwake();
 
-      if (isSimulating) toggleSimulationMode(); // 시뮬레이터 자동 정지
+      if (isSimulating) toggleSimulationMode();
       if (isPanelCollapsed) togglePanelCollapse();
     }
   }
 
-  // ============================================================
-  // 콕핏 패널 제어
-  // ============================================================
   function togglePanelCollapse() {
     isPanelCollapsed = !isPanelCollapsed;
     var panel = document.getElementById('rt-bottom-panel');
