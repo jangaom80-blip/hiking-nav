@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, orientation=portrait">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0f">
-<title>HIKER ULTRA v7.5 (Precision Trail & Smart Off-Trail)</title>
+<title>HIKER ULTRA v7.8 (Kalman & HMM Map-Matching Edition)</title>
 <!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
@@ -38,6 +38,7 @@
     cursor: crosshair; background: rgba(0, 0, 0, 0.01);
   }
 
+  /* 상단 검색바 */
   .ultra-search-container {
     position: absolute;
     top: env(safe-area-inset-top, 14px);
@@ -87,6 +88,7 @@
   }
   .ultra-search-action-btn:active { background: rgba(255, 255, 255, 0.2); }
 
+  /* 검색 결과 드롭다운 */
   .ultra-search-dropdown {
     position: absolute;
     top: 52px;
@@ -134,6 +136,7 @@
     border: 1px solid rgba(56, 189, 248, 0.3);
   }
 
+  /* 우측 컨트롤 */
   .ultra-controls-stack {
     position: absolute;
     top: 74px;
@@ -159,12 +162,35 @@
     gap: 6px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     letter-spacing: -0.2px;
+    cursor: pointer;
   }
   .ultra-gps-dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--accent-green);
     box-shadow: 0 0 8px var(--accent-green);
   }
+
+  /* 실시간 블랙박스 디버그 HUD */
+  #ultra-blackbox-hud {
+    position: absolute;
+    top: 74px;
+    left: 14px;
+    z-index: 850;
+    background: rgba(11, 15, 23, 0.92);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 12px;
+    padding: 8px 11px;
+    font-size: 9.5px;
+    font-family: monospace;
+    color: #38bdf8;
+    line-height: 1.45;
+    display: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+    pointer-events: none;
+    max-width: 230px;
+  }
+  .hud-row { display: flex; justify-content: space-between; gap: 8px; }
+  .hud-val { color: #fff; font-weight: bold; }
 
   .ultra-icon-btn {
     width: 40px;
@@ -199,6 +225,7 @@
     border-color: rgba(239, 68, 68, 0.4);
   }
 
+  /* 하단 슬라이딩 콕핏 대시보드 */
   .ultra-cockpit-panel {
     position: absolute;
     bottom: env(safe-area-inset-bottom, 16px);
@@ -488,6 +515,7 @@
     padding-right: 6px;
   }
 
+  /* 핀 마커 */
   .ultra-pin-container {
     display: inline-flex;
     flex-direction: column;
@@ -512,15 +540,18 @@
   .pin-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .pin-start .pin-dot { background: #38bdf8; box-shadow: 0 0 10px #38bdf8; }
   .pin-via .pin-dot   { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+  .pin-via-passed .pin-dot { background: #10b981; box-shadow: 0 0 10px #10b981; }
   .pin-dest .pin-dot  { background: #ff5e00; box-shadow: 0 0 12px #ff5e00; }
   
   .pin-start { border-color: #38bdf8 !important; box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); }
   .pin-via   { border-color: #f59e0b !important; box-shadow: 0 0 16px rgba(245, 158, 11, 0.5); }
+  .pin-via-passed { border-color: #10b981 !important; box-shadow: 0 0 16px rgba(16, 185, 129, 0.5); }
   .pin-dest  { border-color: #ff5e00 !important; box-shadow: 0 0 18px rgba(255, 94, 0, 0.6); }
   
   .pin-tag { font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; }
   .pin-start .pin-tag { color: #38bdf8; }
   .pin-via .pin-tag   { color: #f59e0b; }
+  .pin-via-passed .pin-tag { color: #10b981; }
   .pin-dest .pin-tag  { color: #ff5e00; }
   .pin-divider { width: 1px; height: 9px; background: rgba(255, 255, 255, 0.3); }
   .pin-name { font-size: 11.5px; color: #ffffff; letter-spacing: -0.2px; font-weight: 800; }
@@ -551,7 +582,7 @@
     border-bottom: 9px solid var(--accent-cyan);
     filter: drop-shadow(0 0 4px var(--accent-cyan));
     transform-origin: center 18px;
-    transition: transform 0.2s ease-out;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .ultra-gps-core {
     width: 16px;
@@ -562,6 +593,7 @@
     box-shadow: 0 0 14px rgba(2, 132, 199, 1);
   }
 
+  /* 모달 */
   .ultra-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -643,6 +675,22 @@
     border: none; border-radius: 14px; color: #ffffff;
     font-size: 13px; font-weight: 800; cursor: pointer;
   }
+
+  .completion-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .completion-stat-box {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 16px;
+    padding: 12px;
+    text-align: center;
+  }
+  .comp-val { font-size: 20px; font-weight: 900; color: #fff; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .comp-label { font-size: 10px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; }
 
   .sos-coord-box {
     background: rgba(239, 68, 68, 0.08);
@@ -731,6 +779,17 @@
 <div id="rt-draw-layer"></div>
 <input type="file" id="gpx-file-input" accept=".gpx" onchange="handleGpxFileSelect(event)">
 
+<!-- 온스크린 블랙박스 디버그 HUD -->
+<div id="ultra-blackbox-hud">
+  <div style="font-weight: bold; border-bottom: 1px solid rgba(56,189,248,0.3); padding-bottom: 3px; margin-bottom: 4px;">BLACKBOX DIAGNOSTIC</div>
+  <div class="hud-row"><span>GPS Accuracy:</span><span class="hud-val" id="hud-acc">-- m</span></div>
+  <div class="hud-row"><span>Kalman State:</span><span class="hud-val" id="hud-kalman" style="color:var(--accent-green);">ACTIVE</span></div>
+  <div class="hud-row"><span>Map Snap:</span><span class="hud-val" id="hud-snap">STANDBY</span></div>
+  <div class="hud-row"><span>Smoothed Head:</span><span class="hud-val" id="hud-head">-- °</span></div>
+  <div class="hud-row"><span>Speed:</span><span class="hud-val" id="hud-speed">-- km/h</span></div>
+  <div class="hud-row"><span>Dest Remain:</span><span class="hud-val" id="hud-dest">-- m</span></div>
+</div>
+
 <div class="ultra-search-container">
   <div class="ultra-search-bar">
     <span class="ultra-search-icon">
@@ -746,7 +805,7 @@
 </div>
 
 <div class="ultra-controls-stack">
-  <div class="ultra-gps-capsule">
+  <div class="ultra-gps-capsule" onclick="toggleBlackboxHud()" title="터치 시 실시간 진단 HUD 토글">
     <span class="ultra-gps-dot"></span>
     <span id="txt-gps">GPS 연결 대기</span>
   </div>
@@ -858,11 +917,11 @@
     </div>
 
     <div class="ultra-footer">
-      <div class="ultra-footer-hint">※ 가짜 톱니바퀴 선 제거 완료 · 100% 실제 등산로 추종</div>
+      <div class="ultra-footer-hint">※ 2D 칼만 필터 & HMM 등산로 자석 맵 매칭 엔진 가동 중</div>
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v7.5</span>
+        <span class="badge-chip-ver">v7.8</span>
       </div>
     </div>
   </div>
@@ -895,6 +954,44 @@
       </div>
     </div>
     <button class="ultra-modal-confirm-btn" onclick="closeLegalModal()">확인 및 안전 수칙 준수 동의</button>
+  </div>
+</div>
+
+<!-- 산행 완주 축하 리포트 모달 -->
+<div class="ultra-modal-overlay" id="ultra-completion-modal">
+  <div class="ultra-modal-card" onclick="event.stopPropagation()">
+    <div class="ultra-modal-header">
+      <div class="ultra-modal-title" style="color: var(--accent-green);">
+        <svg viewBox="0 0 24 24" style="stroke: var(--accent-green);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span>산행 완주 성공!</span>
+      </div>
+      <button class="ultra-modal-close-btn" onclick="closeCompletionModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="ultra-modal-body">
+      <div style="text-align: center; margin: 10px 0;">
+        <div style="font-size: 32px; margin-bottom: 6px;">🏆</div>
+        <div style="font-size: 15px; font-weight: 800; color: #fff;">목적지에 무사히 도착했습니다!</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">오늘의 산행 기록 요약 브리핑</div>
+      </div>
+
+      <div class="completion-stat-grid">
+        <div class="completion-stat-box">
+          <div class="comp-label">총 이동 거리</div>
+          <div class="comp-val" id="comp-dist-val" style="color: var(--accent-cyan);">0.00 km</div>
+        </div>
+        <div class="completion-stat-box">
+          <div class="comp-label">소요 시간</div>
+          <div class="comp-val" id="comp-time-val" style="color: var(--accent-orange);">00:00</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 11px; font-size: 11px; color: #a7f3d0; text-align: center;">
+        안전하게 산행을 마무리하셨습니다. 수고하셨습니다!
+      </div>
+    </div>
+    <button class="ultra-modal-confirm-btn" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="closeCompletionModal()">확인 및 종료</button>
   </div>
 </div>
 
@@ -934,6 +1031,110 @@
 </div>
 
 <script>
+  // ============================================================
+  // [Step 1 핵심 클래스] 2D 칼만 필터 (Kalman Filter)
+  // ============================================================
+  class GPSKalmanFilter {
+    constructor(processNoise = 3.0) {
+      this.q = processNoise; // 보행 프로세스 노이즈
+      this.lat = null;
+      this.lng = null;
+      this.variance = -1;
+    }
+
+    filter(lat, lng, accuracy) {
+      if (this.lat === null) {
+        this.lat = lat;
+        this.lng = lng;
+        this.variance = accuracy * accuracy;
+        return { lat, lng };
+      }
+
+      // 시간 경과에 따른 분산 예측
+      this.variance += this.q;
+
+      // 칼만 이득(K) 산출 및 측정치 반영
+      const r = Math.max(accuracy * accuracy, 1.0);
+      const k = this.variance / (this.variance + r);
+
+      this.lat += k * (lat - this.lat);
+      this.lng += k * (lng - this.lng);
+      this.variance = (1 - k) * this.variance;
+
+      return { lat: this.lat, lng: this.lng };
+    }
+
+    reset() {
+      this.lat = null;
+      this.lng = null;
+      this.variance = -1;
+    }
+  }
+
+  // ============================================================
+  // [Step 1 핵심 클래스] HMM 기반 등산로 자석 맵 매칭 (Snap-to-Trail)
+  // ============================================================
+  class TrailMapMatcher {
+    constructor(maxSnapDistMeters = 40) {
+      this.maxSnapDist = maxSnapDistMeters; // 40m 이내 자석 흡착
+    }
+
+    snapToTrail(targetLatLng, routePoints) {
+      if (!routePoints || routePoints.length < 2) {
+        return { pos: targetLatLng, isSnapped: false, dist: 0 };
+      }
+
+      let minDistance = Infinity;
+      let bestSnappedPoint = targetLatLng;
+      const p = { lat: targetLatLng.getLat(), lng: targetLatLng.getLng() };
+
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        const v = { lat: routePoints[i].getLat(), lng: routePoints[i].getLng() };
+        const w = { lat: routePoints[i + 1].getLat(), lng: routePoints[i + 1].getLng() };
+
+        // 선분 v-w에 수선의 발 투영 연산
+        const l2 = Math.pow(this.getDistanceMeters(v, w), 2);
+        let t = 0;
+        if (l2 > 0) {
+          t = ((p.lat - v.lat) * (w.lat - v.lat) + (p.lng - v.lng) * (w.lng - v.lng)) /
+              (Math.pow(w.lat - v.lat, 2) + Math.pow(w.lng - v.lng, 2));
+          t = Math.max(0, Math.min(1, t)); // 선분 내부 제한
+        }
+
+        const projLat = v.lat + t * (w.lat - v.lat);
+        const projLng = v.lng + t * (w.lng - v.lng);
+        const projPoint = { lat: projLat, lng: projLng };
+
+        const dist = this.getDistanceMeters(p, projPoint);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestSnappedPoint = new kakao.maps.LatLng(projLat, projLng);
+        }
+      }
+
+      // 허용 반경 내에 있을 때만 등산로로 강제 흡착
+      if (minDistance <= this.maxSnapDist) {
+        return { pos: bestSnappedPoint, isSnapped: true, dist: minDistance };
+      } else {
+        return { pos: targetLatLng, isSnapped: false, dist: minDistance };
+      }
+    }
+
+    getDistanceMeters(p1, p2) {
+      const R = 6371000;
+      const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+      const dLng = (p2.lng - p1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+  }
+
+  // 인스턴스 초기화
+  const kalmanEngine = new GPSKalmanFilter(2.5);
+  const trailMatcher = new TrailMapMatcher(40);
+
   var map = null, ps = null;
   var isSkyview = true, isTerrain = false, isVoiceOn = true;
   var isDrawing = false, isHiking = false, isPanelCollapsed = false;
@@ -941,21 +1142,26 @@
   var rawPathPoints = [];
   var waypointCoords = [];
   var waypointOverlays = [];
+  var waypointPassedStatus = [];
   var activePolyline = null;
   var userMarker = null, searchMarker = null, watchId = null;
 
   var totalDistKm = 0, walkedDistKm = 0, remainDistKm = 0;
   var currentUserPos = null, lastUserPos = null, currentUserAlt = null;
-  var currentHeading = 0, hasInitialCentered = false;
 
-  // [스마트 경로 이탈 감지기 상태 변수]
+  var smoothedHeading = 0;
+  var isUserWalking = false;
+  var currentSpeedKmh = 0;
+
   var isOffTrail = false;
-  var offTrailConsecutiveCount = 0; // 연속 이탈 판정 카운터
+  var offTrailConsecutiveCount = 0;
   var lastOffTrailAlertTime = 0;
   var wakeLockObj = null, silentAudio = null;
   var isSimulating = false, simInterval = null, simStepIndex = 0;
 
+  var hikeStartTime = null;
   var plannedForks = [];
+  var isBlackboxHudVisible = false;
 
   function speak(msg) {
     if (!isVoiceOn || !('speechSynthesis' in window)) return;
@@ -981,9 +1187,24 @@
     }
   }
 
+  function toggleBlackboxHud() {
+    isBlackboxHudVisible = !isBlackboxHudVisible;
+    var hud = document.getElementById('ultra-blackbox-hud');
+    if (hud) hud.style.display = isBlackboxHudVisible ? 'block' : 'none';
+  }
+
   function openLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'flex'; }
   function closeLegalModal() { document.getElementById('ultra-legal-modal').style.display = 'none'; }
   
+  function openCompletionModal(distKm, durationStr) {
+    document.getElementById('comp-dist-val').textContent = distKm.toFixed(2) + ' km';
+    document.getElementById('comp-time-val').textContent = durationStr;
+    document.getElementById('ultra-completion-modal').style.display = 'flex';
+  }
+  function closeCompletionModal() {
+    document.getElementById('ultra-completion-modal').style.display = 'none';
+  }
+
   function openSosModal() {
     if (currentUserPos) {
       document.getElementById('sos-coord-val').textContent = 
@@ -1086,7 +1307,7 @@
   function initKakaoMap() {
     var container = document.getElementById('map');
     var options = {
-      center: new kakao.maps.LatLng(35.2798, 129.0568),
+      center: new kakao.maps.LatLng(35.2120, 129.0085),
       level: 4,
       disableDoubleClickZoom: false
     };
@@ -1100,11 +1321,27 @@
       handleSingleTapWaypoint(mouseEvent.latLng);
     });
 
+    // 지자기 나침반 센서 스무딩 필터
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', function(e) {
-        if (e.webkitCompassHeading) currentHeading = e.webkitCompassHeading;
-        else if (e.alpha) currentHeading = 360 - e.alpha;
-        updateHeadingArrow(currentHeading);
+        if (isUserWalking) return; // 걷는 중에는 GPS 방향각 우선
+
+        var rawDeg = 0;
+        if (e.webkitCompassHeading) {
+          rawDeg = e.webkitCompassHeading;
+        } else if (e.alpha) {
+          rawDeg = 360 - e.alpha;
+        }
+
+        var diff = rawDeg - smoothedHeading;
+        while (diff < -180) diff += 360;
+        while (diff > 180) diff -= 360;
+        smoothedHeading = (smoothedHeading + diff * 0.2 + 360) % 360;
+
+        updateHeadingArrow(smoothedHeading);
+
+        var hudHead = document.getElementById('hud-head');
+        if (hudHead) hudHead.textContent = Math.round(smoothedHeading) + '° (Compass)';
       }, true);
     }
 
@@ -1114,10 +1351,11 @@
   }
 
   // ============================================================
-  // [완전 무결 1-Tap 라우팅] 가짜 톱니바퀴 선 제거 & 실제 등산로 100% 추종
+  // [1-Tap 라우팅] 모든 경유지/봉우리 100% 방문 연결
   // ============================================================
   function handleSingleTapWaypoint(latlng) {
     waypointCoords.push(latlng);
+    waypointPassedStatus.push(false);
     var count = waypointCoords.length;
 
     if (count === 1) {
@@ -1127,7 +1365,7 @@
       speak('출발지가 지정되었습니다. 다음 지점을 터치하세요.');
       updateMetricsDisplay(0, 0, 0);
     } else if (count === 2) {
-      setStatusText('공식 등산로 탐색 및 연결 중...', false);
+      setStatusText('등산로 탐색 및 연결 중...', false);
       renderWaypointPins();
       speak('도착지가 지정되었습니다. 등산로를 연결합니다.');
       calculateAccurateTrail();
@@ -1147,15 +1385,12 @@
       return pt.getLng().toFixed(6) + ',' + pt.getLat().toFixed(6);
     }).join('|');
 
-    // 산악 등산로 전용 프로파일 호출
     var brouterUrl = 'https://brouter.de/brouter?lonlats=' + encodeURIComponent(coordsStr) + '&profile=hiking-mountain&alternativeidx=0&format=geojson';
 
     fetch(brouterUrl).then(function(r) { return r.json(); }).then(function(data) {
       if (data && data.features && data.features.length > 0) {
         var coords = data.features[0].geometry.coordinates;
 
-        // [핵심 해결] 가짜 톱니바퀴선(generateReliableRidgePath)과 거리 제한(2.8x)을 완전 삭제!
-        // 거리가 아무리 길고 돌아가더라도 실제 등산로 그대로 100% 반영
         rawPathPoints = coords.map(function(c) {
           return new kakao.maps.LatLng(c[1], c[0]);
         });
@@ -1167,9 +1402,8 @@
         walkedDistKm = 0;
         remainDistKm = totalDistKm;
         updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
-        setStatusText('등산로 정밀 연결 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
+        setStatusText('등산로 연결 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
       } else {
-        // 경로가 아예 없는 비탐방 구역/절벽인 경우 직통 점선으로 단정하게 연결
         connectFallbackDirect();
       }
     }).catch(function() {
@@ -1177,7 +1411,6 @@
     });
   }
 
-  // 가짜 톱니선 대신 단정한 직통 점선 연결 폴백
   function connectFallbackDirect() {
     rawPathPoints = [];
     for (var i = 0; i < waypointCoords.length; i++) {
@@ -1192,9 +1425,6 @@
     setStatusText('등산로 연결 완료 (' + totalDistKm.toFixed(2) + 'km)', false);
   }
 
-  // ============================================================
-  // 전 구간 갈림길 사전 분석기 (TBT Planner)
-  // ============================================================
   function analyzeRouteForks(points) {
     plannedForks = [];
     if (!points || points.length < 6) return;
@@ -1261,7 +1491,9 @@
     var total = waypointCoords.length;
     for (var i = 0; i < total; i++) {
       var pt = waypointCoords[i];
+      var isPassed = waypointPassedStatus[i];
       var html = '';
+
       if (i === 0) {
         html = '<div class="ultra-pin-container">' +
                  '<div class="ultra-pin-badge pin-start">' +
@@ -1283,12 +1515,14 @@
                  '<div class="ultra-pin-caret"></div>' +
                '</div>';
       } else {
+        var badgeClass = isPassed ? "pin-via-passed" : "pin-via";
+        var tagText = isPassed ? "통과" : ("VIA " + i);
         html = '<div class="ultra-pin-container">' +
-                 '<div class="ultra-pin-badge pin-via">' +
+                 '<div class="ultra-pin-badge ' + badgeClass + '">' +
                    '<span class="pin-dot"></span>' +
-                   '<span class="pin-tag">VIA ' + i + '</span>' +
+                   '<span class="pin-tag">' + tagText + '</span>' +
                    '<span class="pin-divider"></span>' +
-                   '<span class="pin-name">경유</span>' +
+                   '<span class="pin-name">' + (isPassed ? "완료" : "경유") + '</span>' +
                  '</div>' +
                  '<div class="ultra-pin-caret"></div>' +
                '</div>';
@@ -1322,7 +1556,7 @@
   }
 
   // ============================================================
-  // [핵심] 스마트 경로 이탈 감지 및 TBT 내비게이션
+  // [정밀 내비게이션 & 도착 판정 엔진]
   // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
@@ -1339,18 +1573,51 @@
     updateMetricsDisplay(totalDistKm, walkedDistKm, remainDistKm);
 
     var finalDest = rawPathPoints[rawPathPoints.length - 1];
-    if (getDistanceBetween(currentLatLng, finalDest) <= 30) {
-      speak("목적지에 도착했습니다! 오늘 산행을 성공적으로 완료했습니다.");
+    var distToDest = getDistanceBetween(currentLatLng, finalDest);
+
+    var hudDest = document.getElementById('hud-dest');
+    if (hudDest) hudDest.textContent = Math.round(distToDest) + ' m';
+
+    // 55m 오차 흡수 도착 판정
+    var isArrived = (distToDest <= 55) || (remainDistKm <= 0.04 && distToDest <= 80);
+
+    if (isArrived) {
+      if ('vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 600]);
+
+      speak("목적지에 도착했습니다! 오늘 산행을 성공적으로 완료했습니다. 수고하셨습니다!");
+      setStatusText("🏆 목적지 도착 완료! 안전 산행 종료", false);
+
+      var durationMs = Date.now() - (hikeStartTime || Date.now());
+      var min = Math.floor(durationMs / 60000);
+      var sec = Math.floor((durationMs % 60000) / 1000);
+      var timeStr = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+
+      openCompletionModal(walkedDistKm, timeStr);
       toggleHiking();
       return;
     }
 
+    // 중간 경유지(VIA) 통과 자동 감지
+    for (var v = 1; v < waypointCoords.length - 1; v++) {
+      if (!waypointPassedStatus[v]) {
+        var distToVia = getDistanceBetween(currentLatLng, waypointCoords[v]);
+        if (distToVia <= 45) {
+          waypointPassedStatus[v] = true;
+          renderWaypointPins();
+          if ('vibrate' in navigator) navigator.vibrate([150, 80, 150]);
+          speak("제 " + v + " 경유지를 통과했습니다. 다음 목적지로 계속 진행하세요.");
+          setStatusText("✓ 제 " + v + " 경유지 통과 완료", false);
+          break;
+        }
+      }
+    }
+
+    // 스마트 경로 이탈 감지
     var minTrailDist = getMinDistanceToRoute(currentLatLng, rawPathPoints);
     var now = Date.now();
     var panel = document.getElementById('rt-bottom-panel');
     var radarDot = document.getElementById('mini-radar-dot');
 
-    // [스마트 이탈 필터] 일시적 GPS 오차를 거르고 2연속 45m 초과 시에만 경보
     if (minTrailDist > 45) {
       offTrailConsecutiveCount++;
       if (offTrailConsecutiveCount >= 2) {
@@ -1469,13 +1736,16 @@
       label.textContent = '모의산행 중지';
 
       plannedForks.forEach(function(f) { f.announced = false; });
+      for (var k = 0; k < waypointPassedStatus.length; k++) waypointPassedStatus[k] = false;
+      renderWaypointPins();
+
       offTrailConsecutiveCount = 0;
       isOffTrail = false;
 
       if (!isHiking) toggleHiking();
 
       simStepIndex = 0;
-      speak('모의 산행을 시작합니다. 갈림길 안내가 활성화됩니다.');
+      speak('모의 산행을 시작합니다. 경유지와 도착지 안내가 활성화됩니다.');
 
       simInterval = setInterval(function() {
         if (simStepIndex >= rawPathPoints.length) {
@@ -1537,6 +1807,7 @@
       analyzeRouteForks(rawPathPoints);
 
       waypointCoords = [rawPathPoints[0], rawPathPoints[rawPathPoints.length - 1]];
+      waypointPassedStatus = [false, false];
       drawPolyline(rawPathPoints);
       renderWaypointPins();
 
@@ -1581,11 +1852,16 @@
     speak('등산로 GPX 파일이 다운로드되었습니다.');
   }
 
+  // ============================================================
+  // [Step 1 통합] GPS 트래킹 + 칼만 필터 + HMM 맵 매칭 파이프라인
+  // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(function(pos) {
-      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      // 1단계: 초기 좌표 칼만 필터 등록
+      var kResult = kalmanEngine.filter(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 15);
+      currentUserPos = new kakao.maps.LatLng(kResult.lat, kResult.lng);
       currentUserAlt = pos.coords.altitude;
 
       if (!hasInitialCentered) {
@@ -1597,22 +1873,73 @@
     }, function() {}, { enableHighAccuracy: true, timeout: 6000 });
 
     watchId = navigator.geolocation.watchPosition(function(pos) {
-      if (pos.coords.accuracy > 50) return;
+      var rawAcc = pos.coords.accuracy || 15;
+      var hudAcc = document.getElementById('hud-acc');
+      if (hudAcc) hudAcc.textContent = Math.round(rawAcc) + ' m';
 
-      currentUserPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      if (rawAcc > 55) return; // 심각한 위성 오차 신호 컷오프
+
+      // 1. [2D 칼만 필터] 위성 튐 및 급발진 수학적 억제
+      var kResult = kalmanEngine.filter(pos.coords.latitude, pos.coords.longitude, rawAcc);
+      var kalmanLatLng = new kakao.maps.LatLng(kResult.lat, kResult.lng);
       currentUserAlt = pos.coords.altitude;
+
+      var hudKalman = document.getElementById('hud-kalman');
+      if (hudKalman) hudKalman.textContent = 'ACTIVE (' + kResult.lat.toFixed(4) + ')';
+
+      // 2. [HMM 자석 맵 매칭] 산행 진행 중일 때 등산로 선 위로 자석 흡착
+      var finalPos = kalmanLatLng;
+      var hudSnap = document.getElementById('hud-snap');
+
+      if (isHiking && rawPathPoints.length >= 2) {
+        var snapResult = trailMatcher.snapToTrail(kalmanLatLng, rawPathPoints);
+        finalPos = snapResult.pos;
+
+        if (hudSnap) {
+          if (snapResult.isSnapped) {
+            hudSnap.textContent = 'SNAPPED (' + Math.round(snapResult.dist) + 'm)';
+            hudSnap.style.color = 'var(--accent-cyan)';
+          } else {
+            hudSnap.textContent = 'OFF-TRAIL (' + Math.round(snapResult.dist) + 'm)';
+            hudSnap.style.color = 'var(--accent-red)';
+          }
+        }
+      } else {
+        if (hudSnap) {
+          hudSnap.textContent = 'STANDBY';
+          hudSnap.style.color = 'var(--text-tertiary)';
+        }
+      }
+
+      currentUserPos = finalPos;
       document.getElementById('txt-gps').textContent = '실시간 GPS';
-      updateGpsMarker(currentUserPos);
+      updateGpsMarker(finalPos);
 
-      if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
-        currentHeading = pos.coords.heading;
-        updateHeadingArrow(currentHeading);
+      // 보행 속도 판정
+      if (pos.coords.speed !== null && !isNaN(pos.coords.speed)) {
+        currentSpeedKmh = pos.coords.speed * 3.6;
+        isUserWalking = currentSpeedKmh >= 1.5;
+        var hudSpeed = document.getElementById('hud-speed');
+        if (hudSpeed) hudSpeed.textContent = currentSpeedKmh.toFixed(1) + ' km/h';
       }
 
+      // 보행 중 GPS 방향각 우선 적용
+      if (isUserWalking && pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+        var diff = pos.coords.heading - smoothedHeading;
+        while (diff < -180) diff += 360;
+        while (diff > 180) diff -= 360;
+        smoothedHeading = (smoothedHeading + diff * 0.35 + 360) % 360;
+        updateHeadingArrow(smoothedHeading);
+
+        var hudHead = document.getElementById('hud-head');
+        if (hudHead) hudHead.textContent = Math.round(smoothedHeading) + '° (GPS)';
+      }
+
+      // 보정된 완벽한 좌표로 내비게이션 엔진 구동
       if (isHiking && !isSimulating) {
-        updateHikingNavigation(currentUserPos);
+        updateHikingNavigation(finalPos);
       }
-    }, function() {}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 });
+    }, function() {}, { enableHighAccuracy: true, maximumAge: 1500, timeout: 7000 });
   }
 
   function updateGpsMarker(pos) {
@@ -1717,6 +2044,7 @@
         if (rawPathPoints.length === 0) {
           rawPathPoints.push(res.latlng);
           waypointCoords = [res.latlng];
+          waypointPassedStatus = [false];
           renderWaypointPins();
         }
         lastAddedPixel = { x: res.x, y: res.y };
@@ -1733,6 +2061,7 @@
           if (rawPathPoints.length >= 2) {
             drawPolyline(rawPathPoints);
             waypointCoords = [rawPathPoints[0], rawPathPoints[rawPathPoints.length - 1]];
+            waypointPassedStatus = [false, false];
             renderWaypointPins();
             totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
             walkedDistKm = 0;
@@ -1773,6 +2102,7 @@
   function undoLastPoint() {
     if (waypointCoords.length > 0 && !isDrawing) {
       waypointCoords.pop();
+      waypointPassedStatus.pop();
       if (waypointCoords.length >= 2) {
         calculateAccurateTrail();
       } else if (waypointCoords.length === 1) {
@@ -1795,6 +2125,7 @@
         analyzeRouteForks(rawPathPoints);
         drawPolyline(rawPathPoints);
         waypointCoords = [rawPathPoints[0], rawPathPoints[rawPathPoints.length - 1]];
+        waypointPassedStatus = [false, false];
         renderWaypointPins();
         totalDistKm = activePolyline ? (activePolyline.getLength() / 1000.0) : 0;
         walkedDistKm = 0;
@@ -1819,9 +2150,11 @@
   function resetRouteSilent() {
     rawPathPoints = [];
     waypointCoords = [];
+    waypointPassedStatus = [];
     plannedForks = [];
     offTrailConsecutiveCount = 0;
     isOffTrail = false;
+    kalmanEngine.reset();
     if (activePolyline) { activePolyline.setMap(null); activePolyline = null; }
     waypointOverlays.forEach(function(ov) { ov.setMap(null); });
     waypointOverlays = [];
@@ -1852,8 +2185,12 @@
       lastUserPos = currentUserPos;
       isOffTrail = false;
       offTrailConsecutiveCount = 0;
+      hikeStartTime = Date.now();
+      kalmanEngine.reset();
 
       plannedForks.forEach(function(f) { f.announced = false; });
+      for (var k = 0; k < waypointPassedStatus.length; k++) waypointPassedStatus[k] = false;
+      renderWaypointPins();
 
       btn.className = 'ultra-action-btn btn-active';
       label.textContent = '산행 진행 중 (터치 시 종료)';
