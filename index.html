@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0f">
-<title>HIKER ULTRA v7.8 (Kalman & HMM Map-Matching Edition)</title>
+<title>HIKER ULTRA v7.9 (Heading-Up Navigation Edition)</title>
 <!-- [카카오 지도 API 연동] -->
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=fd3700902efcb45ab6ee8c1baf09338a&libraries=services"></script>
 <style>
@@ -29,7 +29,25 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #080a0f; font-family: var(--font-stack); }
   
-  #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #080a0f; }
+  /* [핵심] 360도 회전 시 여백 없는 맵 컨테이너 구조 */
+  #map-viewport {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    background: #080a0f;
+  }
+  #map {
+    position: absolute;
+    width: 190vmax;
+    height: 190vmax;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    transform-origin: center center;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
   #rt-draw-layer {
     position: absolute;
@@ -187,7 +205,7 @@
     display: none;
     box-shadow: 0 10px 25px rgba(0,0,0,0.7);
     pointer-events: none;
-    max-width: 230px;
+    max-width: 235px;
   }
   .hud-row { display: flex; justify-content: space-between; gap: 8px; }
   .hud-val { color: #fff; font-weight: bold; }
@@ -775,7 +793,9 @@
 </head>
 <body>
 
-<div id="map"></div>
+<div id="map-viewport">
+  <div id="map"></div>
+</div>
 <div id="rt-draw-layer"></div>
 <input type="file" id="gpx-file-input" accept=".gpx" onchange="handleGpxFileSelect(event)">
 
@@ -785,6 +805,7 @@
   <div class="hud-row"><span>GPS Accuracy:</span><span class="hud-val" id="hud-acc">-- m</span></div>
   <div class="hud-row"><span>Kalman State:</span><span class="hud-val" id="hud-kalman" style="color:var(--accent-green);">ACTIVE</span></div>
   <div class="hud-row"><span>Map Snap:</span><span class="hud-val" id="hud-snap">STANDBY</span></div>
+  <div class="hud-row"><span>Nav Mode:</span><span class="hud-val" id="hud-navmode" style="color:var(--accent-cyan);">HEADING-UP</span></div>
   <div class="hud-row"><span>Smoothed Head:</span><span class="hud-val" id="hud-head">-- °</span></div>
   <div class="hud-row"><span>Speed:</span><span class="hud-val" id="hud-speed">-- km/h</span></div>
   <div class="hud-row"><span>Dest Remain:</span><span class="hud-val" id="hud-dest">-- m</span></div>
@@ -809,6 +830,11 @@
     <span class="ultra-gps-dot"></span>
     <span id="txt-gps">GPS 연결 대기</span>
   </div>
+
+  <!-- [신규] 진행 방향(내비) 모드 vs 북쪽 고정 모드 토글 버튼 -->
+  <button class="ultra-icon-btn active" id="btn-heading-mode" onclick="toggleHeadingUpMode()" title="진행 방향 모드 (자동차 내비식 회전)">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 19 21 12 17 5 21 12 2"></polygon></svg>
+  </button>
   
   <button class="ultra-icon-btn active" id="btn-skyview" onclick="toggleSkyview()" title="스카이뷰">
     <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -917,17 +943,17 @@
     </div>
 
     <div class="ultra-footer">
-      <div class="ultra-footer-hint">※ 2D 칼만 필터 & HMM 등산로 자석 맵 매칭 엔진 가동 중</div>
+      <div class="ultra-footer-hint">※ 자동차 내비식 진행 방향(Heading-Up) 회전 엔진 탑재</div>
       <div class="ultra-statlab-badge">
         <span class="badge-chip-pro">PRO</span>
         <span class="badge-chip-lab">STAT LAB</span>
-        <span class="badge-chip-ver">v7.8</span>
+        <span class="badge-chip-ver">v7.9</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 법적 고지 모달 -->
+<!-- 모달 -->
 <div class="ultra-modal-overlay" id="ultra-legal-modal" onclick="closeLegalModal(event)">
   <div class="ultra-modal-card" onclick="event.stopPropagation()">
     <div class="ultra-modal-header">
@@ -1031,17 +1057,14 @@
 </div>
 
 <script>
-  // ============================================================
-  // [Step 1 핵심 클래스] 2D 칼만 필터 (Kalman Filter)
-  // ============================================================
+  // 2D 칼만 필터
   class GPSKalmanFilter {
-    constructor(processNoise = 3.0) {
-      this.q = processNoise; // 보행 프로세스 노이즈
+    constructor(processNoise = 2.5) {
+      this.q = processNoise;
       this.lat = null;
       this.lng = null;
       this.variance = -1;
     }
-
     filter(lat, lng, accuracy) {
       if (this.lat === null) {
         this.lat = lat;
@@ -1049,21 +1072,14 @@
         this.variance = accuracy * accuracy;
         return { lat, lng };
       }
-
-      // 시간 경과에 따른 분산 예측
       this.variance += this.q;
-
-      // 칼만 이득(K) 산출 및 측정치 반영
       const r = Math.max(accuracy * accuracy, 1.0);
       const k = this.variance / (this.variance + r);
-
       this.lat += k * (lat - this.lat);
       this.lng += k * (lng - this.lng);
       this.variance = (1 - k) * this.variance;
-
       return { lat: this.lat, lng: this.lng };
     }
-
     reset() {
       this.lat = null;
       this.lng = null;
@@ -1071,19 +1087,15 @@
     }
   }
 
-  // ============================================================
-  // [Step 1 핵심 클래스] HMM 기반 등산로 자석 맵 매칭 (Snap-to-Trail)
-  // ============================================================
+  // HMM 기반 등산로 자석 맵 매칭
   class TrailMapMatcher {
     constructor(maxSnapDistMeters = 40) {
-      this.maxSnapDist = maxSnapDistMeters; // 40m 이내 자석 흡착
+      this.maxSnapDist = maxSnapDistMeters;
     }
-
     snapToTrail(targetLatLng, routePoints) {
       if (!routePoints || routePoints.length < 2) {
         return { pos: targetLatLng, isSnapped: false, dist: 0 };
       }
-
       let minDistance = Infinity;
       let bestSnappedPoint = targetLatLng;
       const p = { lat: targetLatLng.getLat(), lng: targetLatLng.getLng() };
@@ -1091,20 +1103,16 @@
       for (let i = 0; i < routePoints.length - 1; i++) {
         const v = { lat: routePoints[i].getLat(), lng: routePoints[i].getLng() };
         const w = { lat: routePoints[i + 1].getLat(), lng: routePoints[i + 1].getLng() };
-
-        // 선분 v-w에 수선의 발 투영 연산
         const l2 = Math.pow(this.getDistanceMeters(v, w), 2);
         let t = 0;
         if (l2 > 0) {
           t = ((p.lat - v.lat) * (w.lat - v.lat) + (p.lng - v.lng) * (w.lng - v.lng)) /
               (Math.pow(w.lat - v.lat, 2) + Math.pow(w.lng - v.lng, 2));
-          t = Math.max(0, Math.min(1, t)); // 선분 내부 제한
+          t = Math.max(0, Math.min(1, t));
         }
-
         const projLat = v.lat + t * (w.lat - v.lat);
         const projLng = v.lng + t * (w.lng - v.lng);
         const projPoint = { lat: projLat, lng: projLng };
-
         const dist = this.getDistanceMeters(p, projPoint);
         if (dist < minDistance) {
           minDistance = dist;
@@ -1112,14 +1120,12 @@
         }
       }
 
-      // 허용 반경 내에 있을 때만 등산로로 강제 흡착
       if (minDistance <= this.maxSnapDist) {
         return { pos: bestSnappedPoint, isSnapped: true, dist: minDistance };
       } else {
         return { pos: targetLatLng, isSnapped: false, dist: minDistance };
       }
     }
-
     getDistanceMeters(p1, p2) {
       const R = 6371000;
       const dLat = (p2.lat - p1.lat) * Math.PI / 180;
@@ -1131,13 +1137,16 @@
     }
   }
 
-  // 인스턴스 초기화
   const kalmanEngine = new GPSKalmanFilter(2.5);
   const trailMatcher = new TrailMapMatcher(40);
 
   var map = null, ps = null;
   var isSkyview = true, isTerrain = false, isVoiceOn = true;
   var isDrawing = false, isHiking = false, isPanelCollapsed = false;
+
+  // [신규] 진행 방향(내비) 모드 vs 북쪽 고정 모드 변수
+  var isHeadingUpMode = true;
+  var currentContinuousMapAngle = 0; // 360도 경계선 회전 점프 방지용 누적 각도
 
   var rawPathPoints = [];
   var waypointCoords = [];
@@ -1185,6 +1194,57 @@
         icon.style.stroke = 'var(--accent-cyan)';
       }
     }
+  }
+
+  // ============================================================
+  // [핵심] 진행 방향(내비) 모드 vs 북쪽 고정 모드 토글
+  // ============================================================
+  function toggleHeadingUpMode() {
+    isHeadingUpMode = !isHeadingUpMode;
+    var btn = document.getElementById('btn-heading-mode');
+    var hudMode = document.getElementById('hud-navmode');
+
+    if (isHeadingUpMode) {
+      btn.classList.add('active');
+      if (hudMode) hudMode.textContent = 'HEADING-UP';
+      speak('진행 방향 모드로 전환합니다.');
+      setStatusText('진행 방향(내비) 모드 활성화됨', false);
+      applyContinuousMapRotation(smoothedHeading);
+      if (currentUserPos && map) map.panTo(currentUserPos);
+    } else {
+      btn.classList.remove('active');
+      if (hudMode) hudMode.textContent = 'NORTH-UP';
+      speak('북쪽 고정 모드로 전환합니다.');
+      setStatusText('북쪽 고정 모드로 전환됨', false);
+      resetMapRotation();
+    }
+  }
+
+  // [알고리즘] 최단 회전각 보간 및 맵 회전 렌더링
+  function applyContinuousMapRotation(headingDeg) {
+    var mapEl = document.getElementById('map');
+    if (!mapEl) return;
+
+    if (!isHeadingUpMode) {
+      resetMapRotation();
+      return;
+    }
+
+    // 내가 바라보는 각도가 화면 12시(위쪽)로 오려면 지도는 -heading 만큼 회전
+    var targetAngle = -headingDeg;
+    var diff = (targetAngle - currentContinuousMapAngle) % 360;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    currentContinuousMapAngle += diff;
+    mapEl.style.transform = 'translate(-50%, -50%) rotate(' + currentContinuousMapAngle + 'deg)';
+  }
+
+  function resetMapRotation() {
+    var mapEl = document.getElementById('map');
+    if (!mapEl) return;
+    currentContinuousMapAngle = 0;
+    mapEl.style.transform = 'translate(-50%, -50%) rotate(0deg)';
   }
 
   function toggleBlackboxHud() {
@@ -1339,6 +1399,7 @@
         smoothedHeading = (smoothedHeading + diff * 0.2 + 360) % 360;
 
         updateHeadingArrow(smoothedHeading);
+        applyContinuousMapRotation(smoothedHeading);
 
         var hudHead = document.getElementById('hud-head');
         if (hudHead) hudHead.textContent = Math.round(smoothedHeading) + '° (Compass)';
@@ -1350,9 +1411,6 @@
     startGpsTracking();
   }
 
-  // ============================================================
-  // [1-Tap 라우팅] 모든 경유지/봉우리 100% 방문 연결
-  // ============================================================
   function handleSingleTapWaypoint(latlng) {
     waypointCoords.push(latlng);
     waypointPassedStatus.push(false);
@@ -1555,9 +1613,6 @@
     activePolyline.setMap(map);
   }
 
-  // ============================================================
-  // [정밀 내비게이션 & 도착 판정 엔진]
-  // ============================================================
   function updateHikingNavigation(currentLatLng) {
     if (!isHiking || rawPathPoints.length < 2) return;
 
@@ -1745,7 +1800,7 @@
       if (!isHiking) toggleHiking();
 
       simStepIndex = 0;
-      speak('모의 산행을 시작합니다. 경유지와 도착지 안내가 활성화됩니다.');
+      speak('모의 산행을 시작합니다. 진행 방향 모드로 지도가 회전합니다.');
 
       simInterval = setInterval(function() {
         if (simStepIndex >= rawPathPoints.length) {
@@ -1760,8 +1815,15 @@
         currentUserPos = pt;
         updateGpsMarker(pt);
         map.panTo(pt);
-        updateHikingNavigation(pt);
 
+        // 시뮬레이션 중에도 진행 방향 계산 및 지도 자동 회전
+        if (simStepIndex < rawPathPoints.length - 1) {
+          var simHeading = getBearing(pt, rawPathPoints[simStepIndex + 1]);
+          updateHeadingArrow(simHeading);
+          applyContinuousMapRotation(simHeading);
+        }
+
+        updateHikingNavigation(pt);
         simStepIndex++;
       }, 550);
     } else {
@@ -1853,13 +1915,12 @@
   }
 
   // ============================================================
-  // [Step 1 통합] GPS 트래킹 + 칼만 필터 + HMM 맵 매칭 파이프라인
+  // [GPS 수신 & 실시간 지도 회전 연동]
   // ============================================================
   function startGpsTracking() {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(function(pos) {
-      // 1단계: 초기 좌표 칼만 필터 등록
       var kResult = kalmanEngine.filter(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 15);
       currentUserPos = new kakao.maps.LatLng(kResult.lat, kResult.lng);
       currentUserAlt = pos.coords.altitude;
@@ -1877,17 +1938,17 @@
       var hudAcc = document.getElementById('hud-acc');
       if (hudAcc) hudAcc.textContent = Math.round(rawAcc) + ' m';
 
-      if (rawAcc > 55) return; // 심각한 위성 오차 신호 컷오프
+      if (rawAcc > 55) return;
 
-      // 1. [2D 칼만 필터] 위성 튐 및 급발진 수학적 억제
+      // 1. 칼만 필터
       var kResult = kalmanEngine.filter(pos.coords.latitude, pos.coords.longitude, rawAcc);
       var kalmanLatLng = new kakao.maps.LatLng(kResult.lat, kResult.lng);
       currentUserAlt = pos.coords.altitude;
 
       var hudKalman = document.getElementById('hud-kalman');
-      if (hudKalman) hudKalman.textContent = 'ACTIVE (' + kResult.lat.toFixed(4) + ')';
+      if (hudKalman) hudKalman.textContent = 'ACTIVE';
 
-      // 2. [HMM 자석 맵 매칭] 산행 진행 중일 때 등산로 선 위로 자석 흡착
+      // 2. 등산로 자석 맵 매칭
       var finalPos = kalmanLatLng;
       var hudSnap = document.getElementById('hud-snap');
 
@@ -1923,19 +1984,25 @@
         if (hudSpeed) hudSpeed.textContent = currentSpeedKmh.toFixed(1) + ' km/h';
       }
 
-      // 보행 중 GPS 방향각 우선 적용
+      // 보행 중 GPS 방향각 적용 & 지도 실시간 회전
       if (isUserWalking && pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
         var diff = pos.coords.heading - smoothedHeading;
         while (diff < -180) diff += 360;
         while (diff > 180) diff -= 360;
         smoothedHeading = (smoothedHeading + diff * 0.35 + 360) % 360;
+
         updateHeadingArrow(smoothedHeading);
+        applyContinuousMapRotation(smoothedHeading);
 
         var hudHead = document.getElementById('hud-head');
         if (hudHead) hudHead.textContent = Math.round(smoothedHeading) + '° (GPS)';
       }
 
-      // 보정된 완벽한 좌표로 내비게이션 엔진 구동
+      // 진행 방향 모드일 때는 걷는 내 위치를 화면 중앙에 유지
+      if (isHeadingUpMode && isHiking) {
+        map.panTo(finalPos);
+      }
+
       if (isHiking && !isSimulating) {
         updateHikingNavigation(finalPos);
       }
@@ -1963,6 +2030,7 @@
   function panToUserLocation() {
     if (currentUserPos) {
       map.panTo(currentUserPos);
+      if (isHeadingUpMode) applyContinuousMapRotation(smoothedHeading);
       speak('내 위치로 이동합니다.');
     } else {
       alert('현재 GPS 위치 정보를 수신 중입니다.');
@@ -2083,6 +2151,8 @@
     var drawLayer = document.getElementById('rt-draw-layer');
 
     if (isDrawing) {
+      // 그리기 모드 진입 시에는 북쪽 고정으로 잠시 전환하여 그리기 편하게 보정
+      resetMapRotation();
       drawLayer.style.display = 'block';
       if (map) { map.setDraggable(false); map.setZoomable(false); }
       btn.classList.add('drawing');
@@ -2096,6 +2166,7 @@
       btn.querySelector('span').textContent = '길따라 그리기';
       setStatusText('그리기 모드 종료', false);
       speak('그리기 모드가 종료되었습니다.');
+      if (isHeadingUpMode) applyContinuousMapRotation(smoothedHeading);
     }
   }
 
@@ -2194,7 +2265,7 @@
 
       btn.className = 'ultra-action-btn btn-active';
       label.textContent = '산행 진행 중 (터치 시 종료)';
-      setStatusText('실시간 산행 진행 중 · 안전 산행 되세요', false);
+      setStatusText('실시간 산행 진행 중 · 진행 방향 내비 가동', false);
       if (miniText) { miniText.textContent = '진행 중'; miniText.style.color = 'var(--accent-orange)'; }
       if (miniDot) miniDot.className = 'radar-dot dot-active';
       speak('안전 산행을 시작합니다.');
